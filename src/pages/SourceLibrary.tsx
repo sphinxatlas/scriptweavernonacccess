@@ -12,6 +12,7 @@ export default function SourceLibrary() {
 
   const books = files.filter((f) => f.file_type === "book");
   const transcripts = files.filter((f) => f.file_type === "transcript");
+  const lexicon = files.filter((f) => f.file_type === "lexicon");
   const instructions = files.filter((f) => f.file_type === "instructions");
 
   const indexedCount = files.filter((f) => f.status === "indexed").length;
@@ -47,6 +48,16 @@ export default function SourceLibrary() {
             description="Upload movie transcript files. These provide dialogue and scene descriptions for reference."
             files={transcripts}
             onRefresh={refetch}
+          />
+
+          <FileUploadCard
+            fileType="lexicon"
+            title="📖 Lexicon"
+            description="Upload Lexicon reference files (.txt). These serve as secondary reference only — used for context, chronology, and discovery, never as primary canon."
+            accept=".txt"
+            files={lexicon}
+            onRefresh={refetch}
+            badge="Secondary Reference"
           />
 
           <FileUploadCard

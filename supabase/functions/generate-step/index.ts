@@ -6,49 +6,83 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const SOURCE_HIERARCHY_INSTRUCTION = `
+IMPORTANT SOURCE HIERARCHY RULES:
+- Books = PRIMARY source (highest priority)
+- Movie Transcripts = PRIMARY source (highest priority)  
+- Lexicon = SECONDARY reference only (lower priority)
+- Script Instructions = behavior and style guidance only
+
+The Lexicon is a secondary reference source only. Use it to support context, chronology, orientation, and discovery. Do not treat it as equal to the Harry Potter books or movie transcripts. Prioritize books and movie transcripts for canon claims, exact quotes, and core comparisons. Never present Lexicon wording as if it were direct text from the novels or films.
+
+When citing evidence:
+- Clearly label whether evidence comes from a book, movie transcript, or Lexicon
+- If Lexicon is used, label it as "secondary support"
+- Never present Lexicon text as primary canon
+- Never use Lexicon as a substitute for direct quotes from books or films
+- If a major claim relies mainly on Lexicon, flag it as needing primary confirmation
+`;
+
 const STEP_PROMPTS: Record<string, string> = {
   evidence_table: `You are a research assistant for YouTube script writing about Harry Potter.
 Given the topic brief and source material excerpts, create a detailed EVIDENCE TABLE in markdown format.
 
 The table should have these columns:
-| Source | Quote/Evidence | Relevance | Notes |
+| Source | Source Type | Priority | Quote/Evidence | Relevance | Notes |
 
-Include direct quotes from the source material with page/chapter references where possible.
-Focus on evidence that directly supports or relates to the topic brief.
-Aim for 15-25 evidence entries.`,
+${SOURCE_HIERARCHY_INSTRUCTION}
+
+- Prioritize book and movie transcript passages as primary evidence
+- Use Lexicon only to help identify useful angles or support background context
+- If Lexicon contributes to a point, explicitly label it as "Secondary Support" in the Priority column
+- Never invent quotes
+- Never blur the difference between primary and secondary sources
+- Aim for 15-25 evidence entries, with the majority from primary sources`,
 
   analysis_memo: `You are a script analysis expert for Harry Potter YouTube content.
 Given the topic brief, evidence table, and source material, write an ANALYSIS MEMO.
+
+${SOURCE_HIERARCHY_INSTRUCTION}
 
 The memo should:
 - Synthesize the evidence into key themes and arguments
 - Identify patterns, contradictions, and interesting angles
 - Suggest the strongest narrative thread for a YouTube script
 - Note any gaps in evidence that need addressing
+- Clearly distinguish between claims grounded in primary sources vs secondary Lexicon support
 - Be 800-1500 words`,
 
   outline: `You are a YouTube script outline specialist for Harry Potter content.
 Given the topic brief, evidence, and analysis memo, create a detailed SCRIPT OUTLINE.
+
+${SOURCE_HIERARCHY_INSTRUCTION}
 
 Format:
 ## Hook (0:00-0:30)
 ## Introduction (0:30-2:00)
 ## Section 1: [Title]
   - Key points
-  - Evidence to cite
+  - Evidence to cite (note source type: Book/Transcript/Lexicon)
   - Transition
 ## Section 2: [Title]
 ...
 ## Conclusion
 ## Call to Action
 
-Include timing estimates and specific evidence citations for each section.`,
+Include timing estimates and specific evidence citations for each section.
+Mark any Lexicon-derived points as secondary support.`,
 
   full_script: `You are a professional YouTube scriptwriter specializing in Harry Potter analysis content.
 Given the topic brief, evidence, analysis, and outline, write a FULL SCRIPT.
 
+${SOURCE_HIERARCHY_INSTRUCTION}
+
 Requirements:
 - Conversational but authoritative tone
+- Build the script primarily from books and movie transcripts
+- Allow Lexicon only as secondary contextual support
+- Do not include Lexicon-derived wording as if it were canon dialogue or narration
+- If Lexicon shaped the interpretation, keep the final script grounded in primary evidence
 - Include specific quotes and evidence from source material
 - Add [B-ROLL], [CUT TO], [GRAPHIC] annotations for video editing
 - Include natural transitions between sections
@@ -59,17 +93,22 @@ Requirements:
   verification: `You are a fact-checker and script verifier for Harry Potter YouTube content.
 Given the full script and source material, create a VERIFICATION REPORT.
 
-For each claim or quote in the script:
-1. ✅ VERIFIED - Found in source material (cite specific source)
-2. ⚠️ PARAPHRASED - Based on source but reworded (cite source, note differences)
-3. ❌ UNVERIFIED - Cannot find in provided source material
-4. 📝 OPINION - Analytical statement (not verifiable, but assess reasonableness)
+${SOURCE_HIERARCHY_INSTRUCTION}
 
-Also note:
-- Any factual errors
+For each claim or quote in the script:
+1. ✅ VERIFIED - Found in primary source material (cite specific book or transcript)
+2. ⚠️ PARAPHRASED - Based on primary source but reworded (cite source, note differences)
+3. 📚 LEXICON SUPPORTED - Supported by Lexicon only (flag as secondary, note if primary confirmation needed)
+4. ❌ UNVERIFIED - Cannot find in provided source material
+5. 📝 OPINION - Analytical statement (not verifiable, but assess reasonableness)
+
+Additional checks:
+- If a claim relies mainly on Lexicon, flag it as "secondary support only — needs primary confirmation"
+- Do not mark a claim as fully verified if it depends only on Lexicon
+- Note any factual errors
 - Inconsistencies within the script
 - Suggestions for stronger evidence
-- Overall accuracy score (percentage of verified claims)`,
+- Overall accuracy score (percentage of verified claims from primary sources)`,
 };
 
 const STEP_ORDER = ["evidence_table", "analysis_memo", "outline", "full_script", "verification"];
@@ -96,7 +135,7 @@ serve(async (req) => {
       .single();
     if (briefError || !brief) throw new Error("Brief not found");
 
-    // Search for relevant chunks
+    // Search for relevant chunks (already ordered by source priority in DB function)
     const { data: chunks } = await supabase.rpc("search_chunks", {
       search_query: `${brief.title} ${brief.description}`,
       max_results: 30,
@@ -129,10 +168,23 @@ serve(async (req) => {
       .in("step_type", previousSteps)
       .order("created_at");
 
-    // Build context
-    const sourceContext = chunks && chunks.length > 0
-      ? chunks.map((c: any) => `[${c.file_name} - ${c.file_type}]\n${c.content}`).join("\n\n---\n\n")
-      : "No relevant source material found. Generate based on general Harry Potter knowledge.";
+    // Build context - group by source type for clarity
+    let sourceContext = "No relevant source material found. Generate based on general Harry Potter knowledge.";
+    if (chunks && chunks.length > 0) {
+      const primaryChunks = chunks.filter((c: any) => c.file_type === 'book' || c.file_type === 'transcript');
+      const lexiconChunks = chunks.filter((c: any) => c.file_type === 'lexicon');
+
+      const sections: string[] = [];
+      if (primaryChunks.length > 0) {
+        sections.push("### PRIMARY SOURCES (Books & Transcripts)\n" +
+          primaryChunks.map((c: any) => `[${c.file_name} - ${c.file_type.toUpperCase()} - PRIMARY]\n${c.content}`).join("\n\n---\n\n"));
+      }
+      if (lexiconChunks.length > 0) {
+        sections.push("### SECONDARY REFERENCE (Lexicon — use for context/support only, NOT as primary canon)\n" +
+          lexiconChunks.map((c: any) => `[${c.file_name} - LEXICON - SECONDARY]\n${c.content}`).join("\n\n---\n\n"));
+      }
+      sourceContext = sections.join("\n\n========\n\n");
+    }
 
     const instructionContext = instructionChunks.length > 0
       ? instructionChunks.map(c => c.content).join("\n\n")
