@@ -45,6 +45,7 @@ This is a Book vs Movie Comparison analysis. You MUST:
 const STEP_PROMPTS: Record<string, string> = {
   retrieval: `You are a retrieval layer for a source-grounded Harry Potter research engine.
 Use ONLY the uploaded and indexed source files provided below.
+Use the provided retrieval query pack (compact derived queries), not full brief prose, as search intent.
 Search across the full uploaded primary corpus by default: all books, all movie transcripts.
 Use Lexicon only as secondary support.
 Do NOT use general Harry Potter knowledge.
@@ -79,9 +80,11 @@ For each relevant passage:
 
 If NO source material is provided below, return ONLY:
 ## Retrieval Failure Report
-- **Status**: Zero indexed matches found
+- **Status**: No indexed matches found for the derived query pack
 - **Source types searched**: [list]
-- **Query used**: [the search query]
+- **Filters applied**: [list]
+- **Primary query**: [primary compact query]
+- **Compact queries used**: [list]
 - **Likely reason**: [assessment of why no matches were found]
 Do NOT generate placeholder evidence. Do NOT proceed based on general knowledge.`,
 
@@ -203,6 +206,160 @@ Additional checks:
 
 const STEP_ORDER = ["retrieval", "evidence_table", "analysis_memo", "outline", "full_script", "verification"];
 
+type SearchSourceType = "book" | "transcript" | "lexicon";
+
+type QueryPack = {
+  primaryQuery: string;
+  subqueries: string[];
+  characterQueries: string[];
+  themeQueries: string[];
+  comparisonQueries: string[];
+  allQueries: string[];
+};
+
+const STOP_WORDS = new Set([
+  "a", "an", "the", "and", "or", "but", "of", "to", "for", "in", "on", "at", "with", "by", "from", "that", "this", "these", "those", "is", "are", "was", "were", "be", "been", "being", "as", "it", "its", "into", "about", "across", "would", "should", "could", "can", "will", "video", "argues", "show", "shows",
+]);
+
+const normalizeWhitespace = (value: string) => value.replace(/\s+/g, " ").trim();
+
+const dedupeStrings = (values: string[], limit?: number) => {
+  const seen = new Set<string>();
+  const out: string[] = [];
+
+  for (const raw of values) {
+    const v = normalizeWhitespace(raw);
+    if (!v) continue;
+    const key = v.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(v);
+    if (limit && out.length >= limit) break;
+  }
+
+  return out;
+};
+
+const compressPhrase = (value: string, maxTerms = 8) => {
+  const normalized = normalizeWhitespace(value)
+    .replace(/[^a-zA-Z0-9\s-]/g, " ")
+    .toLowerCase();
+
+  const terms = normalized
+    .split(/\s+/)
+    .filter((t) => t && t.length > 2 && !STOP_WORDS.has(t));
+
+  return dedupeStrings(terms, maxTerms).join(" ");
+};
+
+const getPrimaryCharacter = (characters: string[]) => {
+  const first = characters[0];
+  if (!first) return "Harry";
+  return normalizeWhitespace(first.split(",")[0]) || "Harry";
+};
+
+const deriveRetrievalQueryPack = (brief: any): QueryPack => {
+  const title = normalizeWhitespace(brief.title || "");
+  const thesis = normalizeWhitespace(brief.thesis || "");
+  const proofGoal = normalizeWhitespace(brief.proof_goal || "");
+  const focusAreas = (brief.focus_areas || []).map((v: string) => normalizeWhitespace(v)).filter(Boolean);
+  const characters = (brief.characters || []).map((v: string) => normalizeWhitespace(v)).filter(Boolean);
+
+  const primaryCharacter = getPrimaryCharacter(characters);
+  const primaryQuery =
+    compressPhrase([title, thesis, proofGoal].filter(Boolean).join(" "), 10) ||
+    compressPhrase(title, 8) ||
+    "harry potter characterization";
+
+  const themeQueries = dedupeStrings(
+    focusAreas.map((area: string) => compressPhrase(area, 6)).filter(Boolean),
+    8,
+  );
+
+  const characterQueries = dedupeStrings(
+    characters.map((c: string) => `${compressPhrase(c, 3)} characterization`).filter((q: string) => q.trim().length > 0),
+    8,
+  );
+
+  const seededSubqueries = dedupeStrings([
+    ...themeQueries.map((theme) => `${primaryCharacter} ${theme}`),
+    ...themeQueries,
+    ...characterQueries,
+    compressPhrase(title, 8),
+    compressPhrase(thesis, 8),
+    compressPhrase(proofGoal, 8),
+    `${primaryCharacter} dialogue differences`,
+    `${primaryCharacter} personality changes`,
+  ].filter(Boolean));
+
+  const fallbackSubqueries = dedupeStrings([
+    `${primaryCharacter} characterization`,
+    `${primaryCharacter} sarcasm`,
+    `${primaryCharacter} anger`,
+    `${primaryCharacter} humor`,
+    `${primaryCharacter} agency`,
+    `${primaryCharacter} dialogue differences`,
+    `${primaryCharacter} adaptation changes`,
+  ]);
+
+  const subqueries = [...seededSubqueries];
+  for (const fallback of fallbackSubqueries) {
+    if (subqueries.length >= 5) break;
+    if (!subqueries.some((q) => q.toLowerCase() === fallback.toLowerCase())) {
+      subqueries.push(fallback);
+    }
+  }
+
+  const trimmedSubqueries = subqueries.slice(0, 12);
+
+  let comparisonQueries: string[] = [];
+  if (brief.comparison_mode) {
+    comparisonQueries = dedupeStrings([
+      ...themeQueries.slice(0, 6).map((theme) => `${theme} book vs movie`),
+      ...characters.slice(0, 4).map((character: string) => `${compressPhrase(character, 3)} book vs movie characterization`),
+      `${primaryCharacter} dialogue differences`,
+      `${primaryCharacter} personality adaptation changes`,
+      `${primaryCharacter} emotional intensity books and films`,
+      `${primaryCharacter} agency books and films`,
+    ].filter(Boolean), 10);
+  }
+
+  const allQueries = dedupeStrings([primaryQuery, ...trimmedSubqueries, ...comparisonQueries], 20);
+
+  return {
+    primaryQuery,
+    subqueries: trimmedSubqueries,
+    characterQueries,
+    themeQueries,
+    comparisonQueries,
+    allQueries,
+  };
+};
+
+const getChunkCountByType = async (supabase: any, sourceType: SearchSourceType) => {
+  const { data: files } = await supabase
+    .from("source_files")
+    .select("id")
+    .eq("file_type", sourceType);
+
+  const fileIds = files?.map((f: any) => f.id) || [];
+  if (fileIds.length === 0) return 0;
+
+  const { count } = await supabase
+    .from("file_chunks")
+    .select("id", { count: "exact", head: true })
+    .in("file_id", fileIds);
+
+  return count ?? 0;
+};
+
+const getPriorityBoost = (fileName: string, prioritySources: string[]) => {
+  if (!prioritySources.length) return 0;
+  const lower = fileName.toLowerCase();
+  const matched = prioritySources.some((source) => lower.includes(source.toLowerCase()));
+  return matched ? 0.15 : 0;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -225,53 +382,110 @@ serve(async (req) => {
       .single();
     if (briefError || !brief) throw new Error("Brief not found");
 
-    // Build search query from brief fields (used for relevance, NOT for filtering sources)
-    const searchParts = [brief.title, brief.description];
-    if (brief.thesis) searchParts.push(brief.thesis);
-    if (brief.focus_areas?.length) searchParts.push(...brief.focus_areas);
-    if (brief.characters?.length) searchParts.push(...brief.characters);
-    if (brief.proof_goal) searchParts.push(brief.proof_goal);
-    // priority_sources is a soft boost hint only, added to query for relevance scoring
-    if (brief.priority_sources?.length) searchParts.push(...brief.priority_sources);
-    const searchQuery = searchParts.join(" ");
+    // Build compact retrieval query pack from brief fields (brief stays rich for generation)
+    const queryPack = deriveRetrievalQueryPack(brief);
+    const prioritySources = (brief.priority_sources || [])
+      .map((s: string) => normalizeWhitespace(s))
+      .filter(Boolean);
 
-    // Retrieve from each source type SEPARATELY using the typed RPC
-    const [bookResults, transcriptResults, lexiconResults] = await Promise.all([
-      supabase.rpc("search_chunks_by_type", { search_query: searchQuery, source_type: "book", max_results: 20 }),
-      supabase.rpc("search_chunks_by_type", { search_query: searchQuery, source_type: "transcript", max_results: 20 }),
-      supabase.rpc("search_chunks_by_type", { search_query: searchQuery, source_type: "lexicon", max_results: 10 }),
+    // Retrieve across each source type for each derived query
+    const retrievalPlan = queryPack.allQueries.flatMap((query) => [
+      { query, sourceType: "book" as const, maxResults: 8 },
+      { query, sourceType: "transcript" as const, maxResults: 8 },
+      { query, sourceType: "lexicon" as const, maxResults: 4 },
     ]);
 
-    const bookChunks = bookResults.data || [];
-    const transcriptChunks = transcriptResults.data || [];
-    const lexiconChunks = lexiconResults.data || [];
+    const retrievalResponses = await Promise.all(
+      retrievalPlan.map((plan) =>
+        supabase.rpc("search_chunks_by_type", {
+          search_query: plan.query,
+          source_type: plan.sourceType,
+          max_results: plan.maxResults,
+        }),
+      ),
+    );
+
+    const perQueryCounts: Record<string, { book: number; transcript: number; lexicon: number }> = {};
+    const mergedByType: Record<SearchSourceType, Map<string, any>> = {
+      book: new Map(),
+      transcript: new Map(),
+      lexicon: new Map(),
+    };
+
+    retrievalPlan.forEach((plan, idx) => {
+      const rows = retrievalResponses[idx].data || [];
+
+      if (!perQueryCounts[plan.query]) {
+        perQueryCounts[plan.query] = { book: 0, transcript: 0, lexicon: 0 };
+      }
+      perQueryCounts[plan.query][plan.sourceType] = rows.length;
+
+      rows.forEach((row: any) => {
+        const priorityBoost = getPriorityBoost(row.file_name || "", prioritySources);
+        const primaryQueryBoost = plan.query === queryPack.primaryQuery ? 0.05 : 0;
+        const score = (row.rank ?? 0) + priorityBoost + primaryQueryBoost;
+
+        const existing = mergedByType[plan.sourceType].get(row.id);
+        if (!existing || score > existing._score) {
+          mergedByType[plan.sourceType].set(row.id, {
+            ...row,
+            _score: score,
+            _matched_query: plan.query,
+          });
+        }
+      });
+    });
+
+    const bookChunks = Array.from(mergedByType.book.values())
+      .sort((a, b) => b._score - a._score)
+      .slice(0, 20);
+    const transcriptChunks = Array.from(mergedByType.transcript.values())
+      .sort((a, b) => b._score - a._score)
+      .slice(0, 20);
+    const lexiconChunks = Array.from(mergedByType.lexicon.values())
+      .sort((a, b) => b._score - a._score)
+      .slice(0, 10);
 
     // Get total indexed chunk counts for debug
-    const [bookTotal, transcriptTotal, lexiconTotal] = await Promise.all([
-      supabase.from("file_chunks").select("id", { count: "exact", head: true })
-        .in("file_id", (await supabase.from("source_files").select("id").eq("file_type", "book")).data?.map((f: any) => f.id) || []),
-      supabase.from("file_chunks").select("id", { count: "exact", head: true })
-        .in("file_id", (await supabase.from("source_files").select("id").eq("file_type", "transcript")).data?.map((f: any) => f.id) || []),
-      supabase.from("file_chunks").select("id", { count: "exact", head: true })
-        .in("file_id", (await supabase.from("source_files").select("id").eq("file_type", "lexicon")).data?.map((f: any) => f.id) || []),
+    const [bookChunkCount, transcriptChunkCount, lexiconChunkCount] = await Promise.all([
+      getChunkCountByType(supabase, "book"),
+      getChunkCountByType(supabase, "transcript"),
+      getChunkCountByType(supabase, "lexicon"),
     ]);
+
+    const matchesPerQuery = queryPack.allQueries.map((query) => ({
+      query,
+      ...(perQueryCounts[query] || { book: 0, transcript: 0, lexicon: 0 }),
+    }));
 
     // Debug block for retrieval diagnostics
     const debugInfo = {
-      query: searchQuery,
+      derived_query_pack: {
+        primary_query: queryPack.primaryQuery,
+        subqueries: queryPack.subqueries,
+        character_queries: queryPack.characterQueries,
+        theme_queries: queryPack.themeQueries,
+        comparison_queries: queryPack.comparisonQueries,
+        comparison_expanded: queryPack.comparisonQueries.length > 0,
+      },
       comparison_mode: brief.comparison_mode || false,
-      priority_sources_used_as: "soft_boost_in_query_only",
-      priority_sources_value: brief.priority_sources || [],
+      filters_applied: {
+        source_types: ["book", "transcript", "lexicon"],
+        priority_sources_mode: "soft_boost_ranking_only",
+        priority_sources_value: prioritySources,
+        strict_source_filter: false,
+      },
       indexed_chunks: {
-        book: bookTotal.count ?? 0,
-        transcript: transcriptTotal.count ?? 0,
-        lexicon: lexiconTotal.count ?? 0,
+        book: bookChunkCount,
+        transcript: transcriptChunkCount,
+        lexicon: lexiconChunkCount,
       },
       matches_returned: {
         book: bookChunks.length,
         transcript: transcriptChunks.length,
         lexicon: lexiconChunks.length,
       },
+      matches_per_query_and_source: matchesPerQuery,
     };
     console.log("RETRIEVAL DEBUG:", JSON.stringify(debugInfo, null, 2));
 
@@ -324,19 +538,22 @@ serve(async (req) => {
 
     if (totalMatches === 0) {
       // STRICT: No fallback to general knowledge
-      sourceContext = `## RETRIEVAL FAILURE — NO INDEXED MATCHES FOUND
-- **Status**: Zero indexed matches found
+      sourceContext = `## RETRIEVAL FAILURE — NO INDEXED MATCHES FOUND FOR DERIVED QUERY PACK
+- **Status**: No indexed matches found for the derived query pack
 - **Source types searched**: book, transcript, lexicon
-- **Query used**: ${searchQuery}
-- **Indexed chunks available**: book=${debugInfo.indexed_chunks.book}, transcript=${debugInfo.indexed_chunks.transcript}, lexicon=${debugInfo.indexed_chunks.lexicon}
-- **Likely reason**: ${debugInfo.indexed_chunks.book === 0 && debugInfo.indexed_chunks.transcript === 0 ? "No source files have been uploaded and processed yet." : "The search query did not match any indexed content. Try broader terms or check that files are fully processed."}
+- **Filters applied**: file_type scoped search; priority_sources soft boost in ranking only (never a hard filter)
+- **Primary query**: ${queryPack.primaryQuery}
+- **Compact queries used**:
+${queryPack.allQueries.map((q, i) => `  ${i + 1}. ${q}`).join("\n")}
+- **Likely reason**: ${debugInfo.indexed_chunks.book === 0 && debugInfo.indexed_chunks.transcript === 0 ? "No primary source files have been uploaded and processed yet." : "Derived queries did not match indexed chunk text. Try clearer trait/action keywords in title, thesis, focus areas, characters, or proof goal."}
 
 DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence. Return a retrieval failure report ONLY.`;
     } else {
       const sections: string[] = [];
       // Add debug summary at top
-      sections.push(`## Retrieval Debug Summary\n- Book matches: ${bookChunks.length}\n- Transcript matches: ${transcriptChunks.length}\n- Lexicon matches: ${lexiconChunks.length}\n- Query: ${searchQuery}\n- Comparison mode: ${brief.comparison_mode ? "ON" : "OFF"}\n- Priority sources: ${brief.priority_sources?.length ? brief.priority_sources.join(", ") + " (soft boost only)" : "none (searching full corpus)"}`);
-      
+      sections.push(`## Retrieval Debug Summary\n- Primary query: ${queryPack.primaryQuery}\n- Subqueries (${queryPack.subqueries.length}): ${queryPack.subqueries.length ? queryPack.subqueries.join(" | ") : "none"}\n- Character queries (${queryPack.characterQueries.length}): ${queryPack.characterQueries.length ? queryPack.characterQueries.join(" | ") : "none"}\n- Theme queries (${queryPack.themeQueries.length}): ${queryPack.themeQueries.length ? queryPack.themeQueries.join(" | ") : "none"}\n- Comparison query expansion: ${queryPack.comparisonQueries.length > 0 ? "ON" : "OFF"}\n- Book matches: ${bookChunks.length}\n- Transcript matches: ${transcriptChunks.length}\n- Lexicon matches: ${lexiconChunks.length}\n- Priority sources mode: soft boost ranking only`);
+      sections.push("### Query-Level Match Counts\n" + matchesPerQuery.map((m) => `- ${m.query} → book=${m.book}, transcript=${m.transcript}, lexicon=${m.lexicon}`).join("\n"));
+
       if (bookChunks.length > 0) {
         sections.push("### PRIMARY SOURCES — Books\n" +
           bookChunks.map((c: any) => `[${c.file_name} — BOOK — PRIMARY]\n${c.content}`).join("\n\n---\n\n"));
@@ -378,8 +595,18 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     if (brief.tone) briefContext += `\n**Tone:** ${brief.tone}`;
     if (brief.comparison_mode) briefContext += `\n**Mode:** Book vs Movie Comparison`;
 
+    const queryPackContext = `**Primary Query:** ${queryPack.primaryQuery}
+**Subqueries:** ${queryPack.subqueries.length ? queryPack.subqueries.join(" | ") : "none"}
+**Character Queries:** ${queryPack.characterQueries.length ? queryPack.characterQueries.join(" | ") : "none"}
+**Theme Queries:** ${queryPack.themeQueries.length ? queryPack.themeQueries.join(" | ") : "none"}
+**Comparison Query Expansion:** ${queryPack.comparisonQueries.length > 0 ? "enabled" : "disabled"}
+**Comparison Queries:** ${queryPack.comparisonQueries.length ? queryPack.comparisonQueries.join(" | ") : "none"}`;
+
     const userMessage = `## Topic Brief
 ${briefContext}
+
+## Retrieval Query Pack (Derived)
+${queryPackContext}
 
 ${instructionContext ? `## Script Writing Instructions\n${instructionContext}\n\n` : ""}${previousContext ? `## Previous Pipeline Steps\n${previousContext}\n\n` : ""}${starredEvidence ? `${starredEvidence}\n\n` : ""}## Source Material Excerpts
 ${sourceContext}
