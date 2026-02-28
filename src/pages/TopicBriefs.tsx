@@ -5,16 +5,28 @@ import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { getTopicBriefs, createTopicBrief, deleteTopicBrief } from "@/lib/api";
-import { Plus, Trash2, ArrowRight, FileText } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { getTopicBriefs, createTopicBrief, deleteTopicBrief, type CreateBriefInput } from "@/lib/api";
+import { Plus, Trash2, ArrowRight, FileText, GitCompare } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export default function TopicBriefs() {
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [form, setForm] = useState<CreateBriefInput>({
+    title: "",
+    description: "",
+    thesis: "",
+    focus_areas: [],
+    characters: [],
+    proof_goal: "",
+    priority_sources: [],
+    emotional_angle: "",
+    tone: "",
+    comparison_mode: false,
+  });
   const [creating, setCreating] = useState(false);
 
   const { data: briefs = [], refetch } = useQuery({
@@ -22,17 +34,29 @@ export default function TopicBriefs() {
     queryFn: getTopicBriefs,
   });
 
+  const updateForm = (key: keyof CreateBriefInput, value: any) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleArrayInput = (key: "focus_areas" | "characters" | "priority_sources", value: string) =>
+    updateForm(key, value.split(",").map((s) => s.trim()).filter(Boolean));
+
   const handleCreate = async () => {
-    if (!title.trim() || !description.trim()) {
-      toast.error("Please fill in both title and description");
+    if (!form.title.trim() || !form.description.trim()) {
+      toast.error("Title and description are required");
       return;
     }
     setCreating(true);
     try {
-      await createTopicBrief(title.trim(), description.trim());
+      await createTopicBrief({
+        ...form,
+        title: form.title.trim(),
+        description: form.description.trim(),
+      });
       toast.success("Topic brief created");
-      setTitle("");
-      setDescription("");
+      setForm({
+        title: "", description: "", thesis: "", focus_areas: [], characters: [],
+        proof_goal: "", priority_sources: [], emotional_angle: "", tone: "", comparison_mode: false,
+      });
       setShowForm(false);
       refetch();
     } catch (err: any) {
@@ -59,7 +83,7 @@ export default function TopicBriefs() {
           <div>
             <h1 className="text-2xl font-mono font-bold text-foreground mb-2">Topic Briefs</h1>
             <p className="text-sm text-muted-foreground">
-              Define your video topics. Each brief drives a full script generation pipeline.
+              Define your video topics. Each brief drives a full research and script generation pipeline.
             </p>
           </div>
           <Button onClick={() => setShowForm(true)} className="gap-1.5" disabled={showForm}>
@@ -69,23 +93,110 @@ export default function TopicBriefs() {
         </div>
 
         {showForm && (
-          <div className="border border-primary/30 rounded-lg p-5 mb-6 bg-card animate-slide-in glow-amber">
+          <div className="border border-primary/30 rounded-lg p-5 mb-6 bg-card">
             <h3 className="font-mono text-sm font-semibold text-foreground mb-4">New Topic Brief</h3>
             <div className="space-y-3">
+              {/* Required */}
               <Input
-                placeholder="e.g., Why Snape's Redemption Arc is Overrated"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Title — e.g., Why Snape's Redemption Arc is Overrated"
+                value={form.title}
+                onChange={(e) => updateForm("title", e.target.value)}
                 className="bg-secondary border-border"
               />
               <Textarea
-                placeholder="Describe the angle, key arguments, and what evidence you want to explore..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={4}
+                placeholder="Description — angle, key arguments, evidence to explore..."
+                value={form.description}
+                onChange={(e) => updateForm("description", e.target.value)}
+                rows={3}
                 className="bg-secondary border-border resize-none"
               />
-              <div className="flex gap-2 justify-end">
+
+              {/* Optional fields */}
+              <div className="pt-2 border-t border-border">
+                <p className="text-xs text-muted-foreground mb-3 font-medium">Optional Research Fields</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Thesis</Label>
+                    <Input
+                      placeholder="The central argument..."
+                      value={form.thesis || ""}
+                      onChange={(e) => updateForm("thesis", e.target.value)}
+                      className="bg-secondary border-border mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">What should this video prove?</Label>
+                    <Input
+                      placeholder="The key proof goal..."
+                      value={form.proof_goal || ""}
+                      onChange={(e) => updateForm("proof_goal", e.target.value)}
+                      className="bg-secondary border-border mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Focus Areas (comma-separated)</Label>
+                    <Input
+                      placeholder="e.g., character arcs, plot holes, symbolism"
+                      value={form.focus_areas?.join(", ") || ""}
+                      onChange={(e) => handleArrayInput("focus_areas", e.target.value)}
+                      className="bg-secondary border-border mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Key Characters (comma-separated)</Label>
+                    <Input
+                      placeholder="e.g., Snape, Dumbledore, Harry"
+                      value={form.characters?.join(", ") || ""}
+                      onChange={(e) => handleArrayInput("characters", e.target.value)}
+                      className="bg-secondary border-border mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Emotional Angle</Label>
+                    <Input
+                      placeholder="e.g., bittersweet, provocative, nostalgic"
+                      value={form.emotional_angle || ""}
+                      onChange={(e) => updateForm("emotional_angle", e.target.value)}
+                      className="bg-secondary border-border mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Tone</Label>
+                    <Input
+                      placeholder="e.g., analytical, conversational, passionate"
+                      value={form.tone || ""}
+                      onChange={(e) => updateForm("tone", e.target.value)}
+                      className="bg-secondary border-border mt-1"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-xs text-muted-foreground">Priority Sources (comma-separated)</Label>
+                    <Input
+                      placeholder="e.g., Half-Blood Prince, Deathly Hallows Part 2"
+                      value={form.priority_sources?.join(", ") || ""}
+                      onChange={(e) => handleArrayInput("priority_sources", e.target.value)}
+                      className="bg-secondary border-border mt-1"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Comparison mode toggle */}
+              <div className="flex items-center gap-3 pt-2 border-t border-border">
+                <Switch
+                  checked={form.comparison_mode}
+                  onCheckedChange={(v) => updateForm("comparison_mode", v)}
+                />
+                <div>
+                  <Label className="text-xs font-medium flex items-center gap-1.5">
+                    <GitCompare className="w-3.5 h-3.5 text-primary" />
+                    Book vs Movie Comparison Mode
+                  </Label>
+                  <p className="text-xs text-muted-foreground">Forces paired retrieval and contrast-based analysis</p>
+                </div>
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2">
                 <Button variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
                 <Button onClick={handleCreate} disabled={creating}>
                   {creating ? "Creating..." : "Create Brief"}
@@ -116,11 +227,25 @@ export default function TopicBriefs() {
                 onClick={() => navigate(`/briefs/${brief.id}`)}
               >
                 <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <FileText className="w-4 h-4 text-primary" />
+                  {(brief as any).comparison_mode ? (
+                    <GitCompare className="w-4 h-4 text-primary" />
+                  ) : (
+                    <FileText className="w-4 h-4 text-primary" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-mono text-sm font-semibold text-foreground truncate">{brief.title}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-mono text-sm font-semibold text-foreground truncate">{brief.title}</h3>
+                    {(brief as any).comparison_mode && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium shrink-0">
+                        Comparison
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{brief.description}</p>
+                  {(brief as any).thesis && (
+                    <p className="text-xs text-muted-foreground/70 mt-1 italic line-clamp-1">Thesis: {(brief as any).thesis}</p>
+                  )}
                   <p className="text-xs text-muted-foreground/60 mt-2">
                     {new Date(brief.created_at).toLocaleDateString()}
                   </p>

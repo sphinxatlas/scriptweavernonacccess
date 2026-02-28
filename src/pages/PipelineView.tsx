@@ -1,9 +1,13 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { PipelineSidebar } from "@/components/pipeline/PipelineSidebar";
+import { EvidencePanel } from "@/components/pipeline/EvidencePanel";
 import {
   PIPELINE_STEPS,
   getPipelineOutputs,
@@ -13,24 +17,23 @@ import {
 } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  ArrowLeft,
   CheckCircle2,
-  Circle,
   Loader2,
   Play,
   RotateCcw,
   Copy,
   Download,
+  Star,
 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function PipelineView() {
   const { briefId } = useParams<{ briefId: string }>();
-  const navigate = useNavigate();
-  const [activeStep, setActiveStep] = useState<PipelineStepType>("evidence_table");
+  const [activeStep, setActiveStep] = useState<PipelineStepType>("retrieval");
   const [generating, setGenerating] = useState(false);
   const [streamContent, setStreamContent] = useState("");
+  const [starredOnly, setStarredOnly] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const { data: brief } = useQuery({
@@ -47,10 +50,7 @@ export default function PipelineView() {
     enabled: !!briefId,
   });
 
-  const {
-    data: outputs = [],
-    refetch: refetchOutputs,
-  } = useQuery({
+  const { data: outputs = [], refetch: refetchOutputs } = useQuery({
     queryKey: ["pipeline-outputs", briefId],
     queryFn: () => getPipelineOutputs(briefId!),
     enabled: !!briefId,
@@ -78,12 +78,12 @@ export default function PipelineView() {
           setStreamContent(accumulated);
         },
         async () => {
-          // Save the complete output
           await savePipelineOutput(briefId, activeStep, accumulated);
           refetchOutputs();
           setGenerating(false);
-          toast.success(`${PIPELINE_STEPS.find(s => s.type === activeStep)?.label} generated`);
-        }
+          toast.success(`${PIPELINE_STEPS.find((s) => s.type === activeStep)?.label} generated`);
+        },
+        starredOnly
       );
     } catch (err: any) {
       setGenerating(false);
@@ -97,7 +97,7 @@ export default function PipelineView() {
   };
 
   const handleDownload = () => {
-    const step = PIPELINE_STEPS.find(s => s.type === activeStep);
+    const step = PIPELINE_STEPS.find((s) => s.type === activeStep);
     const blob = new Blob([displayContent], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -107,7 +107,6 @@ export default function PipelineView() {
     URL.revokeObjectURL(url);
   };
 
-  // Auto-scroll during generation
   useEffect(() => {
     if (generating && contentRef.current) {
       contentRef.current.scrollTop = contentRef.current.scrollHeight;
@@ -116,69 +115,41 @@ export default function PipelineView() {
 
   if (!briefId) return null;
 
+  const showStarredToggle = activeStep === "outline" || activeStep === "full_script";
+  const showEvidenceTab = activeStep === "evidence_table" && !generating;
+
   return (
     <Layout>
       <div className="flex h-screen">
-        {/* Step sidebar */}
-        <div className="w-56 border-r border-border p-4 flex flex-col">
-          <button
-            onClick={() => navigate("/briefs")}
-            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground mb-4 transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Back to Briefs
-          </button>
+        <PipelineSidebar
+          brief={brief ? { title: brief.title, description: brief.description, comparison_mode: (brief as any).comparison_mode } : null}
+          activeStep={activeStep}
+          setActiveStep={setActiveStep}
+          generating={generating}
+          getStepOutput={getStepOutput}
+        />
 
-          {brief && (
-            <div className="mb-4 pb-4 border-b border-border">
-              <h2 className="font-mono text-xs font-bold text-foreground line-clamp-2">{brief.title}</h2>
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-3">{brief.description}</p>
-            </div>
-          )}
-
-          <div className="space-y-1 flex-1">
-            {PIPELINE_STEPS.map((step, idx) => {
-              const hasOutput = !!getStepOutput(step.type);
-              const isActive = activeStep === step.type;
-
-              return (
-                <button
-                  key={step.type}
-                  onClick={() => !generating && setActiveStep(step.type)}
-                  className={cn(
-                    "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-left transition-colors",
-                    isActive
-                      ? "bg-secondary text-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/50",
-                    generating && "opacity-50 cursor-not-allowed"
-                  )}
-                >
-                  {hasOutput ? (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-success flex-shrink-0" />
-                  ) : (
-                    <Circle className="w-3.5 h-3.5 flex-shrink-0" />
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-xs font-mono font-medium truncate">{step.label}</p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Main content area */}
         <div className="flex-1 flex flex-col">
+          {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-border">
             <div>
               <h2 className="font-mono text-sm font-bold text-foreground">
-                {PIPELINE_STEPS.find(s => s.type === activeStep)?.label}
+                {PIPELINE_STEPS.find((s) => s.type === activeStep)?.label}
               </h2>
               <p className="text-xs text-muted-foreground">
-                {PIPELINE_STEPS.find(s => s.type === activeStep)?.description}
+                {PIPELINE_STEPS.find((s) => s.type === activeStep)?.description}
               </p>
             </div>
             <div className="flex items-center gap-2">
+              {showStarredToggle && (
+                <div className="flex items-center gap-2 mr-2 border-r border-border pr-3">
+                  <Switch checked={starredOnly} onCheckedChange={setStarredOnly} />
+                  <Label className="text-xs flex items-center gap-1 cursor-pointer">
+                    <Star className="w-3 h-3 text-primary" />
+                    Starred only
+                  </Label>
+                </div>
+              )}
               {displayContent && !generating && (
                 <>
                   <Button size="sm" variant="ghost" onClick={handleCopy} className="gap-1.5 text-xs">
@@ -191,12 +162,7 @@ export default function PipelineView() {
                   </Button>
                 </>
               )}
-              <Button
-                size="sm"
-                onClick={handleGenerate}
-                disabled={generating}
-                className="gap-1.5"
-              >
+              <Button size="sm" onClick={handleGenerate} disabled={generating} className="gap-1.5">
                 {generating ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -217,34 +183,60 @@ export default function PipelineView() {
             </div>
           </div>
 
-          <div ref={contentRef} className="flex-1 overflow-auto p-6">
-            {displayContent ? (
-              <div className="prose prose-invert prose-sm max-w-none prose-headings:font-mono prose-headings:text-foreground prose-p:text-foreground/85 prose-strong:text-foreground prose-a:text-primary prose-code:text-primary prose-code:bg-secondary prose-code:px-1 prose-code:rounded prose-pre:bg-secondary prose-pre:border prose-pre:border-border prose-th:text-foreground prose-td:text-foreground/80 prose-table:border-border">
-                <ReactMarkdown>{displayContent}</ReactMarkdown>
-              </div>
+          {/* Content area */}
+          <div className="flex-1 overflow-hidden">
+            {showEvidenceTab && currentOutput ? (
+              <Tabs defaultValue="output" className="h-full flex flex-col">
+                <TabsList className="mx-6 mt-3 w-fit">
+                  <TabsTrigger value="output" className="text-xs">Generated Output</TabsTrigger>
+                  <TabsTrigger value="evidence" className="text-xs gap-1">
+                    <Star className="w-3 h-3" />
+                    Evidence Points
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="output" className="flex-1 overflow-auto p-6">
+                  <MarkdownContent content={displayContent} />
+                </TabsContent>
+                <TabsContent value="evidence" className="flex-1 overflow-auto p-6">
+                  <EvidencePanel briefId={briefId} />
+                </TabsContent>
+              </Tabs>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                  <Play className="w-5 h-5 text-primary" />
-                </div>
-                <p className="text-sm text-muted-foreground mb-1">
-                  No content generated yet
-                </p>
-                <p className="text-xs text-muted-foreground/60">
-                  Click "Generate" to create the {PIPELINE_STEPS.find(s => s.type === activeStep)?.label?.toLowerCase()}
-                </p>
-              </div>
-            )}
+              <div ref={contentRef} className="h-full overflow-auto p-6">
+                {displayContent ? (
+                  <MarkdownContent content={displayContent} />
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                      <Play className="w-5 h-5 text-primary" />
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-1">No content generated yet</p>
+                    <p className="text-xs text-muted-foreground/60">
+                      Click "Generate" to create the{" "}
+                      {PIPELINE_STEPS.find((s) => s.type === activeStep)?.label?.toLowerCase()}
+                    </p>
+                  </div>
+                )}
 
-            {generating && (
-              <div className="flex items-center gap-2 mt-4 text-xs text-primary">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-glow" />
-                Generating from source material...
+                {generating && (
+                  <div className="flex items-center gap-2 mt-4 text-xs text-primary">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                    Generating from source material...
+                  </div>
+                )}
               </div>
             )}
           </div>
         </div>
       </div>
     </Layout>
+  );
+}
+
+function MarkdownContent({ content }: { content: string }) {
+  return (
+    <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:font-mono prose-headings:text-foreground prose-p:text-foreground/85 prose-strong:text-foreground prose-a:text-primary prose-code:text-primary prose-code:bg-secondary prose-code:px-1 prose-code:rounded prose-pre:bg-secondary prose-pre:border prose-pre:border-border prose-th:text-foreground prose-td:text-foreground/80 prose-table:border-border">
+      <ReactMarkdown>{content}</ReactMarkdown>
+    </div>
   );
 }

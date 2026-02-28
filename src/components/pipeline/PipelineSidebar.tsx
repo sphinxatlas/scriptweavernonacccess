@@ -1,0 +1,68 @@
+import { useNavigate } from "react-router-dom";
+import { PIPELINE_STEPS, type PipelineStepType } from "@/lib/api";
+import { ArrowLeft, CheckCircle2, Circle, GitCompare } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface PipelineSidebarProps {
+  brief: { title: string; description: string; comparison_mode?: boolean } | null;
+  activeStep: PipelineStepType;
+  setActiveStep: (step: PipelineStepType) => void;
+  generating: boolean;
+  getStepOutput: (step: PipelineStepType) => any;
+}
+
+export function PipelineSidebar({ brief, activeStep, setActiveStep, generating, getStepOutput }: PipelineSidebarProps) {
+  const navigate = useNavigate();
+
+  return (
+    <div className="w-56 border-r border-border p-4 flex flex-col">
+      <button
+        onClick={() => navigate("/briefs")}
+        className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground mb-4 transition-colors"
+      >
+        <ArrowLeft className="w-3.5 h-3.5" />
+        Back to Briefs
+      </button>
+
+      {brief && (
+        <div className="mb-4 pb-4 border-b border-border">
+          <div className="flex items-center gap-1.5">
+            <h2 className="font-mono text-xs font-bold text-foreground line-clamp-2">{brief.title}</h2>
+            {brief.comparison_mode && <GitCompare className="w-3 h-3 text-primary shrink-0" />}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1 line-clamp-3">{brief.description}</p>
+        </div>
+      )}
+
+      <div className="space-y-1 flex-1">
+        {PIPELINE_STEPS.map((step) => {
+          const hasOutput = !!getStepOutput(step.type);
+          const isActive = activeStep === step.type;
+
+          return (
+            <button
+              key={step.type}
+              onClick={() => !generating && setActiveStep(step.type)}
+              className={cn(
+                "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-left transition-colors",
+                isActive
+                  ? "bg-secondary text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/50",
+                generating && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              {hasOutput ? (
+                <CheckCircle2 className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+              ) : (
+                <Circle className="w-3.5 h-3.5 flex-shrink-0" />
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-mono font-medium truncate">{step.label}</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
