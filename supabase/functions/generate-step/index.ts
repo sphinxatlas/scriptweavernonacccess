@@ -43,12 +43,18 @@ This is a Book vs Movie Comparison analysis. You MUST:
 `;
 
 const STEP_PROMPTS: Record<string, string> = {
-  retrieval: `You are a research retrieval specialist for Harry Potter content analysis.
-Given the topic brief and source material, create a RETRIEVAL REPORT that organizes all relevant source material found.
+  retrieval: `You are a retrieval layer for a source-grounded Harry Potter research engine.
+Use ONLY the uploaded and indexed source files provided below.
+Search across the full uploaded primary corpus by default: all books, all movie transcripts.
+Use Lexicon only as secondary support.
+Do NOT use general Harry Potter knowledge.
+Do NOT invent examples.
+Do NOT fabricate retrieval output.
+If no indexed matches are found, return a failure report instead of placeholder evidence.
 
 ${SOURCE_HIERARCHY_INSTRUCTION}
 
-Format the report as:
+If source material IS provided below, format the report as:
 ## Retrieval Summary
 - Total sources found
 - Breakdown by type (Books, Transcripts, Lexicon)
@@ -69,7 +75,15 @@ For each relevant passage:
 ## Retrieval Gaps
 - What evidence is missing?
 - What should be searched for manually?
-- Which claims lack primary source support?`,
+- Which claims lack primary source support?
+
+If NO source material is provided below, return ONLY:
+## Retrieval Failure Report
+- **Status**: Zero indexed matches found
+- **Source types searched**: [list]
+- **Query used**: [the search query]
+- **Likely reason**: [assessment of why no matches were found]
+Do NOT generate placeholder evidence. Do NOT proceed based on general knowledge.`,
 
   evidence_table: `You are a research assistant for YouTube script writing about Harry Potter.
 Given the topic brief, retrieval results, and source material excerpts, create a STRUCTURED EVIDENCE TABLE.
@@ -211,27 +225,57 @@ serve(async (req) => {
       .single();
     if (briefError || !brief) throw new Error("Brief not found");
 
-    // Build search query from expanded brief fields
+    // Build search query from brief fields (used for relevance, NOT for filtering sources)
     const searchParts = [brief.title, brief.description];
     if (brief.thesis) searchParts.push(brief.thesis);
     if (brief.focus_areas?.length) searchParts.push(...brief.focus_areas);
     if (brief.characters?.length) searchParts.push(...brief.characters);
     if (brief.proof_goal) searchParts.push(brief.proof_goal);
+    // priority_sources is a soft boost hint only, added to query for relevance scoring
+    if (brief.priority_sources?.length) searchParts.push(...brief.priority_sources);
     const searchQuery = searchParts.join(" ");
 
-    // Retrieve separately from each source type, then merge with priority weighting
+    // Retrieve from each source type SEPARATELY using the typed RPC
     const [bookResults, transcriptResults, lexiconResults] = await Promise.all([
-      supabase.rpc("search_chunks", { search_query: searchQuery, max_results: 15 }),
-      supabase.rpc("search_chunks", { search_query: searchQuery, max_results: 15 }),
-      supabase.rpc("search_chunks", { search_query: searchQuery, max_results: 10 }),
+      supabase.rpc("search_chunks_by_type", { search_query: searchQuery, source_type: "book", max_results: 20 }),
+      supabase.rpc("search_chunks_by_type", { search_query: searchQuery, source_type: "transcript", max_results: 20 }),
+      supabase.rpc("search_chunks_by_type", { search_query: searchQuery, source_type: "lexicon", max_results: 10 }),
     ]);
 
-    // Filter by source type after retrieval
-    const bookChunks = (bookResults.data || []).filter((c: any) => c.file_type === 'book');
-    const transcriptChunks = (transcriptResults.data || []).filter((c: any) => c.file_type === 'transcript');
-    const lexiconChunks = (lexiconResults.data || []).filter((c: any) => c.file_type === 'lexicon');
+    const bookChunks = bookResults.data || [];
+    const transcriptChunks = transcriptResults.data || [];
+    const lexiconChunks = lexiconResults.data || [];
 
-    // Get instruction file chunks
+    // Get total indexed chunk counts for debug
+    const [bookTotal, transcriptTotal, lexiconTotal] = await Promise.all([
+      supabase.from("file_chunks").select("id", { count: "exact", head: true })
+        .in("file_id", (await supabase.from("source_files").select("id").eq("file_type", "book")).data?.map((f: any) => f.id) || []),
+      supabase.from("file_chunks").select("id", { count: "exact", head: true })
+        .in("file_id", (await supabase.from("source_files").select("id").eq("file_type", "transcript")).data?.map((f: any) => f.id) || []),
+      supabase.from("file_chunks").select("id", { count: "exact", head: true })
+        .in("file_id", (await supabase.from("source_files").select("id").eq("file_type", "lexicon")).data?.map((f: any) => f.id) || []),
+    ]);
+
+    // Debug block for retrieval diagnostics
+    const debugInfo = {
+      query: searchQuery,
+      comparison_mode: brief.comparison_mode || false,
+      priority_sources_used_as: "soft_boost_in_query_only",
+      priority_sources_value: brief.priority_sources || [],
+      indexed_chunks: {
+        book: bookTotal.count ?? 0,
+        transcript: transcriptTotal.count ?? 0,
+        lexicon: lexiconTotal.count ?? 0,
+      },
+      matches_returned: {
+        book: bookChunks.length,
+        transcript: transcriptChunks.length,
+        lexicon: lexiconChunks.length,
+      },
+    };
+    console.log("RETRIEVAL DEBUG:", JSON.stringify(debugInfo, null, 2));
+
+    // Get instruction file chunks (for writing behavior ONLY, never evidence)
     const { data: instructionFiles } = await supabase
       .from("source_files")
       .select("id")
@@ -274,23 +318,39 @@ serve(async (req) => {
       .in("step_type", previousSteps)
       .order("created_at");
 
-    // Build context grouped by source type
-    const sections: string[] = [];
-    if (bookChunks.length > 0) {
-      sections.push("### PRIMARY SOURCES — Books\n" +
-        bookChunks.map((c: any) => `[${c.file_name} — BOOK — PRIMARY]\n${c.content}`).join("\n\n---\n\n"));
+    // Build context grouped by source type — NEVER include instructions as evidence
+    const totalMatches = bookChunks.length + transcriptChunks.length + lexiconChunks.length;
+    let sourceContext: string;
+
+    if (totalMatches === 0) {
+      // STRICT: No fallback to general knowledge
+      sourceContext = `## RETRIEVAL FAILURE — NO INDEXED MATCHES FOUND
+- **Status**: Zero indexed matches found
+- **Source types searched**: book, transcript, lexicon
+- **Query used**: ${searchQuery}
+- **Indexed chunks available**: book=${debugInfo.indexed_chunks.book}, transcript=${debugInfo.indexed_chunks.transcript}, lexicon=${debugInfo.indexed_chunks.lexicon}
+- **Likely reason**: ${debugInfo.indexed_chunks.book === 0 && debugInfo.indexed_chunks.transcript === 0 ? "No source files have been uploaded and processed yet." : "The search query did not match any indexed content. Try broader terms or check that files are fully processed."}
+
+DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence. Return a retrieval failure report ONLY.`;
+    } else {
+      const sections: string[] = [];
+      // Add debug summary at top
+      sections.push(`## Retrieval Debug Summary\n- Book matches: ${bookChunks.length}\n- Transcript matches: ${transcriptChunks.length}\n- Lexicon matches: ${lexiconChunks.length}\n- Query: ${searchQuery}\n- Comparison mode: ${brief.comparison_mode ? "ON" : "OFF"}\n- Priority sources: ${brief.priority_sources?.length ? brief.priority_sources.join(", ") + " (soft boost only)" : "none (searching full corpus)"}`);
+      
+      if (bookChunks.length > 0) {
+        sections.push("### PRIMARY SOURCES — Books\n" +
+          bookChunks.map((c: any) => `[${c.file_name} — BOOK — PRIMARY]\n${c.content}`).join("\n\n---\n\n"));
+      }
+      if (transcriptChunks.length > 0) {
+        sections.push("### PRIMARY SOURCES — Movie Transcripts\n" +
+          transcriptChunks.map((c: any) => `[${c.file_name} — TRANSCRIPT — PRIMARY]\n${c.content}`).join("\n\n---\n\n"));
+      }
+      if (lexiconChunks.length > 0) {
+        sections.push("### SECONDARY REFERENCE — Lexicon (use for context/support only, NOT as primary canon)\n" +
+          lexiconChunks.map((c: any) => `[${c.file_name} — LEXICON — SECONDARY]\n${c.content}`).join("\n\n---\n\n"));
+      }
+      sourceContext = sections.join("\n\n========\n\n");
     }
-    if (transcriptChunks.length > 0) {
-      sections.push("### PRIMARY SOURCES — Movie Transcripts\n" +
-        transcriptChunks.map((c: any) => `[${c.file_name} — TRANSCRIPT — PRIMARY]\n${c.content}`).join("\n\n---\n\n"));
-    }
-    if (lexiconChunks.length > 0) {
-      sections.push("### SECONDARY REFERENCE — Lexicon (use for context/support only, NOT as primary canon)\n" +
-        lexiconChunks.map((c: any) => `[${c.file_name} — LEXICON — SECONDARY]\n${c.content}`).join("\n\n---\n\n"));
-    }
-    const sourceContext = sections.length > 0
-      ? sections.join("\n\n========\n\n")
-      : "No relevant source material found. Generate based on general Harry Potter knowledge.";
 
     const instructionContext = instructionChunks.length > 0
       ? instructionChunks.map(c => c.content).join("\n\n")
@@ -313,7 +373,7 @@ serve(async (req) => {
     if (brief.focus_areas?.length) briefContext += `\n**Focus Areas:** ${brief.focus_areas.join(", ")}`;
     if (brief.characters?.length) briefContext += `\n**Key Characters:** ${brief.characters.join(", ")}`;
     if (brief.proof_goal) briefContext += `\n**What This Video Should Prove:** ${brief.proof_goal}`;
-    if (brief.priority_sources?.length) briefContext += `\n**Priority Sources:** ${brief.priority_sources.join(", ")}`;
+    if (brief.priority_sources?.length) briefContext += `\n**Priority Sources (soft boost only, not a filter):** ${brief.priority_sources.join(", ")}`;
     if (brief.emotional_angle) briefContext += `\n**Emotional Angle:** ${brief.emotional_angle}`;
     if (brief.tone) briefContext += `\n**Tone:** ${brief.tone}`;
     if (brief.comparison_mode) briefContext += `\n**Mode:** Book vs Movie Comparison`;

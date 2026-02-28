@@ -238,6 +238,22 @@ export type Database = {
           rank: number
         }[]
       }
+      search_chunks_by_type: {
+        Args: {
+          max_results?: number
+          search_query: string
+          source_type: Database["public"]["Enums"]["source_file_type"]
+        }
+        Returns: {
+          chunk_index: number
+          content: string
+          file_id: string
+          file_name: string
+          file_type: Database["public"]["Enums"]["source_file_type"]
+          id: string
+          rank: number
+        }[]
+      }
     }
     Enums: {
       pipeline_step_type:

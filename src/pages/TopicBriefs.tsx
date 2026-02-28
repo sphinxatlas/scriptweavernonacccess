@@ -170,13 +170,16 @@ export default function TopicBriefs() {
                     />
                   </div>
                   <div className="col-span-2">
-                    <Label className="text-xs text-muted-foreground">Priority Sources (comma-separated)</Label>
+                    <Label className="text-xs text-muted-foreground">Priority Sources — optional soft boost only</Label>
                     <Input
-                      placeholder="e.g., Half-Blood Prince, Deathly Hallows Part 2"
+                      placeholder="Leave blank to search all uploaded primary sources. e.g., Half-Blood Prince"
                       value={form.priority_sources?.join(", ") || ""}
                       onChange={(e) => handleArrayInput("priority_sources", e.target.value)}
                       className="bg-secondary border-border mt-1"
                     />
+                    <p className="text-[10px] text-muted-foreground/60 mt-1">
+                      Optional soft boost only. Leave blank to search all uploaded primary sources automatically.
+                    </p>
                   </div>
                 </div>
               </div>
