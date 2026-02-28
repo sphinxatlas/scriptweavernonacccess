@@ -14,6 +14,68 @@ export type Database = {
   }
   public: {
     Tables: {
+      evidence_points: {
+        Row: {
+          book_evidence: string | null
+          brief_id: string
+          claim: string
+          confidence: string
+          created_at: string
+          difference_note: string | null
+          evidence_type: string
+          exact_quote: string | null
+          id: string
+          lexicon_support: string | null
+          movie_evidence: string | null
+          paraphrase: string | null
+          source_file: string | null
+          source_type: string
+          starred: boolean
+        }
+        Insert: {
+          book_evidence?: string | null
+          brief_id: string
+          claim: string
+          confidence?: string
+          created_at?: string
+          difference_note?: string | null
+          evidence_type?: string
+          exact_quote?: string | null
+          id?: string
+          lexicon_support?: string | null
+          movie_evidence?: string | null
+          paraphrase?: string | null
+          source_file?: string | null
+          source_type: string
+          starred?: boolean
+        }
+        Update: {
+          book_evidence?: string | null
+          brief_id?: string
+          claim?: string
+          confidence?: string
+          created_at?: string
+          difference_note?: string | null
+          evidence_type?: string
+          exact_quote?: string | null
+          id?: string
+          lexicon_support?: string | null
+          movie_evidence?: string | null
+          paraphrase?: string | null
+          source_file?: string | null
+          source_type?: string
+          starred?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidence_points_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "topic_briefs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       file_chunks: {
         Row: {
           chunk_index: number
@@ -113,24 +175,48 @@ export type Database = {
       }
       topic_briefs: {
         Row: {
+          characters: string[] | null
+          comparison_mode: boolean
           created_at: string
           description: string
+          emotional_angle: string | null
+          focus_areas: string[] | null
           id: string
+          priority_sources: string[] | null
+          proof_goal: string | null
+          thesis: string | null
           title: string
+          tone: string | null
           updated_at: string
         }
         Insert: {
+          characters?: string[] | null
+          comparison_mode?: boolean
           created_at?: string
           description: string
+          emotional_angle?: string | null
+          focus_areas?: string[] | null
           id?: string
+          priority_sources?: string[] | null
+          proof_goal?: string | null
+          thesis?: string | null
           title: string
+          tone?: string | null
           updated_at?: string
         }
         Update: {
+          characters?: string[] | null
+          comparison_mode?: boolean
           created_at?: string
           description?: string
+          emotional_angle?: string | null
+          focus_areas?: string[] | null
           id?: string
+          priority_sources?: string[] | null
+          proof_goal?: string | null
+          thesis?: string | null
           title?: string
+          tone?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -160,6 +246,7 @@ export type Database = {
         | "outline"
         | "full_script"
         | "verification"
+        | "retrieval"
       source_file_type: "book" | "transcript" | "instructions" | "lexicon"
     }
     CompositeTypes: {
@@ -294,6 +381,7 @@ export const Constants = {
         "outline",
         "full_script",
         "verification",
+        "retrieval",
       ],
       source_file_type: ["book", "transcript", "instructions", "lexicon"],
     },

@@ -4,15 +4,17 @@ import type { Tables } from "@/integrations/supabase/types";
 export type SourceFile = Tables<"source_files">;
 export type TopicBrief = Tables<"topic_briefs">;
 export type PipelineOutput = Tables<"pipeline_outputs">;
+export type EvidencePoint = Tables<"evidence_points">;
 
-export type PipelineStepType = "evidence_table" | "analysis_memo" | "outline" | "full_script" | "verification";
+export type PipelineStepType = "retrieval" | "evidence_table" | "analysis_memo" | "outline" | "full_script" | "verification";
 
 export const PIPELINE_STEPS: { type: PipelineStepType; label: string; description: string }[] = [
-  { type: "evidence_table", label: "Evidence Table", description: "Extract and organize source evidence" },
-  { type: "analysis_memo", label: "Analysis Memo", description: "Synthesize themes and arguments" },
-  { type: "outline", label: "Script Outline", description: "Structure the video script" },
-  { type: "full_script", label: "Full Script", description: "Generate the complete script" },
-  { type: "verification", label: "Verification Report", description: "Fact-check against sources" },
+  { type: "retrieval", label: "Retrieval", description: "Search and organize source material by priority" },
+  { type: "evidence_table", label: "Evidence Table", description: "Structured evidence with source traces and quote discipline" },
+  { type: "analysis_memo", label: "Analysis Memo", description: "Synthesize themes and arguments from evidence" },
+  { type: "outline", label: "Script Outline", description: "Structure the video script with evidence citations" },
+  { type: "full_script", label: "Full Script", description: "Generate the complete script with source annotations" },
+  { type: "verification", label: "Verification Report", description: "Fact-check against sources with confidence scores" },
 ];
 
 export async function uploadSourceFile(file: File, fileType: "book" | "transcript" | "instructions" | "lexicon") {
@@ -73,10 +75,34 @@ export async function getTopicBriefs() {
   return data;
 }
 
-export async function createTopicBrief(title: string, description: string) {
+export interface CreateBriefInput {
+  title: string;
+  description: string;
+  thesis?: string;
+  focus_areas?: string[];
+  characters?: string[];
+  proof_goal?: string;
+  priority_sources?: string[];
+  emotional_angle?: string;
+  tone?: string;
+  comparison_mode?: boolean;
+}
+
+export async function createTopicBrief(input: CreateBriefInput) {
   const { data, error } = await supabase
     .from("topic_briefs")
-    .insert({ title, description })
+    .insert(input)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateTopicBrief(id: string, input: Partial<CreateBriefInput>) {
+  const { data, error } = await supabase
+    .from("topic_briefs")
+    .update(input)
+    .eq("id", id)
     .select()
     .single();
   if (error) throw error;
@@ -99,7 +125,6 @@ export async function getPipelineOutputs(briefId: string) {
 }
 
 export async function savePipelineOutput(briefId: string, stepType: PipelineStepType, content: string) {
-  // Upsert - delete existing then insert
   await supabase
     .from("pipeline_outputs")
     .delete()
@@ -115,11 +140,41 @@ export async function savePipelineOutput(briefId: string, stepType: PipelineStep
   return data;
 }
 
+// Evidence points
+export async function getEvidencePoints(briefId: string) {
+  const { data, error } = await supabase
+    .from("evidence_points")
+    .select("*")
+    .eq("brief_id", briefId)
+    .order("created_at");
+  if (error) throw error;
+  return data;
+}
+
+export async function toggleEvidenceStar(id: string, starred: boolean) {
+  const { error } = await supabase
+    .from("evidence_points")
+    .update({ starred })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function saveEvidencePoints(briefId: string, points: Omit<EvidencePoint, "id" | "created_at">[]) {
+  // Clear existing
+  await supabase.from("evidence_points").delete().eq("brief_id", briefId);
+  
+  if (points.length > 0) {
+    const { error } = await supabase.from("evidence_points").insert(points);
+    if (error) throw error;
+  }
+}
+
 export async function streamGenerateStep(
   briefId: string,
   stepType: PipelineStepType,
   onDelta: (text: string) => void,
   onDone: () => void,
+  starredOnly?: boolean,
 ) {
   const resp = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-step`,
@@ -129,7 +184,7 @@ export async function streamGenerateStep(
         "Content-Type": "application/json",
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ briefId, stepType }),
+      body: JSON.stringify({ briefId, stepType, starredOnly }),
     }
   );
 
