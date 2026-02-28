@@ -223,6 +223,7 @@ type QueryPack = {
   comparisonQueries: string[];
   transcriptQueries: string[];
   allQueries: string[];
+  targetCharacter: string;
 };
 
 const STOP_WORDS = new Set([
@@ -260,10 +261,55 @@ const compressPhrase = (value: string, maxTerms = 8) => {
   return dedupeStrings(terms, maxTerms).join(" ");
 };
 
-const getPrimaryCharacter = (characters: string[]) => {
-  const first = characters[0];
-  if (!first) return "Harry";
-  return normalizeWhitespace(first.split(",")[0]) || "Harry";
+// Infer primary target character from brief fields
+const inferTargetCharacter = (brief: any): string => {
+  const characters = (brief.characters || []).map((v: string) => normalizeWhitespace(v)).filter(Boolean);
+  if (characters.length > 0) return normalizeWhitespace(characters[0].split(",")[0]) || "Harry";
+  
+  // Try to detect from title
+  const title = (brief.title || "").toLowerCase();
+  const knownCharacters = ["harry", "hermione", "ron", "snape", "dumbledore", "voldemort", "draco", "neville", "luna", "sirius", "hagrid", "mcgonagall", "lupin", "ginny", "dobby", "fred", "george"];
+  for (const name of knownCharacters) {
+    if (title.includes(name)) return name.charAt(0).toUpperCase() + name.slice(1);
+  }
+  
+  // Try thesis
+  const thesis = (brief.thesis || "").toLowerCase();
+  for (const name of knownCharacters) {
+    if (thesis.includes(name)) return name.charAt(0).toUpperCase() + name.slice(1);
+  }
+  
+  return "Harry";
+};
+
+// Score how relevant a chunk is to the target character
+const getCharacterRelevanceScore = (content: string, targetCharacter: string): { score: number; mentions: number; likelySpeaker: boolean } => {
+  const lower = content.toLowerCase();
+  const charLower = targetCharacter.toLowerCase();
+  
+  // Count character mentions
+  const regex = new RegExp(`\\b${charLower}\\b`, 'gi');
+  const mentions = (content.match(regex) || []).length;
+  
+  // Check if character is likely the speaker (screenplay patterns)
+  const speakerPatterns = [
+    new RegExp(`^${charLower}[:\\s]`, 'im'),           // "HARRY: ..."
+    new RegExp(`\\n${charLower}[:\\s]`, 'im'),          // newline "HARRY: ..."  
+    new RegExp(`^${charLower}$`, 'im'),                 // "HARRY" on its own line
+    new RegExp(`\\b${charLower}\\s+(says?|said|shouts?|shouted|whispers?|whispered|yells?|yelled|screams?|screamed|mutters?|muttered|snaps?|snapped|cries?|cried|asks?|asked|replies?|replied|growls?|growled)\\b`, 'i'),
+  ];
+  const likelySpeaker = speakerPatterns.some(p => p.test(content));
+  
+  // Character relevance score
+  let score = 0;
+  if (mentions >= 3) score += 0.3;
+  else if (mentions >= 1) score += 0.15;
+  if (likelySpeaker) score += 0.25;
+  
+  // Penalty if content is dominated by another character and target is absent
+  if (mentions === 0) score -= 0.1;
+  
+  return { score, mentions, likelySpeaker };
 };
 
 const deriveRetrievalQueryPack = (brief: any): QueryPack => {
@@ -273,15 +319,14 @@ const deriveRetrievalQueryPack = (brief: any): QueryPack => {
   const focusAreas = (brief.focus_areas || []).map((v: string) => normalizeWhitespace(v)).filter(Boolean);
   const characters = (brief.characters || []).map((v: string) => normalizeWhitespace(v)).filter(Boolean);
 
-  // Primary query from title + optional thesis/proofGoal (only if present)
+  const targetCharacter = inferTargetCharacter(brief);
+
+  // Primary query from title + optional thesis/proofGoal
   const coreFields = [title, thesis, proofGoal].filter(Boolean);
   const primaryQuery =
     compressPhrase(coreFields.join(" "), 10) ||
     compressPhrase(title, 8) ||
     "harry potter characterization";
-
-  // Derive character — fallback to "Harry" only if no characters provided
-  const primaryCharacter = characters.length > 0 ? getPrimaryCharacter(characters) : "Harry";
 
   // Theme queries from focus areas (only if present)
   const themeQueries = focusAreas.length > 0
@@ -296,7 +341,7 @@ const deriveRetrievalQueryPack = (brief: any): QueryPack => {
   // Build seeded subqueries from available optional fields
   const seededParts: string[] = [];
   if (themeQueries.length > 0) {
-    seededParts.push(...themeQueries.map((theme) => `${primaryCharacter} ${theme}`));
+    seededParts.push(...themeQueries.map((theme) => `${targetCharacter} ${theme}`));
     seededParts.push(...themeQueries);
   }
   if (characterQueries.length > 0) seededParts.push(...characterQueries);
@@ -307,29 +352,35 @@ const deriveRetrievalQueryPack = (brief: any): QueryPack => {
 
   const seededSubqueries = dedupeStrings(seededParts.filter(Boolean));
 
-  // Transcript-specific queries — ALWAYS generated for every brief
+  // Transcript-specific queries — use SCREENPLAY LANGUAGE that actually appears in transcripts
+  // Don't use meta-terms like "dialogue" or "confrontation scene" — use action words from scripts
   const transcriptQueries = dedupeStrings([
-    `${primaryCharacter} dialogue`,
-    `${primaryCharacter} confrontation scene`,
-    `${primaryCharacter} argues`,
-    `${primaryCharacter} emotional reaction`,
-    `${primaryCharacter} sarcastic line`,
-    `${primaryCharacter} defiant`,
-    `${primaryCharacter} spoken lines`,
-    `${primaryCharacter} funny line`,
-    `${primaryCharacter} subdued`,
-    ...characters.slice(0, 3).map((c: string) => `${compressPhrase(c, 3)} dialogue`),
-  ].filter(Boolean), 10);
+    // Character name alone — matches any chunk mentioning them
+    targetCharacter,
+    // Action/speech verbs that appear in screenplays
+    `${targetCharacter} said`,
+    `${targetCharacter} shouted`,
+    `${targetCharacter} yelled`,
+    `${targetCharacter} snapped`,
+    `${targetCharacter} whispered`,
+    `${targetCharacter} angry`,
+    `${targetCharacter} furious`,
+    `${targetCharacter} frustrated`,
+    `${targetCharacter} screamed`,
+    `${targetCharacter} replied`,
+    `${targetCharacter} stared`,
+    `${targetCharacter} laughed`,
+    `${targetCharacter} sarcastically`,
+    ...characters.slice(0, 3).map((c: string) => compressPhrase(c, 3)),
+  ].filter(Boolean), 15);
 
-  // Fallbacks to guarantee minimum query count
+  // Fallbacks
   const fallbackSubqueries = dedupeStrings([
-    `${primaryCharacter} characterization`,
-    `${primaryCharacter} sarcasm`,
-    `${primaryCharacter} anger`,
-    `${primaryCharacter} humor`,
-    `${primaryCharacter} agency`,
-    `${primaryCharacter} dialogue differences`,
-    `${primaryCharacter} adaptation changes`,
+    `${targetCharacter} characterization`,
+    `${targetCharacter} sarcasm`,
+    `${targetCharacter} anger`,
+    `${targetCharacter} humor`,
+    `${targetCharacter} agency`,
   ]);
 
   const subqueries = [...seededSubqueries];
@@ -341,22 +392,20 @@ const deriveRetrievalQueryPack = (brief: any): QueryPack => {
   }
   const trimmedSubqueries = subqueries.slice(0, 12);
 
-  // Comparison queries — expand when comparison mode is on
+  // Comparison queries
   let comparisonQueries: string[] = [];
   if (brief.comparison_mode) {
     comparisonQueries = dedupeStrings([
       ...themeQueries.slice(0, 6).map((theme) => `${theme} book vs movie`),
       ...characters.slice(0, 4).map((character: string) => `${compressPhrase(character, 3)} book vs movie characterization`),
-      `${primaryCharacter} dialogue differences book vs movie`,
-      `${primaryCharacter} personality adaptation changes`,
-      `${primaryCharacter} emotional intensity books and films`,
-      `${primaryCharacter} agency books and films`,
-      `${primaryCharacter} lines given to other characters`,
-      `${primaryCharacter} internal monologue lost in film`,
+      `${targetCharacter} personality adaptation changes`,
+      `${targetCharacter} emotional intensity books and films`,
+      `${targetCharacter} agency books and films`,
+      `${targetCharacter} lines given to other characters`,
+      `${targetCharacter} internal monologue lost in film`,
     ].filter(Boolean), 12);
   }
 
-  // allQueries = primary + subqueries + transcript-specific + comparison
   const allQueries = dedupeStrings([primaryQuery, ...trimmedSubqueries, ...transcriptQueries, ...comparisonQueries], 30);
 
   return {
@@ -367,6 +416,7 @@ const deriveRetrievalQueryPack = (brief: any): QueryPack => {
     comparisonQueries,
     transcriptQueries,
     allQueries,
+    targetCharacter,
   };
 };
 
@@ -456,6 +506,8 @@ serve(async (req) => {
       lexicon: new Map(),
     };
 
+    const targetCharacter = queryPack.targetCharacter;
+
     retrievalPlan.forEach((plan, idx) => {
       const rows = retrievalResponses[idx].data || [];
 
@@ -467,7 +519,12 @@ serve(async (req) => {
       rows.forEach((row: any) => {
         const priorityBoost = getPriorityBoost(row.file_name || "", prioritySources);
         const primaryQueryBoost = plan.query === queryPack.primaryQuery ? 0.05 : 0;
-        const score = (row.rank ?? 0) + priorityBoost + primaryQueryBoost;
+        
+        // Character relevance boost — especially important for transcripts
+        const charRelevance = getCharacterRelevanceScore(row.content || "", targetCharacter);
+        const charBoost = plan.sourceType === "transcript" ? charRelevance.score * 1.5 : charRelevance.score * 0.5;
+        
+        const score = (row.rank ?? 0) + priorityBoost + primaryQueryBoost + charBoost;
 
         const existing = mergedByType[plan.sourceType].get(row.id);
         if (!existing || score > existing._score) {
@@ -475,6 +532,8 @@ serve(async (req) => {
             ...row,
             _score: score,
             _matched_query: plan.query,
+            _char_mentions: charRelevance.mentions,
+            _char_likely_speaker: charRelevance.likelySpeaker,
           });
         }
       });
@@ -488,9 +547,16 @@ serve(async (req) => {
     const bookChunks = Array.from(mergedByType.book.values())
       .sort((a, b) => b._score - a._score)
       .slice(0, bookLimit);
-    const transcriptChunks = Array.from(mergedByType.transcript.values())
-      .sort((a, b) => b._score - a._score)
+
+    // For transcripts: filter out chunks where target character has zero mentions (unless very few results)
+    const allTranscriptChunks = Array.from(mergedByType.transcript.values())
+      .sort((a, b) => b._score - a._score);
+    const relevantTranscripts = allTranscriptChunks.filter((c) => c._char_mentions > 0);
+    const droppedTranscripts = allTranscriptChunks.length - relevantTranscripts.length;
+    // Use relevant ones if we have enough, otherwise fall back to all
+    const transcriptChunks = (relevantTranscripts.length >= 3 ? relevantTranscripts : allTranscriptChunks)
       .slice(0, transcriptLimit);
+
     const lexiconChunks = Array.from(mergedByType.lexicon.values())
       .sort((a, b) => b._score - a._score)
       .slice(0, lexiconLimit);
@@ -508,12 +574,16 @@ serve(async (req) => {
     }));
 
     // Debug block for retrieval diagnostics
-    const transcriptMatchesPerQuery = queryPack.allQueries.map((q) => ({
+    const transcriptMatchesPerQuery = [...new Set([...queryPack.allQueries, ...queryPack.transcriptQueries])].map((q) => ({
       query: q,
       transcript_matches: perQueryCounts[q]?.transcript ?? 0,
     })).filter((m) => m.transcript_matches > 0);
 
+    const transcriptCharMentions = transcriptChunks.filter((c) => c._char_mentions > 0).length;
+    const transcriptLikelySpeaker = transcriptChunks.filter((c) => c._char_likely_speaker).length;
+
     const debugInfo = {
+      target_character: targetCharacter,
       derived_query_pack: {
         primary_query: queryPack.primaryQuery,
         subqueries: queryPack.subqueries,
@@ -546,6 +616,13 @@ serve(async (req) => {
         transcript_chunks_actually_searched: transcriptChunkCount > 0,
         transcript_matches_per_query: transcriptMatchesPerQuery,
         transcript_overwhelmed_by_books: transcriptChunks.length === 0 && bookChunks.length > 5,
+        transcript_character_relevance: {
+          target_character: targetCharacter,
+          chunks_mentioning_character: transcriptCharMentions,
+          chunks_character_likely_speaker: transcriptLikelySpeaker,
+          chunks_dropped_for_low_relevance: droppedTranscripts,
+          total_raw_transcript_matches: allTranscriptChunks.length,
+        },
       },
       matches_per_query_and_source: matchesPerQuery,
     };
@@ -631,19 +708,24 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
       sections.push("### Query-Level Match Counts\n" + matchesPerQuery.map((m) => `- ${m.query} → book=${m.book}, transcript=${m.transcript}, lexicon=${m.lexicon}`).join("\n"));
 
       // Transcript-specific debug
-      sections.push("### Transcript Retrieval Debug\n" +
-        `- Transcript-specific queries used: ${queryPack.transcriptQueries.length}\n` +
-        `- Transcript chunks in index: ${transcriptChunkCount}\n` +
-        `- Transcript matches returned: ${transcriptChunks.length}\n` +
-        `- Transcript query hit rate: ${queryPack.transcriptQueries.filter((q) => (perQueryCounts[q]?.transcript ?? 0) > 0).length}/${queryPack.transcriptQueries.length}`);
+      sections.push(`### Transcript Retrieval Debug
+- Target character: ${targetCharacter}
+- Transcript-specific queries used: ${queryPack.transcriptQueries.length}
+- Transcript chunks in index: ${transcriptChunkCount}
+- Transcript matches returned: ${transcriptChunks.length}
+- Transcript chunks mentioning ${targetCharacter}: ${transcriptCharMentions}
+- Transcript chunks where ${targetCharacter} is likely speaker: ${transcriptLikelySpeaker}
+- Transcript chunks dropped for low relevance: ${droppedTranscripts}
+- Total raw transcript matches before filtering: ${allTranscriptChunks.length}
+- Transcript query hit rate: ${queryPack.transcriptQueries.filter((q) => (perQueryCounts[q]?.transcript ?? 0) > 0).length}/${queryPack.transcriptQueries.length}`);
 
       if (bookChunks.length > 0) {
         sections.push("### PRIMARY SOURCES — Books (Book Evidence)\n" +
-          bookChunks.map((c: any) => `[${c.file_name} — BOOK — PRIMARY | matched: "${c._matched_query}"]\n${c.content}`).join("\n\n---\n\n"));
+          bookChunks.map((c: any) => `[${c.file_name} — BOOK — PRIMARY | matched: "${c._matched_query}" | ${targetCharacter} mentions: ${c._char_mentions}]\n${c.content}`).join("\n\n---\n\n"));
       }
       if (transcriptChunks.length > 0) {
         sections.push("### PRIMARY SOURCES — Movie Transcripts (Movie Evidence)\n" +
-          transcriptChunks.map((c: any) => `[${c.file_name} — TRANSCRIPT — PRIMARY | matched: "${c._matched_query}"]\n${c.content}`).join("\n\n---\n\n"));
+          transcriptChunks.map((c: any) => `[${c.file_name} — TRANSCRIPT — PRIMARY | matched: "${c._matched_query}" | ${targetCharacter} mentions: ${c._char_mentions} | likely speaker: ${c._char_likely_speaker ? "YES" : "no"}]\n${c.content}`).join("\n\n---\n\n"));
       }
 
       // Possible Contrast Pairs (comparison mode or when both families have results)
