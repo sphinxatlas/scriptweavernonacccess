@@ -6,15 +6,16 @@ import { uploadSourceFile, processFile, deleteSourceFile, type SourceFile } from
 import { toast } from "sonner";
 
 interface FileUploadCardProps {
-  fileType: "book" | "transcript" | "instructions";
+  fileType: "book" | "transcript" | "instructions" | "lexicon";
   title: string;
   description: string;
   accept?: string;
   files: SourceFile[];
   onRefresh: () => void;
+  badge?: string;
 }
 
-export function FileUploadCard({ fileType, title, description, accept = ".txt,.md,.pdf", files, onRefresh }: FileUploadCardProps) {
+export function FileUploadCard({ fileType, title, description, accept = ".txt,.md,.pdf", files, onRefresh, badge }: FileUploadCardProps) {
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState<string | null>(null);
 
@@ -77,7 +78,14 @@ export function FileUploadCard({ fileType, title, description, accept = ".txt,.m
     <div className="rounded-lg border border-border bg-card p-5">
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="font-mono text-sm font-semibold text-foreground">{title}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-mono text-sm font-semibold text-foreground">{title}</h3>
+            {badge && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
+                {badge}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground mt-1">{description}</p>
         </div>
         <div className="relative">
