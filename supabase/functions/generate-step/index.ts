@@ -95,34 +95,46 @@ If NO source material is provided below, return ONLY:
 - **Likely reason**: [assessment of why no matches were found]
 Do NOT generate placeholder evidence. Do NOT proceed based on general knowledge.`,
 
-  evidence_table: `You are a research assistant for YouTube script writing about Harry Potter.
-Given the topic brief, retrieval results, and source material excerpts, create a STRUCTURED EVIDENCE TABLE.
+  evidence_table: `You are a research assistant curating the strongest evidence for a YouTube script about Harry Potter.
+Given the topic brief, retrieval results, and source material excerpts, create a CURATED EVIDENCE TABLE.
 
 ${SOURCE_HIERARCHY_INSTRUCTION}
+
+EVIDENCE QUALITY RULES (CRITICAL):
+1. QUALITY OVER QUANTITY: Select the 10-15 STRONGEST evidence points. Do NOT pad with weak or tangential evidence.
+2. PREFER COMPARISON POINTS: Where possible, each evidence point should include BOTH book evidence AND movie evidence with a clear contrast. Do not make the table mostly book-only unless no movie counterpart exists.
+3. STRONGEST FIRST: Rank evidence points by: (a) relevance to the thesis, (b) clarity of the quote, (c) usefulness for a YouTube argument, (d) strength of contrast between book and movie.
+4. DEPRIORITIZE WEAK EVIDENCE: Exclude points that are only loosely related to the target trait. If the brief is about anger, do not include mild discomfort or general stress unless it is highly revealing. Match the claim intensity to what the source actually says.
+5. CLAIM DISCIPLINE: The claim must precisely match the evidence. Do not overstate grief as anger, discomfort as volatility, or tension as defiance unless the source strongly supports that wording.
+6. LEXICON STRICTNESS: Only include Lexicon support if it adds genuinely useful context. Do not include weak Lexicon entries just to fill a field.
+7. The table should feel like a curated shortlist of the best arguments for the video, not a broad evidence dump.
 
 Create the evidence table in this EXACT markdown format for each evidence point:
 
 ### Evidence Point [number]
 | Field | Value |
 |-------|-------|
-| **Claim** | [The claim or point being made] |
-| **Source Type** | Book / Movie Transcript / Lexicon |
-| **Source File** | [Exact filename] |
-| **Book Evidence** | [Evidence from book, if any] |
-| **Movie Evidence** | [Evidence from movie transcript, if any] |
-| **Lexicon Support** | [Supporting context from Lexicon, if any — mark as SECONDARY] |
+| **Claim** | [The precise claim — must match what the evidence actually shows] |
+| **Source Type** | Book / Movie Transcript / Both |
+| **Source File** | [Exact filename(s)] |
+| **Book Evidence** | [Evidence from book, if any — leave blank if none] |
+| **Movie Evidence** | [Evidence from movie transcript, if any — leave blank if none] |
+| **Contrast** | [What differs between book and movie, if both present] |
+| **Lexicon Support** | [Only if genuinely useful — mark as SECONDARY] |
 | **Exact Quote** | [Verbatim quote if available, in quotation marks] |
 | **Paraphrase** | [If exact quote unavailable, paraphrased version — clearly labeled] |
-| **Why This Matters** | [Why the difference or evidence is significant] |
+| **Why This Matters** | [Why this is a strong argument point for the video] |
 | **Confidence** | High / Medium / Low |
 | **Evidence Type** | exact quote / paraphrase / summary / interpretation |
 
 Rules:
-- Aim for 15-25 evidence points, majority from primary sources
+- Aim for 10-15 evidence points, curated for strength and relevance
+- Majority should include both book AND movie evidence where possible
 - Every evidence point must have a source trace (which file it came from)
 - Never invent quotes
 - Never blur exact quote vs paraphrase
-- If Lexicon is the only source, set Confidence to Low and note it needs primary confirmation`,
+- If Lexicon is the only source, set Confidence to Low and note it needs primary confirmation
+- If a point is only weakly related to the thesis, exclude it entirely`,
 
   analysis_memo: `You are a script analysis expert for Harry Potter YouTube content.
 Given the topic brief, evidence table, and source material, write an ANALYSIS MEMO.
