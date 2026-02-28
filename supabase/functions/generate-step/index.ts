@@ -59,18 +59,25 @@ If source material IS provided below, format the report as:
 ## Retrieval Summary
 - Total sources found
 - Breakdown by type (Books, Transcripts, Lexicon)
+- Both books AND movie transcripts are ALWAYS searched for every brief
 
-## Book Sources (PRIMARY)
+## Book Evidence (PRIMARY)
 For each relevant passage:
 - **Source**: [filename]
 - **Evidence Type**: exact quote / paraphrase / summary
 - **Content**: [the passage]
 - **Relevance**: [why this matters to the topic]
 
-## Movie Transcript Sources (PRIMARY)
-[Same format]
+## Movie Evidence (PRIMARY)
+[Same format — movie transcripts are always searched, not just in comparison mode]
 
-## Lexicon Sources (SECONDARY)
+## Possible Contrast Pairs
+Where book and movie evidence address similar scenes or themes, present them as contrast pairs:
+- **Book**: [source + content]
+- **Movie**: [source + content]
+- **Contrast Note**: [what differs]
+
+## Lexicon Support (SECONDARY)
 [Same format, clearly marked as secondary]
 
 ## Retrieval Gaps
@@ -214,6 +221,7 @@ type QueryPack = {
   characterQueries: string[];
   themeQueries: string[];
   comparisonQueries: string[];
+  transcriptQueries: string[];
   allQueries: string[];
 };
 
@@ -265,33 +273,55 @@ const deriveRetrievalQueryPack = (brief: any): QueryPack => {
   const focusAreas = (brief.focus_areas || []).map((v: string) => normalizeWhitespace(v)).filter(Boolean);
   const characters = (brief.characters || []).map((v: string) => normalizeWhitespace(v)).filter(Boolean);
 
-  const primaryCharacter = getPrimaryCharacter(characters);
+  // Primary query from title + optional thesis/proofGoal (only if present)
+  const coreFields = [title, thesis, proofGoal].filter(Boolean);
   const primaryQuery =
-    compressPhrase([title, thesis, proofGoal].filter(Boolean).join(" "), 10) ||
+    compressPhrase(coreFields.join(" "), 10) ||
     compressPhrase(title, 8) ||
     "harry potter characterization";
 
-  const themeQueries = dedupeStrings(
-    focusAreas.map((area: string) => compressPhrase(area, 6)).filter(Boolean),
-    8,
-  );
+  // Derive character — fallback to "Harry" only if no characters provided
+  const primaryCharacter = characters.length > 0 ? getPrimaryCharacter(characters) : "Harry";
 
-  const characterQueries = dedupeStrings(
-    characters.map((c: string) => `${compressPhrase(c, 3)} characterization`).filter((q: string) => q.trim().length > 0),
-    8,
-  );
+  // Theme queries from focus areas (only if present)
+  const themeQueries = focusAreas.length > 0
+    ? dedupeStrings(focusAreas.map((area: string) => compressPhrase(area, 6)).filter(Boolean), 8)
+    : [];
 
-  const seededSubqueries = dedupeStrings([
-    ...themeQueries.map((theme) => `${primaryCharacter} ${theme}`),
-    ...themeQueries,
-    ...characterQueries,
-    compressPhrase(title, 8),
-    compressPhrase(thesis, 8),
-    compressPhrase(proofGoal, 8),
-    `${primaryCharacter} dialogue differences`,
-    `${primaryCharacter} personality changes`,
-  ].filter(Boolean));
+  // Character queries (only if characters provided)
+  const characterQueries = characters.length > 0
+    ? dedupeStrings(characters.map((c: string) => `${compressPhrase(c, 3)} characterization`).filter((q: string) => q.trim().length > 0), 8)
+    : [];
 
+  // Build seeded subqueries from available optional fields
+  const seededParts: string[] = [];
+  if (themeQueries.length > 0) {
+    seededParts.push(...themeQueries.map((theme) => `${primaryCharacter} ${theme}`));
+    seededParts.push(...themeQueries);
+  }
+  if (characterQueries.length > 0) seededParts.push(...characterQueries);
+  const compressedTitle = compressPhrase(title, 8);
+  if (compressedTitle) seededParts.push(compressedTitle);
+  if (thesis) { const ct = compressPhrase(thesis, 8); if (ct) seededParts.push(ct); }
+  if (proofGoal) { const cp = compressPhrase(proofGoal, 8); if (cp) seededParts.push(cp); }
+
+  const seededSubqueries = dedupeStrings(seededParts.filter(Boolean));
+
+  // Transcript-specific queries — ALWAYS generated for every brief
+  const transcriptQueries = dedupeStrings([
+    `${primaryCharacter} dialogue`,
+    `${primaryCharacter} confrontation scene`,
+    `${primaryCharacter} argues`,
+    `${primaryCharacter} emotional reaction`,
+    `${primaryCharacter} sarcastic line`,
+    `${primaryCharacter} defiant`,
+    `${primaryCharacter} spoken lines`,
+    `${primaryCharacter} funny line`,
+    `${primaryCharacter} subdued`,
+    ...characters.slice(0, 3).map((c: string) => `${compressPhrase(c, 3)} dialogue`),
+  ].filter(Boolean), 10);
+
+  // Fallbacks to guarantee minimum query count
   const fallbackSubqueries = dedupeStrings([
     `${primaryCharacter} characterization`,
     `${primaryCharacter} sarcasm`,
@@ -309,22 +339,25 @@ const deriveRetrievalQueryPack = (brief: any): QueryPack => {
       subqueries.push(fallback);
     }
   }
-
   const trimmedSubqueries = subqueries.slice(0, 12);
 
+  // Comparison queries — expand when comparison mode is on
   let comparisonQueries: string[] = [];
   if (brief.comparison_mode) {
     comparisonQueries = dedupeStrings([
       ...themeQueries.slice(0, 6).map((theme) => `${theme} book vs movie`),
       ...characters.slice(0, 4).map((character: string) => `${compressPhrase(character, 3)} book vs movie characterization`),
-      `${primaryCharacter} dialogue differences`,
+      `${primaryCharacter} dialogue differences book vs movie`,
       `${primaryCharacter} personality adaptation changes`,
       `${primaryCharacter} emotional intensity books and films`,
       `${primaryCharacter} agency books and films`,
-    ].filter(Boolean), 10);
+      `${primaryCharacter} lines given to other characters`,
+      `${primaryCharacter} internal monologue lost in film`,
+    ].filter(Boolean), 12);
   }
 
-  const allQueries = dedupeStrings([primaryQuery, ...trimmedSubqueries, ...comparisonQueries], 20);
+  // allQueries = primary + subqueries + transcript-specific + comparison
+  const allQueries = dedupeStrings([primaryQuery, ...trimmedSubqueries, ...transcriptQueries, ...comparisonQueries], 30);
 
   return {
     primaryQuery,
@@ -332,6 +365,7 @@ const deriveRetrievalQueryPack = (brief: any): QueryPack => {
     characterQueries,
     themeQueries,
     comparisonQueries,
+    transcriptQueries,
     allQueries,
   };
 };
@@ -388,12 +422,22 @@ serve(async (req) => {
       .map((s: string) => normalizeWhitespace(s))
       .filter(Boolean);
 
-    // Retrieve across each source type for each derived query
-    const retrievalPlan = queryPack.allQueries.flatMap((query) => [
-      { query, sourceType: "book" as const, maxResults: 8 },
-      { query, sourceType: "transcript" as const, maxResults: 8 },
-      { query, sourceType: "lexicon" as const, maxResults: 4 },
-    ]);
+    // In comparison mode, use higher per-query limits for books & transcripts to ensure balance
+    const isComparison = brief.comparison_mode || false;
+    const bookPerQuery = isComparison ? 10 : 8;
+    const transcriptPerQuery = isComparison ? 10 : 8;
+    const lexiconPerQuery = isComparison ? 3 : 4;
+
+    // For transcript retrieval, use transcript-specific queries IN ADDITION to main queries
+    const bookQueries = queryPack.allQueries;
+    const transcriptSearchQueries = dedupeStrings([...queryPack.allQueries, ...queryPack.transcriptQueries], 35);
+    const lexiconQueries = queryPack.allQueries;
+
+    const retrievalPlan: { query: string; sourceType: SearchSourceType; maxResults: number }[] = [
+      ...bookQueries.map((query) => ({ query, sourceType: "book" as const, maxResults: bookPerQuery })),
+      ...transcriptSearchQueries.map((query) => ({ query, sourceType: "transcript" as const, maxResults: transcriptPerQuery })),
+      ...lexiconQueries.map((query) => ({ query, sourceType: "lexicon" as const, maxResults: lexiconPerQuery })),
+    ];
 
     const retrievalResponses = await Promise.all(
       retrievalPlan.map((plan) =>
@@ -436,15 +480,20 @@ serve(async (req) => {
       });
     });
 
+    // In comparison mode, enforce balanced limits; otherwise use standard limits
+    const bookLimit = isComparison ? 20 : 20;
+    const transcriptLimit = isComparison ? 20 : 20;
+    const lexiconLimit = isComparison ? 5 : 10;
+
     const bookChunks = Array.from(mergedByType.book.values())
       .sort((a, b) => b._score - a._score)
-      .slice(0, 20);
+      .slice(0, bookLimit);
     const transcriptChunks = Array.from(mergedByType.transcript.values())
       .sort((a, b) => b._score - a._score)
-      .slice(0, 20);
+      .slice(0, transcriptLimit);
     const lexiconChunks = Array.from(mergedByType.lexicon.values())
       .sort((a, b) => b._score - a._score)
-      .slice(0, 10);
+      .slice(0, lexiconLimit);
 
     // Get total indexed chunk counts for debug
     const [bookChunkCount, transcriptChunkCount, lexiconChunkCount] = await Promise.all([
@@ -459,18 +508,25 @@ serve(async (req) => {
     }));
 
     // Debug block for retrieval diagnostics
+    const transcriptMatchesPerQuery = queryPack.allQueries.map((q) => ({
+      query: q,
+      transcript_matches: perQueryCounts[q]?.transcript ?? 0,
+    })).filter((m) => m.transcript_matches > 0);
+
     const debugInfo = {
       derived_query_pack: {
         primary_query: queryPack.primaryQuery,
         subqueries: queryPack.subqueries,
         character_queries: queryPack.characterQueries,
         theme_queries: queryPack.themeQueries,
+        transcript_queries: queryPack.transcriptQueries,
         comparison_queries: queryPack.comparisonQueries,
         comparison_expanded: queryPack.comparisonQueries.length > 0,
       },
-      comparison_mode: brief.comparison_mode || false,
+      comparison_mode: isComparison,
       filters_applied: {
-        source_types: ["book", "transcript", "lexicon"],
+        source_types_searched: ["book", "transcript", "lexicon"],
+        instructions_excluded_from_evidence: true,
         priority_sources_mode: "soft_boost_ranking_only",
         priority_sources_value: prioritySources,
         strict_source_filter: false,
@@ -484,6 +540,12 @@ serve(async (req) => {
         book: bookChunks.length,
         transcript: transcriptChunks.length,
         lexicon: lexiconChunks.length,
+      },
+      transcript_debug: {
+        transcript_specific_queries_used: queryPack.transcriptQueries,
+        transcript_chunks_actually_searched: transcriptChunkCount > 0,
+        transcript_matches_per_query: transcriptMatchesPerQuery,
+        transcript_overwhelmed_by_books: transcriptChunks.length === 0 && bookChunks.length > 5,
       },
       matches_per_query_and_source: matchesPerQuery,
     };
@@ -551,21 +613,78 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     } else {
       const sections: string[] = [];
       // Add debug summary at top
-      sections.push(`## Retrieval Debug Summary\n- Primary query: ${queryPack.primaryQuery}\n- Subqueries (${queryPack.subqueries.length}): ${queryPack.subqueries.length ? queryPack.subqueries.join(" | ") : "none"}\n- Character queries (${queryPack.characterQueries.length}): ${queryPack.characterQueries.length ? queryPack.characterQueries.join(" | ") : "none"}\n- Theme queries (${queryPack.themeQueries.length}): ${queryPack.themeQueries.length ? queryPack.themeQueries.join(" | ") : "none"}\n- Comparison query expansion: ${queryPack.comparisonQueries.length > 0 ? "ON" : "OFF"}\n- Book matches: ${bookChunks.length}\n- Transcript matches: ${transcriptChunks.length}\n- Lexicon matches: ${lexiconChunks.length}\n- Priority sources mode: soft boost ranking only`);
+      sections.push(`## Retrieval Debug Summary
+- Primary query: ${queryPack.primaryQuery}
+- Subqueries (${queryPack.subqueries.length}): ${queryPack.subqueries.length ? queryPack.subqueries.join(" | ") : "none"}
+- Character queries (${queryPack.characterQueries.length}): ${queryPack.characterQueries.length ? queryPack.characterQueries.join(" | ") : "none"}
+- Theme queries (${queryPack.themeQueries.length}): ${queryPack.themeQueries.length ? queryPack.themeQueries.join(" | ") : "none"}
+- Transcript-specific queries (${queryPack.transcriptQueries.length}): ${queryPack.transcriptQueries.length ? queryPack.transcriptQueries.join(" | ") : "none"}
+- Comparison query expansion: ${queryPack.comparisonQueries.length > 0 ? "ON" : "OFF"}
+- Comparison mode: ${isComparison ? "ON" : "OFF"}
+- Book matches: ${bookChunks.length}
+- Transcript matches: ${transcriptChunks.length}
+- Lexicon matches: ${lexiconChunks.length}
+- Priority sources mode: soft boost ranking only
+- Transcript chunks indexed: ${transcriptChunkCount}
+- Transcript overwhelmed by books: ${transcriptChunks.length === 0 && bookChunks.length > 5 ? "YES — WARNING" : "No"}`);
+
       sections.push("### Query-Level Match Counts\n" + matchesPerQuery.map((m) => `- ${m.query} → book=${m.book}, transcript=${m.transcript}, lexicon=${m.lexicon}`).join("\n"));
 
+      // Transcript-specific debug
+      sections.push("### Transcript Retrieval Debug\n" +
+        `- Transcript-specific queries used: ${queryPack.transcriptQueries.length}\n` +
+        `- Transcript chunks in index: ${transcriptChunkCount}\n` +
+        `- Transcript matches returned: ${transcriptChunks.length}\n` +
+        `- Transcript query hit rate: ${queryPack.transcriptQueries.filter((q) => (perQueryCounts[q]?.transcript ?? 0) > 0).length}/${queryPack.transcriptQueries.length}`);
+
       if (bookChunks.length > 0) {
-        sections.push("### PRIMARY SOURCES — Books\n" +
-          bookChunks.map((c: any) => `[${c.file_name} — BOOK — PRIMARY]\n${c.content}`).join("\n\n---\n\n"));
+        sections.push("### PRIMARY SOURCES — Books (Book Evidence)\n" +
+          bookChunks.map((c: any) => `[${c.file_name} — BOOK — PRIMARY | matched: "${c._matched_query}"]\n${c.content}`).join("\n\n---\n\n"));
       }
       if (transcriptChunks.length > 0) {
-        sections.push("### PRIMARY SOURCES — Movie Transcripts\n" +
-          transcriptChunks.map((c: any) => `[${c.file_name} — TRANSCRIPT — PRIMARY]\n${c.content}`).join("\n\n---\n\n"));
+        sections.push("### PRIMARY SOURCES — Movie Transcripts (Movie Evidence)\n" +
+          transcriptChunks.map((c: any) => `[${c.file_name} — TRANSCRIPT — PRIMARY | matched: "${c._matched_query}"]\n${c.content}`).join("\n\n---\n\n"));
       }
+
+      // Possible Contrast Pairs (comparison mode or when both families have results)
+      if (bookChunks.length > 0 && transcriptChunks.length > 0) {
+        const contrastPairs: string[] = [];
+        const usedTranscripts = new Set<string>();
+        for (const book of bookChunks.slice(0, 8)) {
+          // Find a transcript chunk matched on a similar query
+          const candidate = transcriptChunks.find((t: any) =>
+            !usedTranscripts.has(t.id) && (
+              t._matched_query === book._matched_query ||
+              t.file_name?.toLowerCase().includes(book.file_name?.toLowerCase().split(" ")[0]) ||
+              false
+            )
+          );
+          if (candidate) {
+            usedTranscripts.add(candidate.id);
+            contrastPairs.push(`**Book**: [${book.file_name}] ${book.content.slice(0, 200)}...\n**Movie**: [${candidate.file_name}] ${candidate.content.slice(0, 200)}...`);
+          }
+        }
+        if (contrastPairs.length > 0) {
+          sections.push("### Possible Contrast Pairs\n" + contrastPairs.join("\n\n---\n\n"));
+        }
+      }
+
       if (lexiconChunks.length > 0) {
-        sections.push("### SECONDARY REFERENCE — Lexicon (use for context/support only, NOT as primary canon)\n" +
+        sections.push("### SECONDARY REFERENCE — Lexicon Support (use for context only, NOT as primary canon)\n" +
           lexiconChunks.map((c: any) => `[${c.file_name} — LEXICON — SECONDARY]\n${c.content}`).join("\n\n---\n\n"));
       }
+
+      // Retrieval gaps
+      const gaps: string[] = [];
+      if (bookChunks.length === 0) gaps.push("- No book evidence found");
+      if (transcriptChunks.length === 0) gaps.push("- No movie transcript evidence found");
+      if (isComparison && (bookChunks.length === 0 || transcriptChunks.length === 0)) {
+        gaps.push("- Comparison mode is ON but one source family returned zero results");
+      }
+      if (gaps.length > 0) {
+        sections.push("### Retrieval Gaps\n" + gaps.join("\n"));
+      }
+
       sourceContext = sections.join("\n\n========\n\n");
     }
 
@@ -599,6 +718,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 **Subqueries:** ${queryPack.subqueries.length ? queryPack.subqueries.join(" | ") : "none"}
 **Character Queries:** ${queryPack.characterQueries.length ? queryPack.characterQueries.join(" | ") : "none"}
 **Theme Queries:** ${queryPack.themeQueries.length ? queryPack.themeQueries.join(" | ") : "none"}
+**Transcript-Specific Queries:** ${queryPack.transcriptQueries.length ? queryPack.transcriptQueries.join(" | ") : "none"}
 **Comparison Query Expansion:** ${queryPack.comparisonQueries.length > 0 ? "enabled" : "disabled"}
 **Comparison Queries:** ${queryPack.comparisonQueries.length ? queryPack.comparisonQueries.join(" | ") : "none"}`;
 
