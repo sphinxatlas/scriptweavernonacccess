@@ -263,7 +263,13 @@ export type Database = {
         | "full_script"
         | "verification"
         | "retrieval"
-      source_file_type: "book" | "transcript" | "instructions" | "lexicon"
+      source_file_type:
+        | "book"
+        | "transcript"
+        | "instructions"
+        | "lexicon"
+        | "script_strategy"
+        | "competitor_analysis"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -399,7 +405,14 @@ export const Constants = {
         "verification",
         "retrieval",
       ],
-      source_file_type: ["book", "transcript", "instructions", "lexicon"],
+      source_file_type: [
+        "book",
+        "transcript",
+        "instructions",
+        "lexicon",
+        "script_strategy",
+        "competitor_analysis",
+      ],
     },
   },
 } as const

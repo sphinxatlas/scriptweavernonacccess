@@ -8,10 +8,25 @@ const corsHeaders = {
 
 const SOURCE_HIERARCHY_INSTRUCTION = `
 IMPORTANT SOURCE HIERARCHY RULES:
+
+TIER 1 — PRIMARY CANON EVIDENCE:
 - Books = PRIMARY source (highest priority)
-- Movie Transcripts = PRIMARY source (highest priority)  
+- Movie Transcripts = PRIMARY source (highest priority)
+
+TIER 2 — SECONDARY CANON SUPPORT:
 - Lexicon = SECONDARY reference only (lower priority)
-- Script Instructions = behavior and style guidance only
+
+TIER 3 — WRITING GUIDANCE ONLY (never evidence, never canon):
+- Script Instructions = output behavior and writing constraints only
+- Script Strategy = writing style, hook quality, pacing, rehooks, argument structure, retention improvement
+- Competitor Analysis = abstracted lessons about structure, hooks, what works in the niche
+
+CRITICAL TIER 3 RULES:
+- Script Instructions, Script Strategy, and Competitor Analysis must NEVER be cited as canon evidence
+- They must NEVER be used to prove Harry Potter facts
+- They are guidance layers that improve HOW the script is written, not WHAT it claims
+- Competitor Analysis must not be imitated directly — extract abstracted lessons only
+- Do NOT copy competitor wording, structure, or phrasing too closely
 
 The Lexicon is a secondary reference source only. Use it to support context, chronology, orientation, and discovery. Do not treat it as equal to the Harry Potter books or movie transcripts. Prioritize books and movie transcripts for canon claims, exact quotes, and core comparisons. Never present Lexicon wording as if it were direct text from the novels or films.
 
@@ -657,6 +672,40 @@ serve(async (req) => {
       instructionChunks = data || [];
     }
 
+    // Get Script Strategy chunks (guidance only — writing quality, pacing, hooks, retention)
+    const { data: strategyFiles } = await supabase
+      .from("source_files")
+      .select("id")
+      .eq("file_type", "script_strategy");
+
+    let strategyChunks: any[] = [];
+    if (strategyFiles && strategyFiles.length > 0) {
+      const { data } = await supabase
+        .from("file_chunks")
+        .select("content")
+        .in("file_id", strategyFiles.map(f => f.id))
+        .order("chunk_index")
+        .limit(15);
+      strategyChunks = data || [];
+    }
+
+    // Get Competitor Analysis chunks (guidance only — abstracted lessons, never imitation)
+    const { data: competitorFiles } = await supabase
+      .from("source_files")
+      .select("id")
+      .eq("file_type", "competitor_analysis");
+
+    let competitorChunks: any[] = [];
+    if (competitorFiles && competitorFiles.length > 0) {
+      const { data } = await supabase
+        .from("file_chunks")
+        .select("content")
+        .in("file_id", competitorFiles.map(f => f.id))
+        .order("chunk_index")
+        .limit(15);
+      competitorChunks = data || [];
+    }
+
     // Get starred evidence points if starredOnly mode
     let starredEvidence = "";
     if (starredOnly && (stepType === "outline" || stepType === "full_script")) {
@@ -786,6 +835,15 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
       ? instructionChunks.map(c => c.content).join("\n\n")
       : "";
 
+    // Guidance layers — only included for generation steps (analysis_memo, outline, full_script), NOT for retrieval/evidence_table
+    const isGenerationStep = ["analysis_memo", "outline", "full_script"].includes(stepType);
+    const strategyContext = isGenerationStep && strategyChunks.length > 0
+      ? strategyChunks.map(c => c.content).join("\n\n")
+      : "";
+    const competitorContext = isGenerationStep && competitorChunks.length > 0
+      ? competitorChunks.map(c => c.content).join("\n\n")
+      : "";
+
     const previousContext = previousOutputs && previousOutputs.length > 0
       ? previousOutputs.map((o: any) => `### ${o.step_type.replace(/_/g, " ").toUpperCase()}\n${o.content}`).join("\n\n")
       : "";
@@ -816,13 +874,20 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 **Comparison Query Expansion:** ${queryPack.comparisonQueries.length > 0 ? "enabled" : "disabled"}
 **Comparison Queries:** ${queryPack.comparisonQueries.length ? queryPack.comparisonQueries.join(" | ") : "none"}`;
 
+    // Build guidance layers section
+    const guidanceSections: string[] = [];
+    if (instructionContext) guidanceSections.push(`## Script Writing Instructions (GUIDANCE ONLY — not evidence)\n${instructionContext}`);
+    if (strategyContext) guidanceSections.push(`## Script Strategy (GUIDANCE ONLY — not evidence, improve writing quality/pacing/hooks/retention)\n${strategyContext}`);
+    if (competitorContext) guidanceSections.push(`## Competitor Analysis (GUIDANCE ONLY — extract abstracted lessons only, do NOT imitate directly)\n${competitorContext}`);
+    const guidanceBlock = guidanceSections.length > 0 ? guidanceSections.join("\n\n") + "\n\n" : "";
+
     const userMessage = `## Topic Brief
 ${briefContext}
 
 ## Retrieval Query Pack (Derived)
 ${queryPackContext}
 
-${instructionContext ? `## Script Writing Instructions\n${instructionContext}\n\n` : ""}${previousContext ? `## Previous Pipeline Steps\n${previousContext}\n\n` : ""}${starredEvidence ? `${starredEvidence}\n\n` : ""}## Source Material Excerpts
+${guidanceBlock}${previousContext ? `## Previous Pipeline Steps\n${previousContext}\n\n` : ""}${starredEvidence ? `${starredEvidence}\n\n` : ""}## Source Material Excerpts
 ${sourceContext}
 
 Please generate the ${stepType.replace(/_/g, " ")} based on the above information.`;
