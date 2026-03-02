@@ -13,8 +13,7 @@ export default function SourceLibrary() {
   const books = files.filter((f) => f.file_type === "book");
   const transcripts = files.filter((f) => f.file_type === "transcript");
   const lexicon = files.filter((f) => f.file_type === "lexicon");
-  const instructions = files.filter((f) => f.file_type === "instructions");
-  const scriptStrategy = files.filter((f) => f.file_type === "script_strategy");
+  const instructions = files.filter((f) => f.file_type === "instructions" || f.file_type === "script_strategy");
   const competitorAnalysis = files.filter((f) => f.file_type === "competitor_analysis");
 
   const indexedCount = files.filter((f) => f.status === "indexed").length;
@@ -64,22 +63,12 @@ export default function SourceLibrary() {
 
           <FileUploadCard
             fileType="instructions"
-            title="📝 Script Writing Instructions"
-            description="Upload your script writing guidelines. This shapes the tone and style of generated scripts."
+            title="📝 Script Instructions & Strategy"
+            description="Upload your master script writing document — covers tone, style, hooks, pacing, rehooks, argument structure, and retention. Used to shape writing quality, never as canon evidence."
             accept=".txt,.md"
             files={instructions}
             onRefresh={refetch}
             badge="Guidance Only"
-          />
-
-          <FileUploadCard
-            fileType="script_strategy"
-            title="🎯 Script Strategy"
-            description="Upload strategy docs for hook quality, pacing, rehooks, section flow, argument structure, and retention. Used to improve writing quality — never as canon evidence."
-            accept=".txt,.md"
-            files={scriptStrategy}
-            onRefresh={refetch}
-            badge="Guidance Only — Not Evidence"
           />
 
           <FileUploadCard

@@ -17,7 +17,7 @@ export const PIPELINE_STEPS: { type: PipelineStepType; label: string; descriptio
   { type: "verification", label: "Verification Report", description: "Fact-check against sources with confidence scores" },
 ];
 
-export async function uploadSourceFile(file: File, fileType: "book" | "transcript" | "instructions" | "lexicon" | "script_strategy" | "competitor_analysis") {
+export async function uploadSourceFile(file: File, fileType: "book" | "transcript" | "instructions" | "lexicon" | "competitor_analysis") {
   const storagePath = `${fileType}/${Date.now()}-${file.name}`;
 
   const { error: uploadError } = await supabase.storage

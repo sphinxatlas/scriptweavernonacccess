@@ -17,12 +17,11 @@ TIER 2 — SECONDARY CANON SUPPORT:
 - Lexicon = SECONDARY reference only (lower priority)
 
 TIER 3 — WRITING GUIDANCE ONLY (never evidence, never canon):
-- Script Instructions = output behavior and writing constraints only
-- Script Strategy = writing style, hook quality, pacing, rehooks, argument structure, retention improvement
+- Script Instructions & Strategy = output behavior, writing constraints, hook quality, pacing, rehooks, argument structure, retention
 - Competitor Analysis = abstracted lessons about structure, hooks, what works in the niche
 
 CRITICAL TIER 3 RULES:
-- Script Instructions, Script Strategy, and Competitor Analysis must NEVER be cited as canon evidence
+- Script Instructions and Competitor Analysis must NEVER be cited as canon evidence
 - They must NEVER be used to prove Harry Potter facts
 - They are guidance layers that improve HOW the script is written, not WHAT it claims
 - Competitor Analysis must not be imitated directly — extract abstracted lessons only
@@ -655,11 +654,12 @@ serve(async (req) => {
     };
     console.log("RETRIEVAL DEBUG:", JSON.stringify(debugInfo, null, 2));
 
-    // Get instruction file chunks (for writing behavior ONLY, never evidence)
+    // Get instruction & strategy file chunks (for writing behavior ONLY, never evidence)
+    // Pulls both "instructions" and legacy "script_strategy" file types
     const { data: instructionFiles } = await supabase
       .from("source_files")
       .select("id")
-      .eq("file_type", "instructions");
+      .in("file_type", ["instructions", "script_strategy"]);
 
     let instructionChunks: any[] = [];
     if (instructionFiles && instructionFiles.length > 0) {
@@ -668,25 +668,8 @@ serve(async (req) => {
         .select("content")
         .in("file_id", instructionFiles.map(f => f.id))
         .order("chunk_index")
-        .limit(10);
+        .limit(20);
       instructionChunks = data || [];
-    }
-
-    // Get Script Strategy chunks (guidance only — writing quality, pacing, hooks, retention)
-    const { data: strategyFiles } = await supabase
-      .from("source_files")
-      .select("id")
-      .eq("file_type", "script_strategy");
-
-    let strategyChunks: any[] = [];
-    if (strategyFiles && strategyFiles.length > 0) {
-      const { data } = await supabase
-        .from("file_chunks")
-        .select("content")
-        .in("file_id", strategyFiles.map(f => f.id))
-        .order("chunk_index")
-        .limit(15);
-      strategyChunks = data || [];
     }
 
     // Get Competitor Analysis chunks (guidance only — abstracted lessons, never imitation)
@@ -837,9 +820,6 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
     // Guidance layers — only included for generation steps (analysis_memo, outline, full_script), NOT for retrieval/evidence_table
     const isGenerationStep = ["analysis_memo", "outline", "full_script"].includes(stepType);
-    const strategyContext = isGenerationStep && strategyChunks.length > 0
-      ? strategyChunks.map(c => c.content).join("\n\n")
-      : "";
     const competitorContext = isGenerationStep && competitorChunks.length > 0
       ? competitorChunks.map(c => c.content).join("\n\n")
       : "";
@@ -876,8 +856,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
     // Build guidance layers section
     const guidanceSections: string[] = [];
-    if (instructionContext) guidanceSections.push(`## Script Writing Instructions (GUIDANCE ONLY — not evidence)\n${instructionContext}`);
-    if (strategyContext) guidanceSections.push(`## Script Strategy (GUIDANCE ONLY — not evidence, improve writing quality/pacing/hooks/retention)\n${strategyContext}`);
+    if (instructionContext) guidanceSections.push(`## Script Instructions & Strategy (GUIDANCE ONLY — not evidence, shapes writing quality/pacing/hooks/retention)\n${instructionContext}`);
     if (competitorContext) guidanceSections.push(`## Competitor Analysis (GUIDANCE ONLY — extract abstracted lessons only, do NOT imitate directly)\n${competitorContext}`);
     const guidanceBlock = guidanceSections.length > 0 ? guidanceSections.join("\n\n") + "\n\n" : "";
 
