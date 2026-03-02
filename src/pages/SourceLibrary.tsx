@@ -14,6 +14,8 @@ export default function SourceLibrary() {
   const transcripts = files.filter((f) => f.file_type === "transcript");
   const lexicon = files.filter((f) => f.file_type === "lexicon");
   const instructions = files.filter((f) => f.file_type === "instructions");
+  const scriptStrategy = files.filter((f) => f.file_type === "script_strategy");
+  const competitorAnalysis = files.filter((f) => f.file_type === "competitor_analysis");
 
   const indexedCount = files.filter((f) => f.status === "indexed").length;
 
@@ -67,6 +69,27 @@ export default function SourceLibrary() {
             accept=".txt,.md"
             files={instructions}
             onRefresh={refetch}
+            badge="Guidance Only"
+          />
+
+          <FileUploadCard
+            fileType="script_strategy"
+            title="🎯 Script Strategy"
+            description="Upload strategy docs for hook quality, pacing, rehooks, section flow, argument structure, and retention. Used to improve writing quality — never as canon evidence."
+            accept=".txt,.md"
+            files={scriptStrategy}
+            onRefresh={refetch}
+            badge="Guidance Only — Not Evidence"
+          />
+
+          <FileUploadCard
+            fileType="competitor_analysis"
+            title="🔍 Competitor Analysis"
+            description="Upload competitor analysis for abstracted lessons about structure, hooks, pacing, and what works. Used to improve originality — never as canon evidence or direct imitation."
+            accept=".txt,.md"
+            files={competitorAnalysis}
+            onRefresh={refetch}
+            badge="Guidance Only — Not Evidence"
           />
         </div>
       </div>

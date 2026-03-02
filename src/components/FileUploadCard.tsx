@@ -6,7 +6,7 @@ import { uploadSourceFile, processFile, deleteSourceFile, type SourceFile } from
 import { toast } from "sonner";
 
 interface FileUploadCardProps {
-  fileType: "book" | "transcript" | "instructions" | "lexicon";
+  fileType: "book" | "transcript" | "instructions" | "lexicon" | "script_strategy" | "competitor_analysis";
   title: string;
   description: string;
   accept?: string;
