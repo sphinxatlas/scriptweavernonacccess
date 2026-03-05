@@ -73,12 +73,12 @@ export default function SourceLibrary() {
 
           <FileUploadCard
             fileType="competitor_analysis"
-            title="🔍 Competitor Analysis"
-            description="Upload competitor analysis for abstracted lessons about structure, hooks, pacing, and what works. Used to improve originality — never as canon evidence or direct imitation."
+            title="🎙️ Commentary Transcripts (Secondary)"
+            description="Upload raw YouTube commentary transcripts for additional angles and context. Used for interpretation, framing, and idea discovery only. Never used as primary canon evidence or as a source for exact quotes from the books or films."
             accept=".txt,.md"
             files={competitorAnalysis}
             onRefresh={refetch}
-            badge="Guidance Only — Not Evidence"
+            badge="Secondary Commentary — Not Canon"
           />
         </div>
       </div>
