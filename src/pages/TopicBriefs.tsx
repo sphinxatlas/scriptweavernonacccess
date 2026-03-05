@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { getTopicBriefs, createTopicBrief, deleteTopicBrief, type CreateBriefInput } from "@/lib/api";
-import { Plus, Trash2, ArrowRight, FileText, GitCompare } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { getTopicBriefs, createTopicBrief, deleteTopicBrief, type CreateBriefInput, TARGET_LENGTH_OPTIONS } from "@/lib/api";
+import { Plus, Trash2, ArrowRight, FileText, GitCompare, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +28,9 @@ export default function TopicBriefs() {
     emotional_angle: "",
     tone: "",
     comparison_mode: false,
+    target_minutes: 10,
+    target_min_words: 1400,
+    target_max_words: 1600,
   });
   const [creating, setCreating] = useState(false);
 
@@ -56,6 +61,7 @@ export default function TopicBriefs() {
       setForm({
         title: "", description: "", thesis: "", focus_areas: [], characters: [],
         proof_goal: "", priority_sources: [], emotional_angle: "", tone: "", comparison_mode: false,
+        target_minutes: 10, target_min_words: 1400, target_max_words: 1600,
       });
       setShowForm(false);
       refetch();
@@ -184,6 +190,36 @@ export default function TopicBriefs() {
                 </div>
               </div>
 
+              {/* Target Length */}
+              <div>
+                <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" />
+                  Target Length (Voiceover)
+                </Label>
+                <Select
+                  value={String(form.target_minutes || 10)}
+                  onValueChange={(v) => {
+                    const opt = TARGET_LENGTH_OPTIONS.find((o) => o.minutes === Number(v));
+                    if (opt) {
+                      updateForm("target_minutes", opt.minutes);
+                      updateForm("target_min_words", opt.min);
+                      updateForm("target_max_words", opt.max);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="bg-secondary border-border mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TARGET_LENGTH_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.minutes} value={String(opt.minutes)}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Comparison mode toggle */}
               <div className="flex items-center gap-3 pt-2 border-t border-border">
                 <Switch
@@ -249,9 +285,17 @@ export default function TopicBriefs() {
                   {(brief as any).thesis && (
                     <p className="text-xs text-muted-foreground/70 mt-1 italic line-clamp-1">Thesis: {(brief as any).thesis}</p>
                   )}
-                  <p className="text-xs text-muted-foreground/60 mt-2">
-                    {new Date(brief.created_at).toLocaleDateString()}
-                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <p className="text-xs text-muted-foreground/60">
+                      {new Date(brief.created_at).toLocaleDateString()}
+                    </p>
+                    {(brief as any).target_minutes && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1">
+                        <Clock className="w-3 h-3" />
+                        {(brief as any).target_minutes} min
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button
