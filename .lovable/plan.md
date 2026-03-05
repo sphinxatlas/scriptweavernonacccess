@@ -1,22 +1,44 @@
 
 
-## Merge Script Instructions and Script Strategy
+## Rename Competitor Analysis to Commentary Transcripts (Secondary)
 
-Yes, combining these makes sense. They serve the same purpose — shaping writing behavior — and having two separate upload slots for guidance documents adds unnecessary complexity. One unified section is cleaner.
+This reclassifies the existing `competitor_analysis` source type from a "guidance only" layer into a new Tier 3 "Secondary Commentary Context" layer with distinct usage rules: it can inspire angles and provide context during generation, but any factual claims must be confirmed against Tier 1 sources before use.
 
 ### Changes
 
-1. **Source Library UI** (`src/pages/SourceLibrary.tsx`): Remove the separate Script Strategy card. Rename the Script Instructions card to something like "Script Instructions & Strategy" with an updated description covering both use cases (tone, style, hooks, pacing, rehooks, structure, retention).
+**1. Source Library UI** (`src/pages/SourceLibrary.tsx`)
+- Rename the card title from "Competitor Analysis" to "🎙️ Commentary Transcripts (Secondary)"
+- Change badge from "Guidance Only — Not Evidence" to "Secondary Commentary — Not Canon"
+- Update description to: "Upload raw YouTube commentary transcripts for additional angles and context. Used for interpretation, framing, and idea discovery only. Never used as primary canon evidence or as a source for exact quotes from the books or films."
 
-2. **FileUploadCard usage**: The combined card will use `file_type = "instructions"` and accept multiple files, so users can upload one master doc or split across a few files.
+**2. FileUploadCard** (`src/components/FileUploadCard.tsx`)
+- No structural changes needed; the card already accepts `competitor_analysis` as a file type. Just the props passed from SourceLibrary change.
 
-3. **Edge Function** (`supabase/functions/generate-step/index.ts`): Remove all `script_strategy`-specific retrieval and guidance injection logic. Merge it into the existing `instructions` handling — the guidance block for generation steps (Analysis Memo, Outline, Full Script) will pull from `instructions` type files only. The tier 3 rules remain the same: guidance only, never evidence.
+**3. Source Hierarchy** (`supabase/functions/generate-step/index.ts`)
+- Rewrite `SOURCE_HIERARCHY_INSTRUCTION` to use a 4-tier model:
+  - Tier 1: Books + Movie Transcripts (Primary Canon)
+  - Tier 2: Lexicon (Secondary Canon Support)
+  - Tier 3: Commentary Transcripts (Secondary Commentary Context) -- angle discovery, framing, interpretation, thematic lenses; any factual claims must be confirmed against Tier 1; never quote verbatim into final script; never copy structure
+  - Tier 4: Script Instructions & Strategy (Writing Guidance)
+- Add explicit rules: "If a point originates from Commentary Transcripts, the system must confirm it using books or movie transcripts before presenting it as a factual claim."
 
-4. **API / types**: Remove `script_strategy` from the `FileType` union in `src/lib/api.ts`. The database enum can keep the value for backward compatibility (existing files won't break), but the UI will stop offering it as an upload target.
+**4. Retrieval step behavior** (edge function)
+- Commentary Transcripts (`competitor_analysis` file type) may now be searched during the Retrieval step, but results must be labeled as "Commentary (Secondary, needs canon confirmation)" in the output format
+- Add a new output section: `## Commentary Angles (Secondary — Needs Canon Confirmation)` between Lexicon Support and Retrieval Gaps
+- The retrieval plan will add `competitor_analysis` queries with a small limit (5-8 results)
 
-5. **No database migration needed**: Keeping the enum value in the DB is harmless. Any previously uploaded `script_strategy` files will still exist and can be treated identically to `instructions` in the edge function logic.
+**5. Evidence Table behavior** (edge function prompt)
+- Commentary Transcripts cannot be used as primary evidence
+- Add an optional field to the evidence table format: `| **Commentary Angle** | [If inspired by commentary transcript — needs canon confirmation] |`
 
-### Result
+**6. Generation steps** (analysis_memo, outline, full_script)
+- Commentary context block header changes from "Competitor Analysis (GUIDANCE ONLY...)" to "Commentary Transcripts (SECONDARY COMMENTARY — angles and framing only, all factual claims must be confirmed against books/movie transcripts)"
+- Add rule in generation prompts: "no competitor wording reuse" and "Angle inspired by commentary transcript — requires canon confirmation"
 
-One card in Source Library: **"Script Instructions & Strategy"** with badge "Guidance Only" — covering writing guidelines, hook quality, pacing, rehooks, argument structure, and retention. One master document upload slot.
+**7. No database migration needed**
+- The `competitor_analysis` enum value stays as-is in the DB. The UI and edge function just treat it differently.
+
+### File Summary
+- `src/pages/SourceLibrary.tsx` — rename card title, badge, description
+- `supabase/functions/generate-step/index.ts` — rewrite hierarchy to 4 tiers, update retrieval to include commentary search with labeling, update evidence table prompt, update generation guidance block headers and rules
 
