@@ -12,20 +12,31 @@ IMPORTANT SOURCE HIERARCHY RULES:
 TIER 1 — PRIMARY CANON EVIDENCE:
 - Books = PRIMARY source (highest priority)
 - Movie Transcripts = PRIMARY source (highest priority)
+- Used for factual claims about story events, characterization, and exact quotes
+- Used for book vs film comparisons
+- ONLY these can be treated as primary evidence
 
 TIER 2 — SECONDARY CANON SUPPORT:
 - Lexicon = SECONDARY reference only (lower priority)
+- Never overrides books or movie transcripts
 
-TIER 3 — WRITING GUIDANCE ONLY (never evidence, never canon):
+TIER 3 — SECONDARY COMMENTARY CONTEXT:
+- Commentary Transcripts (from YouTube commentary videos)
+- Allowed: angle discovery, framing ideas, alternative interpretations, lists of differences to investigate, thematic lenses, psychological readings, terminology that helps explain concepts
+- NOT allowed: never cite as proof of canon, never treat claims as true unless confirmed in books or movie transcripts, never use as direct script wording, never copy structure too closely, never quote verbatim into the final script
+- RULE: If a point originates from Commentary Transcripts, the system MUST confirm it using books or movie transcripts before presenting it as a factual claim
+- Mark internally as: "Angle inspired by commentary transcript — requires canon confirmation"
+
+TIER 4 — WRITING GUIDANCE ONLY (never evidence, never canon):
 - Script Instructions & Strategy = output behavior, writing constraints, hook quality, pacing, rehooks, argument structure, retention
-- Competitor Analysis = abstracted lessons about structure, hooks, what works in the niche
+- Used only for tone, structure, hook, pacing, writing behavior
+- Never used as canon evidence
 
-CRITICAL TIER 3 RULES:
-- Script Instructions and Competitor Analysis must NEVER be cited as canon evidence
-- They must NEVER be used to prove Harry Potter facts
-- They are guidance layers that improve HOW the script is written, not WHAT it claims
-- Competitor Analysis must not be imitated directly — extract abstracted lessons only
-- Do NOT copy competitor wording, structure, or phrasing too closely
+CRITICAL RULES:
+- Commentary Transcripts must NEVER be cited as canon evidence or used to prove Harry Potter facts
+- No competitor wording reuse — do NOT copy commentary transcript wording, structure, or phrasing
+- Script Instructions must NEVER be cited as canon evidence
+- They are layers that improve HOW the script is written, not WHAT it claims
 
 The Lexicon is a secondary reference source only. Use it to support context, chronology, orientation, and discovery. Do not treat it as equal to the Harry Potter books or movie transcripts. Prioritize books and movie transcripts for canon claims, exact quotes, and core comparisons. Never present Lexicon wording as if it were direct text from the novels or films.
 
@@ -94,6 +105,14 @@ Where book and movie evidence address similar scenes or themes, present them as 
 ## Lexicon Support (SECONDARY)
 [Same format, clearly marked as secondary]
 
+## Commentary Angles (Secondary — Needs Canon Confirmation)
+For each relevant commentary passage:
+- **Source**: [filename]
+- **Content**: [the passage]
+- **Potential Angle**: [what angle or framing this suggests]
+- **Canon Confirmation Needed**: [what must be verified against books/movie transcripts]
+Note: These are from YouTube commentary transcripts. They may inspire angles but are NOT canon evidence. All factual claims must be confirmed against Tier 1 sources.
+
 ## Retrieval Gaps
 - What evidence is missing?
 - What should be searched for manually?
@@ -140,6 +159,7 @@ Create the evidence table in this EXACT markdown format for each evidence point:
 | **Why This Matters** | [Why this is a strong argument point for the video] |
 | **Confidence** | High / Medium / Low |
 | **Evidence Type** | exact quote / paraphrase / summary / interpretation |
+| **Commentary Angle** | [If inspired by commentary transcript — needs canon confirmation] |
 
 Rules:
 - Aim for 10-15 evidence points, curated for strength and relevance
@@ -148,7 +168,9 @@ Rules:
 - Never invent quotes
 - Never blur exact quote vs paraphrase
 - If Lexicon is the only source, set Confidence to Low and note it needs primary confirmation
-- If a point is only weakly related to the thesis, exclude it entirely`,
+- If a point is only weakly related to the thesis, exclude it entirely
+- Commentary Transcripts CANNOT be used as primary evidence — only as angle inspiration
+- If an angle was inspired by a commentary transcript, it must be confirmed against books or movie transcripts before inclusion`,
 
   analysis_memo: `You are a script analysis expert for Harry Potter YouTube content.
 Given the topic brief, evidence table, and source material, write an ANALYSIS MEMO.
@@ -239,7 +261,7 @@ Additional checks:
 
 const STEP_ORDER = ["retrieval", "evidence_table", "analysis_memo", "outline", "full_script", "verification"];
 
-type SearchSourceType = "book" | "transcript" | "lexicon";
+type SearchSourceType = "book" | "transcript" | "lexicon" | "competitor_analysis";
 
 type QueryPack = {
   primaryQuery: string;
@@ -513,6 +535,8 @@ serve(async (req) => {
       ...bookQueries.map((query) => ({ query, sourceType: "book" as const, maxResults: bookPerQuery })),
       ...transcriptSearchQueries.map((query) => ({ query, sourceType: "transcript" as const, maxResults: transcriptPerQuery })),
       ...lexiconQueries.map((query) => ({ query, sourceType: "lexicon" as const, maxResults: lexiconPerQuery })),
+      // Commentary Transcripts — searched for idea discovery only, limited results
+      ...queryPack.allQueries.slice(0, 5).map((query) => ({ query, sourceType: "competitor_analysis" as const, maxResults: 5 })),
     ];
 
     const retrievalResponses = await Promise.all(
@@ -530,6 +554,7 @@ serve(async (req) => {
       book: new Map(),
       transcript: new Map(),
       lexicon: new Map(),
+      competitor_analysis: new Map(),
     };
 
     const targetCharacter = queryPack.targetCharacter;
@@ -586,6 +611,11 @@ serve(async (req) => {
     const lexiconChunks = Array.from(mergedByType.lexicon.values())
       .sort((a, b) => b._score - a._score)
       .slice(0, lexiconLimit);
+
+    // Commentary Transcripts — for idea discovery only, limited
+    const commentaryChunks = Array.from(mergedByType.competitor_analysis.values())
+      .sort((a, b) => b._score - a._score)
+      .slice(0, 8);
 
     // Get total indexed chunk counts for debug
     const [bookChunkCount, transcriptChunkCount, lexiconChunkCount] = await Promise.all([
@@ -672,7 +702,7 @@ serve(async (req) => {
       instructionChunks = data || [];
     }
 
-    // Get Competitor Analysis chunks (guidance only — abstracted lessons, never imitation)
+    // Get Commentary Transcript chunks (secondary commentary — angle discovery, never evidence)
     const { data: competitorFiles } = await supabase
       .from("source_files")
       .select("id")
@@ -800,6 +830,12 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
           lexiconChunks.map((c: any) => `[${c.file_name} — LEXICON — SECONDARY]\n${c.content}`).join("\n\n---\n\n"));
       }
 
+      // Commentary Angles — secondary commentary context, NOT evidence
+      if (commentaryChunks.length > 0) {
+        sections.push("### COMMENTARY ANGLES (Secondary — Needs Canon Confirmation)\nThese are from YouTube commentary transcripts. They may inspire angles and framing but are NOT canon evidence. All factual claims MUST be confirmed against books or movie transcripts before use.\n" +
+          commentaryChunks.map((c: any) => `[${c.file_name} — COMMENTARY — SECONDARY | Angle inspired by commentary transcript — requires canon confirmation]\n${c.content}`).join("\n\n---\n\n"));
+      }
+
       // Retrieval gaps
       const gaps: string[] = [];
       if (bookChunks.length === 0) gaps.push("- No book evidence found");
@@ -857,7 +893,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     // Build guidance layers section
     const guidanceSections: string[] = [];
     if (instructionContext) guidanceSections.push(`## Script Instructions & Strategy (GUIDANCE ONLY — not evidence, shapes writing quality/pacing/hooks/retention)\n${instructionContext}`);
-    if (competitorContext) guidanceSections.push(`## Competitor Analysis (GUIDANCE ONLY — extract abstracted lessons only, do NOT imitate directly)\n${competitorContext}`);
+    if (competitorContext) guidanceSections.push(`## Commentary Transcripts (SECONDARY COMMENTARY — angles and framing only, all factual claims must be confirmed against books/movie transcripts. No competitor wording reuse. Angle inspired by commentary transcript — requires canon confirmation)\n${competitorContext}`);
     const guidanceBlock = guidanceSections.length > 0 ? guidanceSections.join("\n\n") + "\n\n" : "";
 
     const userMessage = `## Topic Brief
