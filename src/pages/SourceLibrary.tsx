@@ -15,6 +15,7 @@ export default function SourceLibrary() {
   const lexicon = files.filter((f) => f.file_type === "lexicon");
   const instructions = files.filter((f) => f.file_type === "instructions" || f.file_type === "script_strategy");
   const competitorAnalysis = files.filter((f) => f.file_type === "competitor_analysis");
+  const hostPersona = files.filter((f) => f.file_type === "host_persona");
 
   const indexedCount = files.filter((f) => f.status === "indexed").length;
 
@@ -79,6 +80,16 @@ export default function SourceLibrary() {
             files={competitorAnalysis}
             onRefresh={refetch}
             badge="Secondary Commentary — Not Canon"
+          />
+
+          <FileUploadCard
+            fileType="host_persona"
+            title="🧑‍🎤 Host Persona"
+            description="Store your host profile — name, style, catchphrases, channel identity. This is for reference only and is NOT used in any generation step."
+            accept=".txt,.md"
+            files={hostPersona}
+            onRefresh={refetch}
+            badge="Reference Only — Not Used in Generation"
           />
         </div>
       </div>
