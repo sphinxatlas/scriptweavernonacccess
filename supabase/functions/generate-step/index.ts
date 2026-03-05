@@ -200,6 +200,7 @@ Format:
   - Evidence to cite (note source type: Book/Transcript/Lexicon)
   - Evidence type: exact quote / paraphrase / summary
   - Source file reference
+  - Word budget: [X words]
   - Transition
 ## Section 2: [Title]
 ...
@@ -208,7 +209,10 @@ Format:
 
 Include timing estimates and specific evidence citations for each section.
 Mark any Lexicon-derived points as secondary support.
-For each piece of evidence, note whether it's an exact quote, paraphrase, or summary.`,
+For each piece of evidence, note whether it's an exact quote, paraphrase, or summary.
+
+IMPORTANT — WORD BUDGET INSTRUCTIONS (injected dynamically per brief):
+{{OUTLINE_LENGTH_INSTRUCTION}}`,
 
   full_script: `You are a professional YouTube scriptwriter specializing in Harry Potter analysis content.
 Given the topic brief, evidence, analysis, and outline, write a FULL SCRIPT.
@@ -226,9 +230,11 @@ Requirements:
 - Add [B-ROLL], [CUT TO], [GRAPHIC] annotations for video editing
 - Add [SOURCE: filename] annotations after each evidence reference
 - Include natural transitions between sections
-- Target 10-15 minute video length (2000-3000 words)
 - Start with a compelling hook
-- End with a strong call to action`,
+- End with a strong call to action
+
+IMPORTANT — WORD COUNT INSTRUCTIONS (injected dynamically per brief):
+{{FULL_SCRIPT_LENGTH_INSTRUCTION}}`,
 
   verification: `You are a fact-checker and script verifier for Harry Potter YouTube content.
 Given the full script and source material, create a VERIFICATION REPORT.
@@ -865,6 +871,22 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
       : "";
 
     let systemPrompt = STEP_PROMPTS[stepType] || "You are a helpful writing assistant.";
+
+    // Inject dynamic target length instructions for outline and full_script
+    const targetMin = brief.target_min_words ?? 1400;
+    const targetMax = brief.target_max_words ?? 1600;
+
+    if (stepType === "outline") {
+      systemPrompt = systemPrompt.replace(
+        "{{OUTLINE_LENGTH_INSTRUCTION}}",
+        `Include a word budget per section that sums to ${targetMin}–${targetMax} words total.\nInclude an estimated total word count line at the end of the outline.`
+      );
+    } else if (stepType === "full_script") {
+      systemPrompt = systemPrompt.replace(
+        "{{FULL_SCRIPT_LENGTH_INSTRUCTION}}",
+        `Enforce total word count within ${targetMin} to ${targetMax} words.\nIf the draft falls outside this range, self-revise until it lands inside.\nInclude a final line: Word count: ~X (target: ${targetMin}–${targetMax})`
+      );
+    }
 
     // Add comparison mode instruction if enabled
     if (brief.comparison_mode) {

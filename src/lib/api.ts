@@ -75,6 +75,14 @@ export async function getTopicBriefs() {
   return data;
 }
 
+export const TARGET_LENGTH_OPTIONS = [
+  { minutes: 8, min: 1120, max: 1280, label: "8 min (1,120–1,280 words)" },
+  { minutes: 10, min: 1400, max: 1600, label: "10 min (1,400–1,600 words)" },
+  { minutes: 12, min: 1680, max: 1920, label: "12 min (1,680–1,920 words)" },
+  { minutes: 15, min: 2100, max: 2400, label: "15 min (2,100–2,400 words)" },
+  { minutes: 20, min: 2800, max: 3200, label: "20 min (2,800–3,200 words)" },
+];
+
 export interface CreateBriefInput {
   title: string;
   description: string;
@@ -86,6 +94,9 @@ export interface CreateBriefInput {
   emotional_angle?: string;
   tone?: string;
   comparison_mode?: boolean;
+  target_minutes?: number;
+  target_min_words?: number;
+  target_max_words?: number;
 }
 
 export async function createTopicBrief(input: CreateBriefInput) {

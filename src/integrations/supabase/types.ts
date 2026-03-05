@@ -184,6 +184,9 @@ export type Database = {
           id: string
           priority_sources: string[] | null
           proof_goal: string | null
+          target_max_words: number
+          target_min_words: number
+          target_minutes: number
           thesis: string | null
           title: string
           tone: string | null
@@ -199,6 +202,9 @@ export type Database = {
           id?: string
           priority_sources?: string[] | null
           proof_goal?: string | null
+          target_max_words?: number
+          target_min_words?: number
+          target_minutes?: number
           thesis?: string | null
           title: string
           tone?: string | null
@@ -214,6 +220,9 @@ export type Database = {
           id?: string
           priority_sources?: string[] | null
           proof_goal?: string | null
+          target_max_words?: number
+          target_min_words?: number
+          target_minutes?: number
           thesis?: string | null
           title?: string
           tone?: string | null
