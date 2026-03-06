@@ -708,6 +708,23 @@ serve(async (req) => {
       instructionChunks = data || [];
     }
 
+    // Get Anti AI Language Guide chunks (writing guidance — injected into outline + full_script)
+    const { data: antiAiFiles } = await supabase
+      .from("source_files")
+      .select("id")
+      .eq("file_type", "anti_ai_guide");
+
+    let antiAiChunks: any[] = [];
+    if (antiAiFiles && antiAiFiles.length > 0) {
+      const { data } = await supabase
+        .from("file_chunks")
+        .select("content")
+        .in("file_id", antiAiFiles.map(f => f.id))
+        .order("chunk_index")
+        .limit(20);
+      antiAiChunks = data || [];
+    }
+
     // Get Commentary Transcript chunks (secondary commentary — angle discovery, never evidence)
     const { data: competitorFiles } = await supabase
       .from("source_files")
@@ -866,6 +883,12 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
       ? competitorChunks.map(c => c.content).join("\n\n")
       : "";
 
+    // Anti AI Language Guide — injected into outline (optional) and full_script (mandatory)
+    const isScriptStep = ["outline", "full_script"].includes(stepType);
+    const antiAiContext = isScriptStep && antiAiChunks.length > 0
+      ? antiAiChunks.map(c => c.content).join("\n\n")
+      : "";
+
     const previousContext = previousOutputs && previousOutputs.length > 0
       ? previousOutputs.map((o: any) => `### ${o.step_type.replace(/_/g, " ").toUpperCase()}\n${o.content}`).join("\n\n")
       : "";
@@ -886,6 +909,11 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
         "{{FULL_SCRIPT_LENGTH_INSTRUCTION}}",
         `Enforce total word count within ${targetMin} to ${targetMax} words.\nIf the draft falls outside this range, self-revise until it lands inside.\nInclude a final line: Word count: ~X (target: ${targetMin}–${targetMax})`
       );
+    }
+
+    // Inject Anti AI Language Guide enforcement into system prompt for script steps
+    if (isScriptStep && antiAiContext) {
+      systemPrompt += `\n\nANTI AI LANGUAGE GUIDE (MANDATORY — apply these rules strictly):\n- Avoid common AI phrases, templated intros, and AI word clusters described below\n- Avoid over-tidy signposting, repetitive triads, and generic CTAs\n- Do not use em dashes heavily\n- Keep wording natural and voiceover-friendly\n- The final script must sound human, original, and not trigger obvious AI detection signals\n\nAnti AI Language Guide content:\n${antiAiContext}`;
     }
 
     // Add comparison mode instruction if enabled
@@ -912,9 +940,10 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 **Comparison Query Expansion:** ${queryPack.comparisonQueries.length > 0 ? "enabled" : "disabled"}
 **Comparison Queries:** ${queryPack.comparisonQueries.length ? queryPack.comparisonQueries.join(" | ") : "none"}`;
 
-    // Build guidance layers section
+    // Build guidance layers section — priority order: 1) Script Instructions, 2) Anti AI Guide, 3) Script Strategy
     const guidanceSections: string[] = [];
     if (instructionContext) guidanceSections.push(`## Script Instructions & Strategy (GUIDANCE ONLY — not evidence, shapes writing quality/pacing/hooks/retention)\n${instructionContext}`);
+    if (antiAiContext) guidanceSections.push(`## Anti AI Language Guide (WRITING GUIDANCE — avoid AI tells, keep output human and natural)\n${antiAiContext}`);
     if (competitorContext) guidanceSections.push(`## Commentary Transcripts (SECONDARY COMMENTARY — angles and framing only, all factual claims must be confirmed against books/movie transcripts. No competitor wording reuse. Angle inspired by commentary transcript — requires canon confirmation)\n${competitorContext}`);
     const guidanceBlock = guidanceSections.length > 0 ? guidanceSections.join("\n\n") + "\n\n" : "";
 
