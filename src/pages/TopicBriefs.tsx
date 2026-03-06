@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { getTopicBriefs, createTopicBrief, deleteTopicBrief, type CreateBriefInput, TARGET_LENGTH_OPTIONS } from "@/lib/api";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Plus, Trash2, ArrowRight, FileText, GitCompare, Clock, ChevronRight, BookOpen, Users, Target } from "lucide-react";
+import { Plus, Trash2, ArrowRight, FileText, GitCompare, Clock, ChevronRight, BookOpen, Users, Target, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -77,6 +77,31 @@ export default function TopicBriefs() {
     } finally {
       setCreating(false);
     }
+  };
+
+  const handleDuplicate = (brief: any) => {
+    setForm({
+      title: `Copy of ${brief.title}`,
+      description: brief.description || "",
+      thesis: brief.thesis || "",
+      focus_areas: brief.focus_areas || [],
+      characters: brief.characters || [],
+      proof_goal: brief.proof_goal || "",
+      priority_sources: brief.priority_sources || [],
+      emotional_angle: brief.emotional_angle || "",
+      tone: brief.tone || "",
+      comparison_mode: brief.comparison_mode || false,
+      target_minutes: brief.target_minutes || 10,
+      target_min_words: brief.target_min_words || 1400,
+      target_max_words: brief.target_max_words || 1600,
+      competitor_script_1: brief.competitor_script_1 || "",
+      competitor_script_2: brief.competitor_script_2 || "",
+      competitor_script_3: brief.competitor_script_3 || "",
+      competitor_script_4: brief.competitor_script_4 || "",
+      competitor_script_5: brief.competitor_script_5 || "",
+    });
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDelete = async (id: string) => {
@@ -357,6 +382,15 @@ export default function TopicBriefs() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                    onClick={(e) => { e.stopPropagation(); handleDuplicate(brief); }}
+                    title="Duplicate brief"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </Button>
                   <Button
                     size="icon"
                     variant="ghost"
