@@ -1,0 +1,1 @@
+ALTER TYPE public.source_file_type ADD VALUE IF NOT EXISTS 'anti_ai_guide';

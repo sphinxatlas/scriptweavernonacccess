@@ -14,6 +14,7 @@ export default function SourceLibrary() {
   const transcripts = files.filter((f) => f.file_type === "transcript");
   const lexicon = files.filter((f) => f.file_type === "lexicon");
   const instructions = files.filter((f) => f.file_type === "instructions" || f.file_type === "script_strategy");
+  const antiAiGuide = files.filter((f) => f.file_type === "anti_ai_guide");
   const competitorAnalysis = files.filter((f) => f.file_type === "competitor_analysis");
   const hostPersona = files.filter((f) => f.file_type === "host_persona");
 
@@ -71,6 +72,18 @@ export default function SourceLibrary() {
             onRefresh={refetch}
             badge="Guidance Only"
           />
+
+          <div className="ml-4 border-l-2 border-border pl-4">
+            <FileUploadCard
+              fileType="anti_ai_guide"
+              title="🚫 Anti AI Language Guide"
+              description="Upload TXT documents listing AI writing tells and phrases to avoid. Injected into Full Script (mandatory) and Outline prompts to keep output sounding human and natural."
+              accept=".txt"
+              files={antiAiGuide}
+              onRefresh={refetch}
+              badge="Writing Guidance — Injected into Script Generation"
+            />
+          </div>
 
           <FileUploadCard
             fileType="competitor_analysis"
