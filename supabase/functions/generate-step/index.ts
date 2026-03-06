@@ -257,15 +257,25 @@ Given the topic brief, evidence, analysis, and outline, write a FULL SCRIPT.
 ${SOURCE_HIERARCHY_INSTRUCTION}
 
 Requirements:
-- Conversational but authoritative tone — write as natural voiceover paragraphs, NOT annotated editing scripts
+- Conversational but authoritative tone — the body text must be PURELY NATURAL SPOKEN WORDS as if read aloud by a narrator
 - Build the script primarily from books and movie transcripts
 - Allow Lexicon only as secondary contextual support
 - Do not include Lexicon-derived wording as if it were canon dialogue or narration
 - If Lexicon shaped the interpretation, keep the final script grounded in primary evidence
 - Include specific quotes and evidence from source material
-- After each evidence reference, include [SOURCE: filename] inline so sources are traceable
-- Do NOT use inline annotations like [B-ROLL], [CUT TO], [GRAPHIC], or [CLAIM] — the voiceover text must read naturally
-- After each section's voiceover paragraph(s), add a separate "VISUAL NOTES:" block with editor instructions for that section (b-roll suggestions, cut points, graphic ideas, timing cues)
+- The voiceover paragraphs must contain NO brackets, tags, or annotations of any kind — just natural speech
+- FORBIDDEN in voiceover text: [CLAIM], [SOURCE], [B-ROLL], [CUT TO], [GRAPHIC], or any other bracketed annotation
+- After each section's voiceover paragraph(s), on a NEW LINE, list the sources used for that section as [SOURCE: filename] — one per line
+- After the source references, add a "VISUAL NOTES:" block with editor instructions (b-roll suggestions, cut points, graphic ideas, timing cues)
+- Structure each section like this:
+
+<natural voiceover paragraph — purely spoken words, no brackets>
+
+[SOURCE: book5_chapter12.txt]
+[SOURCE: movie3_transcript.txt]
+
+VISUAL NOTES: b-roll of corridor, cut to close-up of character...
+
 - Include natural transitions between sections
 - Start with a compelling hook
 - End with a strong call to action
