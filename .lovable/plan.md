@@ -1,49 +1,33 @@
 
 
-## Add Target Length (Voiceover) to Topic Briefs
+## View Brief Inputs After Submission + Optional Competitor Scripts
 
-### 1. Database Migration
+### Problem
+Once a topic brief is created, there is no way to review its full inputs (thesis, focus areas, characters, tone, competitor scripts, etc.) — only the title and description appear in the pipeline sidebar. The competitor scripts are already technically optional but the UI shows all 5 boxes unconditionally.
 
-Add three columns to `topic_briefs`:
-- `target_minutes` (integer, default 10)
-- `target_min_words` (integer, default 1400)
-- `target_max_words` (integer, default 1600)
+### Plan
 
-### 2. API Layer (`src/lib/api.ts`)
+#### 1. Add a "Brief Details" panel in the Pipeline View
 
-Add `target_minutes`, `target_min_words`, `target_max_words` to `CreateBriefInput` interface.
+Add a new collapsible/expandable section (or a dedicated sidebar tab) in `src/pages/PipelineView.tsx` that displays all stored brief fields in a read-only format:
 
-Define a constant for the dropdown options:
-```typescript
-export const TARGET_LENGTH_OPTIONS = [
-  { minutes: 8, min: 1120, max: 1280, label: "8 min (1,120–1,280 words)" },
-  { minutes: 10, min: 1400, max: 1600, label: "10 min (1,400–1,600 words)" },
-  { minutes: 12, min: 1680, max: 1920, label: "12 min (1,680–1,920 words)" },
-  { minutes: 15, min: 2100, max: 2400, label: "15 min (2,100–2,400 words)" },
-  { minutes: 20, min: 2800, max: 3200, label: "20 min (2,800–3,200 words)" },
-];
-```
+- Title, Description, Thesis, Proof Goal
+- Focus Areas, Characters, Emotional Angle, Tone
+- Priority Sources, Target Length, Comparison Mode
+- Competitor Scripts (only show the ones that have content)
 
-### 3. Topic Briefs UI (`src/pages/TopicBriefs.tsx`)
+This will be accessible via a button/icon in the pipeline sidebar (e.g. "View Brief" or an info icon) that opens a sheet/drawer or inline panel showing all fields.
 
-Add a Select dropdown in the form labeled "Target Length (Voiceover)" with the five options. Default to 10 min. When selection changes, set all three fields (`target_minutes`, `target_min_words`, `target_max_words`) on the form. Show the selected length as a badge on brief cards in the list.
+#### 2. Make Competitor Scripts section collapsible in the form
 
-### 4. Edge Function (`supabase/functions/generate-step/index.ts`)
+In `src/pages/TopicBriefs.tsx`, wrap the Competitor Scripts section in a `Collapsible` component so the 5 text boxes are hidden by default and only expand when clicked. This makes them clearly optional and reduces form clutter.
 
-**Outline prompt** (line ~190): Append dynamic instruction from brief data:
-- "Include a word budget per section that sums to {min}–{max} words total"
-- "Include an estimated total word count line at the end"
+#### 3. Show brief details on brief cards in the list
 
-**Full Script prompt** (line ~213): Replace the hardcoded "Target 10-15 minute video length (2000-3000 words)" with dynamic values from the brief:
-- "Enforce total word count within {min} to {max} words"
-- "If the draft falls outside this range, self-revise until it lands inside"
-- "Include a final line: Word count: ~X (target: {min}–{max})"
-
-Read `target_min_words` and `target_max_words` from the brief object (already fetched in the function) and inject into the prompt string for outline and full_script steps only. No changes to retrieval, evidence_table, analysis_memo, or verification.
+On the brief list cards, add subtle indicators for filled optional fields (e.g. small badges or counts) so users can see at a glance what was filled in.
 
 ### Files Changed
-- New migration SQL (3 columns)
-- `src/lib/api.ts` — interface + constants
-- `src/pages/TopicBriefs.tsx` — dropdown + display
-- `supabase/functions/generate-step/index.ts` — dynamic length in outline + full_script prompts
+- `src/pages/PipelineView.tsx` — add brief details panel/drawer with all fields displayed read-only
+- `src/pages/TopicBriefs.tsx` — wrap competitor scripts in a collapsible section
+- No database changes needed
 
