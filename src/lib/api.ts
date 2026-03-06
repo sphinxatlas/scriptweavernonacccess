@@ -6,9 +6,10 @@ export type TopicBrief = Tables<"topic_briefs">;
 export type PipelineOutput = Tables<"pipeline_outputs">;
 export type EvidencePoint = Tables<"evidence_points">;
 
-export type PipelineStepType = "retrieval" | "evidence_table" | "analysis_memo" | "outline" | "full_script" | "verification";
+export type PipelineStepType = "competitor_format_analysis" | "retrieval" | "evidence_table" | "analysis_memo" | "outline" | "full_script" | "verification";
 
 export const PIPELINE_STEPS: { type: PipelineStepType; label: string; description: string }[] = [
+  { type: "competitor_format_analysis", label: "Competitor Format Analysis", description: "Analyze competitor scripts for structure, pacing, and hook patterns" },
   { type: "retrieval", label: "Retrieval", description: "Search and organize source material by priority" },
   { type: "evidence_table", label: "Evidence Table", description: "Structured evidence with source traces and quote discipline" },
   { type: "analysis_memo", label: "Analysis Memo", description: "Synthesize themes and arguments from evidence" },
@@ -97,6 +98,11 @@ export interface CreateBriefInput {
   target_minutes?: number;
   target_min_words?: number;
   target_max_words?: number;
+  competitor_script_1?: string;
+  competitor_script_2?: string;
+  competitor_script_3?: string;
+  competitor_script_4?: string;
+  competitor_script_5?: string;
 }
 
 export async function createTopicBrief(input: CreateBriefInput) {

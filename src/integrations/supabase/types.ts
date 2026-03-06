@@ -177,6 +177,11 @@ export type Database = {
         Row: {
           characters: string[] | null
           comparison_mode: boolean
+          competitor_script_1: string | null
+          competitor_script_2: string | null
+          competitor_script_3: string | null
+          competitor_script_4: string | null
+          competitor_script_5: string | null
           created_at: string
           description: string
           emotional_angle: string | null
@@ -195,6 +200,11 @@ export type Database = {
         Insert: {
           characters?: string[] | null
           comparison_mode?: boolean
+          competitor_script_1?: string | null
+          competitor_script_2?: string | null
+          competitor_script_3?: string | null
+          competitor_script_4?: string | null
+          competitor_script_5?: string | null
           created_at?: string
           description: string
           emotional_angle?: string | null
@@ -213,6 +223,11 @@ export type Database = {
         Update: {
           characters?: string[] | null
           comparison_mode?: boolean
+          competitor_script_1?: string | null
+          competitor_script_2?: string | null
+          competitor_script_3?: string | null
+          competitor_script_4?: string | null
+          competitor_script_5?: string | null
           created_at?: string
           description?: string
           emotional_angle?: string | null
@@ -272,6 +287,7 @@ export type Database = {
         | "full_script"
         | "verification"
         | "retrieval"
+        | "competitor_format_analysis"
       source_file_type:
         | "book"
         | "transcript"
@@ -415,6 +431,7 @@ export const Constants = {
         "full_script",
         "verification",
         "retrieval",
+        "competitor_format_analysis",
       ],
       source_file_type: [
         "book",

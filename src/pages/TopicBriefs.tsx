@@ -31,6 +31,11 @@ export default function TopicBriefs() {
     target_minutes: 10,
     target_min_words: 1400,
     target_max_words: 1600,
+    competitor_script_1: "",
+    competitor_script_2: "",
+    competitor_script_3: "",
+    competitor_script_4: "",
+    competitor_script_5: "",
   });
   const [creating, setCreating] = useState(false);
 
@@ -62,6 +67,7 @@ export default function TopicBriefs() {
         title: "", description: "", thesis: "", focus_areas: [], characters: [],
         proof_goal: "", priority_sources: [], emotional_angle: "", tone: "", comparison_mode: false,
         target_minutes: 10, target_min_words: 1400, target_max_words: 1600,
+        competitor_script_1: "", competitor_script_2: "", competitor_script_3: "", competitor_script_4: "", competitor_script_5: "",
       });
       setShowForm(false);
       refetch();
@@ -218,6 +224,31 @@ export default function TopicBriefs() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Competitor Scripts */}
+              <div className="pt-2 border-t border-border">
+                <p className="text-xs text-muted-foreground mb-3 font-medium">Competitor Scripts (format reference only)</p>
+                <p className="text-[10px] text-muted-foreground/60 mb-3">
+                  Paste up to 5 competitor scripts with similar title format and hook style. Used for structure and retention analysis only — never quoted or used as factual sources.
+                </p>
+                <div className="space-y-3">
+                  {([1, 2, 3, 4, 5] as const).map((num) => {
+                    const key = `competitor_script_${num}` as keyof CreateBriefInput;
+                    return (
+                      <div key={num}>
+                        <Label className="text-xs text-muted-foreground">Competitor Script {num}</Label>
+                        <Textarea
+                          placeholder={`Paste competitor script ${num} here (optional)...`}
+                          value={(form[key] as string) || ""}
+                          onChange={(e) => updateForm(key, e.target.value)}
+                          rows={4}
+                          className="bg-secondary border-border resize-none mt-1 text-xs"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Comparison mode toggle */}
