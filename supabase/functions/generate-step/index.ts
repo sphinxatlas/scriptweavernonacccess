@@ -293,8 +293,14 @@ SCRIPT INSTRUCTIONS PRIORITY (CRITICAL):
 Requirements:
 - The body text must be PURELY NATURAL SPOKEN WORDS as if read aloud by a creator — conversational, authoritative, human
 - Build the script primarily from books and movie transcripts
-- Allow Lexicon only as secondary contextual support
+- Allow Lexicon only as background support for your understanding — it must NEVER be mentioned in the spoken narration
 - Do not include Lexicon-derived wording as if it were canon dialogue or narration
+
+LEXICON MENTION BAN (CRITICAL):
+- The spoken narration must NEVER mention "the Lexicon", "the Harry Potter Lexicon", or use phrasing like "The Lexicon notes…", "According to the Lexicon…", etc.
+- Lexicon is background context only — it informs your understanding but is INVISIBLE in the voiceover text
+- If Lexicon supports a point, the ONLY allowed reference is as an editor metadata tag on its own line: [LEXICON: filename | context]
+- No other Lexicon callouts, citations, or attribution language may appear in the script body
 
 QUOTE DISCIPLINE (CRITICAL):
 - Max 0-2 short quotes per 1,000 words of script. Each quote must be under 12 words.
