@@ -30,7 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function PipelineView() {
   const { briefId } = useParams<{ briefId: string }>();
-  const [activeStep, setActiveStep] = useState<PipelineStepType>("retrieval");
+  const [activeStep, setActiveStep] = useState<PipelineStepType>("competitor_format_analysis");
   const [generating, setGenerating] = useState(false);
   const [streamContent, setStreamContent] = useState("");
   const [starredOnly, setStarredOnly] = useState(false);
