@@ -301,6 +301,17 @@ QUOTE DISCIPLINE (CRITICAL):
 - Everything else MUST be paraphrased as natural spoken narration.
 - Do NOT read sources aloud. The script must sound like a creator SPEAKING, informed by sources, not reciting them.
 
+SOURCE SPECIFICITY IN NARRATION (CRITICAL):
+- Every evidence-based paragraph MUST naturally mention WHERE the moment happens within the spoken narration itself.
+- Always specify the installment: which book (by title or number) or which film (by title or number).
+- NEVER use vague phrasing like "during a key moment", "in the story", "at one point" without specifying the installment.
+- Vary phrasing naturally so it does not sound repetitive. Examples of varied phrasing:
+  - "In Order of the Phoenix, Harry's frustration boils over when..."
+  - "The fifth film captures this perfectly — Dumbledore barely looks at him..."
+  - "By the time we reach Goblet of Fire, the pattern is unmistakable..."
+  - "Rowling shows this most clearly in Half-Blood Prince, where..."
+  - "There's a moment in the third movie that changes everything..."
+
 FORBIDDEN IN OUTPUT:
 - No [SOURCE: ...] lines anywhere
 - No VISUAL NOTES: blocks
@@ -309,7 +320,7 @@ FORBIDDEN IN OUTPUT:
 - No long pasted quotes or multi-sentence excerpts
 
 EDITOR TAGS (MANDATORY):
-- After each section's voiceover paragraphs, include editor tags on their own lines
+- After EACH evidence-based paragraph, include an editor tag on its own line
 - Editor tags are metadata only — NOT spoken, NOT part of the voiceover
 - Editor tags must NOT contain exact quotes
 - Tag formats:
@@ -325,17 +336,19 @@ Each section should look like this:
 
 ## Section Title
 
-Natural voiceover paragraph here. This reads like a creator speaking to camera — no brackets, no annotations, just voice.
-
-Another short VO paragraph with a takeaway or opinion beat.
+In Order of the Phoenix, Harry's anger erupts not at Voldemort but at Dumbledore — the one person he trusted most. That tells us everything about where Harry is emotionally at this point.
 
 [BOOK: book5_order_of_phoenix.txt | Chapter 37]
+
+The fifth film leans into this even harder. Watch the way Harry physically pulls away during the office scene — it's not just dialogue, it's body language.
+
 [FILM: movie5_transcript.txt | 01:42:00 to 01:44:30]
 
 - Include natural transitions between sections
 - Start with a compelling hook
 - End with a strong call to action
 - The script must be CLEAN: headings + short VO paragraphs + editor tags only
+- Every evidence paragraph must name its installment in the spoken text
 
 IMPORTANT — WORD COUNT INSTRUCTIONS (injected dynamically per brief):
 {{FULL_SCRIPT_LENGTH_INSTRUCTION}}`,
