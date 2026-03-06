@@ -1002,6 +1002,11 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
       );
     }
 
+    // Inject Script Instructions into system prompt for outline and full_script steps
+    if (isScriptStep && instructionContext) {
+      systemPrompt += `\n\nSCRIPT INSTRUCTIONS & STRATEGY (MANDATORY — apply these rules to shape writing quality, pacing, hooks, and retention):\n${instructionContext}`;
+    }
+
     // Inject Anti AI Language Guide enforcement into system prompt for script steps
     if (isScriptStep && antiAiContext) {
       systemPrompt += `\n\nANTI AI LANGUAGE GUIDE (MANDATORY — apply these rules strictly):\n- Avoid common AI phrases, templated intros, and AI word clusters described below\n- Avoid over-tidy signposting, repetitive triads, and generic CTAs\n- Do not use em dashes heavily\n- Keep wording natural and voiceover-friendly\n- The final script must sound human, original, and not trigger obvious AI detection signals\n\nAnti AI Language Guide content:\n${antiAiContext}`;
