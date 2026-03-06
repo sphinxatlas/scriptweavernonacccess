@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { getTopicBriefs, createTopicBrief, deleteTopicBrief, type CreateBriefInput, TARGET_LENGTH_OPTIONS } from "@/lib/api";
-import { Plus, Trash2, ArrowRight, FileText, GitCompare, Clock } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Plus, Trash2, ArrowRight, FileText, GitCompare, Clock, ChevronRight, BookOpen, Users, Target } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -226,29 +227,38 @@ export default function TopicBriefs() {
                 </Select>
               </div>
 
-              {/* Competitor Scripts */}
+              {/* Competitor Scripts - Collapsible */}
               <div className="pt-2 border-t border-border">
-                <p className="text-xs text-muted-foreground mb-3 font-medium">Competitor Scripts (format reference only)</p>
-                <p className="text-[10px] text-muted-foreground/60 mb-3">
-                  Paste up to 5 competitor scripts with similar title format and hook style. Used for structure and retention analysis only — never quoted or used as factual sources.
-                </p>
-                <div className="space-y-3">
-                  {([1, 2, 3, 4, 5] as const).map((num) => {
-                    const key = `competitor_script_${num}` as keyof CreateBriefInput;
-                    return (
-                      <div key={num}>
-                        <Label className="text-xs text-muted-foreground">Competitor Script {num}</Label>
-                        <Textarea
-                          placeholder={`Paste competitor script ${num} here (optional)...`}
-                          value={(form[key] as string) || ""}
-                          onChange={(e) => updateForm(key, e.target.value)}
-                          rows={4}
-                          className="bg-secondary border-border resize-none mt-1 text-xs"
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
+                <Collapsible>
+                  <CollapsibleTrigger className="flex items-center justify-between w-full group">
+                    <div>
+                      <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+                        <ChevronRight className="w-3 h-3 transition-transform group-data-[state=open]:rotate-90" />
+                        Competitor Scripts (format reference only)
+                      </p>
+                      <p className="text-[10px] text-muted-foreground/60 ml-[18px]">Optional — paste scripts for structure analysis</p>
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="space-y-3 mt-3">
+                      {([1, 2, 3, 4, 5] as const).map((num) => {
+                        const key = `competitor_script_${num}` as keyof CreateBriefInput;
+                        return (
+                          <div key={num}>
+                            <Label className="text-xs text-muted-foreground">Competitor Script {num}</Label>
+                            <Textarea
+                              placeholder={`Paste competitor script ${num} here (optional)...`}
+                              value={(form[key] as string) || ""}
+                              onChange={(e) => updateForm(key, e.target.value)}
+                              rows={4}
+                              className="bg-secondary border-border resize-none mt-1 text-xs"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               </div>
 
               {/* Comparison mode toggle */}
@@ -316,7 +326,7 @@ export default function TopicBriefs() {
                   {(brief as any).thesis && (
                     <p className="text-xs text-muted-foreground/70 mt-1 italic line-clamp-1">Thesis: {(brief as any).thesis}</p>
                   )}
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <p className="text-xs text-muted-foreground/60">
                       {new Date(brief.created_at).toLocaleDateString()}
                     </p>
@@ -324,6 +334,24 @@ export default function TopicBriefs() {
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1">
                         <Clock className="w-3 h-3" />
                         {(brief as any).target_minutes} min
+                      </Badge>
+                    )}
+                    {(brief as any).focus_areas?.length > 0 && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1">
+                        <Target className="w-3 h-3" />
+                        {(brief as any).focus_areas.length} focus areas
+                      </Badge>
+                    )}
+                    {(brief as any).characters?.length > 0 && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1">
+                        <Users className="w-3 h-3" />
+                        {(brief as any).characters.length} characters
+                      </Badge>
+                    )}
+                    {[1,2,3,4,5].some(n => (brief as any)[`competitor_script_${n}`]) && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1">
+                        <BookOpen className="w-3 h-3" />
+                        Competitor scripts
                       </Badge>
                     )}
                   </div>

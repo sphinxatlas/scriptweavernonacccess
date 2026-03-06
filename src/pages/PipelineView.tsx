@@ -122,7 +122,7 @@ export default function PipelineView() {
     <Layout>
       <div className="flex h-screen">
         <PipelineSidebar
-          brief={brief ? { title: brief.title, description: brief.description, comparison_mode: (brief as any).comparison_mode } : null}
+          brief={brief || null}
           activeStep={activeStep}
           setActiveStep={setActiveStep}
           generating={generating}
