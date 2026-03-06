@@ -179,6 +179,13 @@ EVIDENCE QUALITY RULES (CRITICAL):
 6. LEXICON STRICTNESS: Only include Lexicon support if it adds genuinely useful context. Do not include weak Lexicon entries just to fill a field.
 7. The table should feel like a curated shortlist of the best arguments for the video, not a broad evidence dump.
 
+PARAPHRASE-FIRST DISCIPLINE (CRITICAL):
+- Default to PARAPHRASED evidence in every row. Paraphrase is the standard output.
+- Exact quotes are OPTIONAL and must be under 12 words each. Only include a micro-quote when the exact wording is essential to the argument.
+- Do NOT paste long excerpts or multi-sentence quotes. If the source passage is longer than 12 words, paraphrase it.
+- Every evidence point MUST cite its source file name.
+- No long excerpts anywhere in the table.
+
 Create the evidence table in this EXACT markdown format for each evidence point:
 
 ### Evidence Point [number]
@@ -187,15 +194,15 @@ Create the evidence table in this EXACT markdown format for each evidence point:
 | **Claim** | [The precise claim — must match what the evidence actually shows] |
 | **Source Type** | Book / Movie Transcript / Both |
 | **Source File** | [Exact filename(s)] |
-| **Book Evidence** | [Evidence from book, if any — leave blank if none] |
-| **Movie Evidence** | [Evidence from movie transcript, if any — leave blank if none] |
+| **Book Evidence** | [Paraphrased evidence from book, if any — leave blank if none] |
+| **Movie Evidence** | [Paraphrased evidence from movie transcript, if any — leave blank if none] |
 | **Contrast** | [What differs between book and movie, if both present] |
 | **Lexicon Support** | [Only if genuinely useful — mark as SECONDARY] |
-| **Exact Quote** | [Verbatim quote if available, in quotation marks] |
-| **Paraphrase** | [If exact quote unavailable, paraphrased version — clearly labeled] |
+| **Micro-Quote** | [Optional: verbatim quote UNDER 12 words, in quotation marks — leave blank if not essential] |
+| **Paraphrase** | [Paraphrased version of the evidence — REQUIRED for every point] |
 | **Why This Matters** | [Why this is a strong argument point for the video] |
 | **Confidence** | High / Medium / Low |
-| **Evidence Type** | exact quote / paraphrase / summary / interpretation |
+| **Evidence Type** | paraphrase / exact quote (under 12 words) / summary / interpretation |
 | **Commentary Angle** | [If inspired by commentary transcript — needs canon confirmation] |
 
 Rules:
@@ -204,6 +211,7 @@ Rules:
 - Every evidence point must have a source trace (which file it came from)
 - Never invent quotes
 - Never blur exact quote vs paraphrase
+- Paraphrase is the DEFAULT — exact quotes are the exception, not the rule
 - If Lexicon is the only source, set Confidence to Low and note it needs primary confirmation
 - If a point is only weakly related to the thesis, exclude it entirely
 - Commentary Transcripts CANNOT be used as primary evidence — only as angle inspiration
@@ -222,7 +230,13 @@ The memo should:
 - Clearly distinguish between claims grounded in primary sources vs secondary Lexicon support
 - For each major claim, note the evidence type (exact quote, paraphrase, summary, interpretation)
 - Flag any claims that rely solely on Lexicon as "needs primary confirmation"
-- Be 800-1500 words`,
+- Be 800-1500 words
+
+QUOTE RESTRICTION (CRITICAL):
+- You may DISCUSS and REFERENCE quotes conceptually (e.g. "Dumbledore's line about choices captures...")
+- You must NOT paste long excerpts or multi-sentence quotes into the memo
+- Keep the memo analytical and argument-focused, not excerpt-heavy
+- If you reference a specific quote, keep it under 12 words or paraphrase it`,
 
   outline: `You are a YouTube script outline specialist for Harry Potter content.
 Given the topic brief, evidence, and analysis memo, create a detailed SCRIPT OUTLINE.
@@ -248,6 +262,21 @@ Include timing estimates and specific evidence citations for each section.
 Mark any Lexicon-derived points as secondary support.
 For each piece of evidence, note whether it's an exact quote, paraphrase, or summary.
 
+EDITOR TAGS (MANDATORY):
+Every claim or scene reference in the outline MUST include an editor tag in brackets on its own line.
+Editor tags are metadata only — they are NOT spoken text and NOT part of the voiceover.
+Editor tags must NOT contain exact quotes.
+
+Tag formats:
+- [BOOK: filename | chapter if available]
+- [FILM: filename | timestamp hh:mm:ss to hh:mm:ss]
+- [LEXICON: filename | summary of what it supports]
+
+Example:
+- Key point: Harry's anger erupts when he feels ignored by Dumbledore
+  [BOOK: book5_order_of_phoenix.txt | Chapter 37]
+  [FILM: movie5_transcript.txt | 01:42:00 to 01:44:30]
+
 IMPORTANT — WORD BUDGET INSTRUCTIONS (injected dynamically per brief):
 {{OUTLINE_LENGTH_INSTRUCTION}}`,
 
@@ -256,29 +285,57 @@ Given the topic brief, evidence, analysis, and outline, write a FULL SCRIPT.
 
 ${SOURCE_HIERARCHY_INSTRUCTION}
 
+SCRIPT INSTRUCTIONS PRIORITY (CRITICAL):
+- The Script Writing Instructions document (injected below as "SCRIPT INSTRUCTIONS & STRATEGY") is the HIGHEST PRIORITY writing guidance for this step.
+- If Script Instructions conflict with any other guidance source (Anti AI Guide, Strategy, etc.), Script Instructions WIN.
+- Apply Script Instructions rules for structure, pacing, hooks, rehooks, retention, and tone FIRST, then layer other guidance on top.
+
 Requirements:
-- Conversational but authoritative tone — the body text must be PURELY NATURAL SPOKEN WORDS as if read aloud by a narrator
+- The body text must be PURELY NATURAL SPOKEN WORDS as if read aloud by a creator — conversational, authoritative, human
 - Build the script primarily from books and movie transcripts
 - Allow Lexicon only as secondary contextual support
 - Do not include Lexicon-derived wording as if it were canon dialogue or narration
-- If Lexicon shaped the interpretation, keep the final script grounded in primary evidence
-- Include specific quotes and evidence from source material
-- The voiceover paragraphs must contain NO brackets, tags, or annotations of any kind — just natural speech
-- FORBIDDEN in voiceover text: [CLAIM], [SOURCE], [B-ROLL], [CUT TO], [GRAPHIC], or any other bracketed annotation
-- After each section's voiceover paragraph(s), on a NEW LINE, list the sources used for that section as [SOURCE: filename] — one per line
-- After the source references, add a "VISUAL NOTES:" block with editor instructions (b-roll suggestions, cut points, graphic ideas, timing cues)
-- Structure each section like this:
 
-<natural voiceover paragraph — purely spoken words, no brackets>
+QUOTE DISCIPLINE (CRITICAL):
+- Max 0-2 short quotes per 1,000 words of script. Each quote must be under 12 words.
+- Everything else MUST be paraphrased as natural spoken narration.
+- Do NOT read sources aloud. The script must sound like a creator SPEAKING, informed by sources, not reciting them.
 
-[SOURCE: book5_chapter12.txt]
-[SOURCE: movie3_transcript.txt]
+FORBIDDEN IN OUTPUT:
+- No [SOURCE: ...] lines anywhere
+- No VISUAL NOTES: blocks
+- No SOURCE SECONDARY blocks
+- No [CLAIM], [B-ROLL], [CUT TO], [GRAPHIC] or any other production annotations
+- No long pasted quotes or multi-sentence excerpts
 
-VISUAL NOTES: b-roll of corridor, cut to close-up of character...
+EDITOR TAGS (MANDATORY):
+- After each section's voiceover paragraphs, include editor tags on their own lines
+- Editor tags are metadata only — NOT spoken, NOT part of the voiceover
+- Editor tags must NOT contain exact quotes
+- Tag formats:
+  [BOOK: filename | chapter if available]
+  [FILM: filename | timestamp hh:mm:ss to hh:mm:ss]
+  [LEXICON: filename | summary of what it supports]
+
+SO-WHAT RULE:
+- After every evidence-based beat, include a short takeaway or opinion ("so what") — the creator's interpretation, not just a fact dump
+
+OUTPUT STRUCTURE:
+Each section should look like this:
+
+## Section Title
+
+Natural voiceover paragraph here. This reads like a creator speaking to camera — no brackets, no annotations, just voice.
+
+Another short VO paragraph with a takeaway or opinion beat.
+
+[BOOK: book5_order_of_phoenix.txt | Chapter 37]
+[FILM: movie5_transcript.txt | 01:42:00 to 01:44:30]
 
 - Include natural transitions between sections
 - Start with a compelling hook
 - End with a strong call to action
+- The script must be CLEAN: headings + short VO paragraphs + editor tags only
 
 IMPORTANT — WORD COUNT INSTRUCTIONS (injected dynamically per brief):
 {{FULL_SCRIPT_LENGTH_INSTRUCTION}}`,
@@ -1012,9 +1069,12 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
       );
     }
 
-    // Inject Script Instructions into system prompt for outline and full_script steps
+    // Inject Script Instructions into system prompt — HIGHEST PRIORITY for full_script
     if (isScriptStep && instructionContext) {
-      systemPrompt += `\n\nSCRIPT INSTRUCTIONS & STRATEGY (MANDATORY — apply these rules to shape writing quality, pacing, hooks, and retention):\n${instructionContext}`;
+      const priority = stepType === "full_script"
+        ? "HIGHEST PRIORITY WRITING GUIDANCE — this document overrides all other guidance sources for structure, pacing, hooks, and style"
+        : "MANDATORY — apply these rules to shape writing quality, pacing, hooks, and retention";
+      systemPrompt += `\n\nSCRIPT INSTRUCTIONS & STRATEGY (${priority}):\n${instructionContext}`;
     }
 
     // Inject Anti AI Language Guide enforcement into system prompt for script steps
