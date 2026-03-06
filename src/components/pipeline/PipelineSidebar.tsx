@@ -1,10 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { PIPELINE_STEPS, type PipelineStepType } from "@/lib/api";
-import { ArrowLeft, CheckCircle2, Circle, GitCompare } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, GitCompare, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BriefDetailsSheet } from "./BriefDetailsSheet";
 
 interface PipelineSidebarProps {
-  brief: { title: string; description: string; comparison_mode?: boolean } | null;
+  brief: any;
   activeStep: PipelineStepType;
   setActiveStep: (step: PipelineStepType) => void;
   generating: boolean;
@@ -31,6 +32,12 @@ export function PipelineSidebar({ brief, activeStep, setActiveStep, generating, 
             {brief.comparison_mode && <GitCompare className="w-3 h-3 text-primary shrink-0" />}
           </div>
           <p className="text-xs text-muted-foreground mt-1 line-clamp-3">{brief.description}</p>
+          <BriefDetailsSheet brief={brief}>
+            <button className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 mt-2 transition-colors">
+              <Info className="w-3 h-3" />
+              View all inputs
+            </button>
+          </BriefDetailsSheet>
         </div>
       )}
 
