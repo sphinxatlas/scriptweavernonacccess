@@ -257,15 +257,15 @@ Given the topic brief, evidence, analysis, and outline, write a FULL SCRIPT.
 ${SOURCE_HIERARCHY_INSTRUCTION}
 
 Requirements:
-- Conversational but authoritative tone
+- Conversational but authoritative tone — write as natural voiceover paragraphs, NOT annotated editing scripts
 - Build the script primarily from books and movie transcripts
 - Allow Lexicon only as secondary contextual support
 - Do not include Lexicon-derived wording as if it were canon dialogue or narration
 - If Lexicon shaped the interpretation, keep the final script grounded in primary evidence
 - Include specific quotes and evidence from source material
-- For each quote used, indicate in a comment whether it's exact or paraphrased
-- Add [B-ROLL], [CUT TO], [GRAPHIC] annotations for video editing
-- Add [SOURCE: filename] annotations after each evidence reference
+- After each evidence reference, include [SOURCE: filename] inline so sources are traceable
+- Do NOT use inline annotations like [B-ROLL], [CUT TO], [GRAPHIC], or [CLAIM] — the voiceover text must read naturally
+- After each section's voiceover paragraph(s), add a separate "VISUAL NOTES:" block with editor instructions for that section (b-roll suggestions, cut points, graphic ideas, timing cues)
 - Include natural transitions between sections
 - Start with a compelling hook
 - End with a strong call to action
