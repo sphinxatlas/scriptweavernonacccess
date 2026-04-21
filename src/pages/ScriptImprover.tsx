@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { streamImproveScript, type ReferenceHit } from "@/lib/api";
 import { toast } from "sonner";
-import { Sparkles, Upload, Copy, Download, ChevronDown, Loader2, BookOpen } from "lucide-react";
+import { Sparkles, Upload, Copy, Download, ChevronDown, Loader2, BookOpen, Maximize2, MessageSquarePlus } from "lucide-react";
 
 export default function ScriptImprover() {
   const [draft, setDraft] = useState("");
@@ -20,6 +20,9 @@ export default function ScriptImprover() {
   const [refs, setRefs] = useState<ReferenceHit[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [refsOpen, setRefsOpen] = useState(false);
+  const [feedbackNote, setFeedbackNote] = useState("");
+  const [revisionMode, setRevisionMode] = useState<"initial" | "lengthen" | "feedback" | null>(null);
+  const [revisionCount, setRevisionCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,6 +45,8 @@ export default function ScriptImprover() {
     setOutput("");
     setRefs([]);
     setIsStreaming(true);
+    setRevisionMode("initial");
+    setRevisionCount(0);
     try {
       await streamImproveScript(
         {
@@ -49,15 +54,63 @@ export default function ScriptImprover() {
           targetMinWords: targetMin ? parseInt(targetMin, 10) : undefined,
           targetMaxWords: targetMax ? parseInt(targetMax, 10) : undefined,
           toneNote: toneNote || undefined,
+          mode: "initial",
         },
         (delta) => setOutput((prev) => prev + delta),
-        () => setIsStreaming(false),
+        () => {
+          setIsStreaming(false);
+          setRevisionMode(null);
+        },
         (hits) => setRefs(hits),
       );
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Failed to improve script");
       setIsStreaming(false);
+      setRevisionMode(null);
+    }
+  };
+
+  const runRevision = async (mode: "lengthen" | "feedback") => {
+    if (!output || output.trim().length < 50) {
+      toast.error("Generate an improved script first");
+      return;
+    }
+    if (mode === "feedback" && feedbackNote.trim().length < 3) {
+      toast.error("Add some feedback notes first");
+      return;
+    }
+    const previous = output;
+    setOutput("");
+    setRefs([]);
+    setIsStreaming(true);
+    setRevisionMode(mode);
+    try {
+      await streamImproveScript(
+        {
+          draftScript: draft,
+          targetMinWords: targetMin ? parseInt(targetMin, 10) : undefined,
+          targetMaxWords: targetMax ? parseInt(targetMax, 10) : undefined,
+          toneNote: toneNote || undefined,
+          mode,
+          previousOutput: previous,
+          feedbackNote: mode === "feedback" ? feedbackNote : undefined,
+        },
+        (delta) => setOutput((prev) => prev + delta),
+        () => {
+          setIsStreaming(false);
+          setRevisionMode(null);
+          setRevisionCount((n) => n + 1);
+          if (mode === "feedback") setFeedbackNote("");
+        },
+        (hits) => setRefs(hits),
+      );
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to revise script");
+      setOutput(previous);
+      setIsStreaming(false);
+      setRevisionMode(null);
     }
   };
 
