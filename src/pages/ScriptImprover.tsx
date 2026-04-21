@@ -266,12 +266,87 @@ export default function ScriptImprover() {
                 <pre className="whitespace-pre-wrap font-mono text-sm text-foreground leading-relaxed">{output}</pre>
               ) : (
                 <p className="text-sm text-muted-foreground italic">
-                  {isStreaming ? "Streaming improved script…" : "Your improved script will appear here."}
+                  {isStreaming
+                    ? revisionMode === "lengthen"
+                      ? "Expanding script…"
+                      : revisionMode === "feedback"
+                        ? "Rewriting with your feedback…"
+                        : "Streaming improved script…"
+                    : "Your improved script will appear here."}
                 </p>
               )}
             </div>
           </Card>
         </div>
+
+        {/* Refine controls — appear once we have an output */}
+        {output && (
+          <Card className="mt-6 p-5 bg-card border-border">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="font-mono text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  Refine this output
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Iterate without restarting from the original draft.
+                  {revisionCount > 0 && (
+                    <span className="ml-2 text-foreground">Revisions so far: {revisionCount}</span>
+                  )}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => runRevision("lengthen")}
+                disabled={isStreaming}
+              >
+                {isStreaming && revisionMode === "lengthen" ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                    Expanding…
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 className="w-3.5 h-3.5 mr-1.5" />
+                    Make it longer
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <div>
+              <Label htmlFor="feedback" className="text-xs text-muted-foreground">
+                Feedback for the next version
+              </Label>
+              <Textarea
+                id="feedback"
+                value={feedbackNote}
+                onChange={(e) => setFeedbackNote(e.target.value)}
+                placeholder='e.g. "Punchier hook, drop the third paragraph, more skeptical tone, less academic phrasing."'
+                className="mt-1 min-h-[100px] font-mono text-sm bg-background"
+                disabled={isStreaming}
+              />
+              <Button
+                onClick={() => runRevision("feedback")}
+                disabled={isStreaming || feedbackNote.trim().length < 3}
+                className="w-full mt-3"
+              >
+                {isStreaming && revisionMode === "feedback" ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Rewriting…
+                  </>
+                ) : (
+                  <>
+                    <MessageSquarePlus className="w-4 h-4 mr-2" />
+                    Rewrite with feedback
+                  </>
+                )}
+              </Button>
+            </div>
+          </Card>
+        )}
 
         {/* References panel */}
         {refs.length > 0 && (
