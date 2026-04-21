@@ -1,10 +1,11 @@
-import { BookOpen, FileText, Sparkles, Upload } from "lucide-react";
+import { BookOpen, FileText, Sparkles, Upload, Wand2 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { to: "/", label: "Source Library", icon: Upload },
   { to: "/briefs", label: "Topic Briefs", icon: FileText },
+  { to: "/improve", label: "Script Improver", icon: Wand2 },
 ];
 
 export function AppSidebar() {
