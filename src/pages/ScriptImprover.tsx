@@ -284,15 +284,31 @@ export default function ScriptImprover() {
   return (
     <Layout>
       <div className="p-8 max-w-6xl">
-        <div className="mb-8">
-          <h1 className="text-2xl font-mono font-bold text-foreground mb-2 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
-            Script Improver
-          </h1>
-          <p className="text-sm text-muted-foreground max-w-2xl">
-            Paste or upload a draft script. We rewrite it using your Script Writing Instructions as the highest-priority guide,
-            apply the Anti-AI Language Guide, and insert editor reference tags from your indexed source library where claims match canon.
-          </p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-mono font-bold text-foreground mb-2 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              Script Improver
+            </h1>
+            <p className="text-sm text-muted-foreground max-w-2xl">
+              Paste or upload a draft script. We rewrite it using your Script Writing Instructions as the highest-priority guide,
+              apply the Anti-AI Language Guide, and insert editor reference tags from your indexed source library where claims match canon.
+            </p>
+            {currentScriptId && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Editing saved script · auto-saving revisions
+              </p>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNewScript}
+            disabled={isStreaming}
+          >
+            <FilePlus2 className="w-3.5 h-3.5 mr-1.5" />
+            New script
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
