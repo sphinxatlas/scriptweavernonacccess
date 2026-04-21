@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,9 +7,40 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { streamImproveScript, type ReferenceHit } from "@/lib/api";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  streamImproveScript,
+  type ReferenceHit,
+  listImprovedScripts,
+  createImprovedScript,
+  updateImprovedScript,
+  deleteImprovedScript,
+  renameImprovedScript,
+  type ImprovedScript,
+} from "@/lib/api";
 import { toast } from "sonner";
-import { Sparkles, Upload, Copy, Download, ChevronDown, Loader2, BookOpen, Maximize2, MessageSquarePlus } from "lucide-react";
+import { Sparkles, Upload, Copy, Download, ChevronDown, Loader2, BookOpen, Maximize2, MessageSquarePlus, History, FilePlus2, Pencil, Trash2, Check, X } from "lucide-react";
+
+function deriveTitle(draft: string): string {
+  const firstLine = draft.split("\n").find((l) => l.trim().length > 0)?.trim() ?? "";
+  const trimmed = firstLine.replace(/^#+\s*/, "").slice(0, 60).trim();
+  return trimmed || "Untitled script";
+}
+
+function wordCount(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
 
 export default function ScriptImprover() {
   const [draft, setDraft] = useState("");
@@ -23,7 +54,29 @@ export default function ScriptImprover() {
   const [feedbackNote, setFeedbackNote] = useState("");
   const [revisionMode, setRevisionMode] = useState<"initial" | "lengthen" | "feedback" | null>(null);
   const [revisionCount, setRevisionCount] = useState(0);
+  const [currentScriptId, setCurrentScriptId] = useState<string | null>(null);
+  const [history, setHistory] = useState<ImprovedScript[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const refreshHistory = async () => {
+    try {
+      setHistoryLoading(true);
+      const data = await listImprovedScripts();
+      setHistory(data);
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Failed to load saved scripts");
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshHistory();
+  }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
