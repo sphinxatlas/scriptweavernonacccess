@@ -1,47 +1,53 @@
 
 
-## Script Improver — Iterative Refinement
+## Saved Improved Scripts — History
 
-Add post-output controls so you can iterate on the improved script without restarting from the original draft.
+Add a persistent history of every improved script run so you can revisit, copy, or delete past outputs from the Script Improver page.
 
 ### What you'll see
 
-After the first improved script streams in, two new controls appear above the output panel:
+On `/improve`, a new **"Saved scripts"** panel appears (collapsible card under the input panel, or a side drawer on smaller widths). Each entry shows:
 
-1. **"Make it longer" button** — one-click expansion (adds ~30–50% more length while preserving structure, voice, and all editor tags).
-2. **Feedback box + "Rewrite with feedback" button** — a textarea where you type notes like *"punchier hook, drop the third paragraph, more skeptical tone"*, then trigger a rewrite that applies your notes on top of the current improved script.
+- Title (auto-derived from the first line / first 60 chars of the draft, editable inline)
+- Created date + word count
+- "Open" button → loads the original draft into the input panel and the latest improved output into the output panel
+- "Delete" button (with confirm)
 
-Each new output replaces the previous one in the output panel, but the original draft is preserved in the input panel so you can always start over. References panel updates with each rewrite.
+A new entry is created automatically the first time you click **"Improve Script"**. Subsequent revisions on the same session (lengthen / feedback) update that entry's `improved_output` in place. Starting a fresh "Improve Script" run from a cleared draft creates a new entry.
 
-### How it works
+### Database
 
-- A new **revision mode** is added to the existing `improve-script` edge function. It accepts:
-  - `mode: "initial" | "lengthen" | "feedback"`
-  - `previousOutput?: string` (the last improved script)
-  - `feedbackNote?: string` (user's revision notes)
-- When `mode = "lengthen"`: prompt instructs the model to expand the previous output, keep all editor tags, add depth/examples/transitions, and respect existing rules (paraphrase-first, installment naming, lexicon ban, etc.). Targets ~30–50% more words.
-- When `mode = "feedback"`: prompt injects the previous output + the user's feedback as the highest-priority revision instruction (still under Script Writing Instructions). Re-runs retrieval against the *revised* claims so references stay accurate.
-- Same SSE streaming, same reference-hits payload.
+New table `improved_scripts`:
+- `id` (uuid, pk)
+- `title` (text)
+- `draft_script` (text) — original input
+- `improved_output` (text) — latest improved version
+- `target_min_words`, `target_max_words` (int, nullable)
+- `tone_note` (text, nullable)
+- `revision_count` (int, default 0)
+- `created_at`, `updated_at` (timestamptz)
+
+Public RLS policies (matches existing tables in this project — no auth in the app today).
 
 ### Frontend changes
 
+- `src/lib/api.ts`: add `listImprovedScripts`, `createImprovedScript`, `updateImprovedScript`, `deleteImprovedScript`, `renameImprovedScript`.
 - `src/pages/ScriptImprover.tsx`:
-  - Track `output`, `previousOutput`, `feedbackNote`, `revisionCount` state
-  - After first output completes, render a **"Refine"** card under the output panel containing the two controls
-  - "Make it longer" disabled while streaming; shows spinner during rewrite
-  - Feedback textarea is required for the feedback button
-- `src/lib/api.ts`:
-  - Extend `streamImproveScript` payload with `mode`, `previousOutput`, `feedbackNote`
-
-### Files touched
-
-- `supabase/functions/improve-script/index.ts` (add mode handling + two new prompt branches)
-- `src/pages/ScriptImprover.tsx` (refine controls + state)
-- `src/lib/api.ts` (extended payload type)
+  - Track `currentScriptId` in state
+  - On first successful initial run → `createImprovedScript`, store id
+  - On lengthen/feedback completion → `updateImprovedScript` with new `improved_output` and incremented `revision_count`
+  - New "Saved scripts" card (uses shadcn `Card` + `ScrollArea`) listing entries, with Open / Rename / Delete
+  - "New script" button clears state and unsets `currentScriptId`
 
 ### What is NOT changed
 
-- No DB changes — still stateless
-- Original draft input untouched between revisions
-- All existing voiceover rules (quote discipline, installment naming, lexicon ban, editor tag format, "so-what" beats) apply to every revision
+- Edge function `improve-script` is untouched (still stateless — frontend persists results)
+- Reference hits are not persisted (they're regenerated on each run; saving them would bloat storage and they're tied to the current source library)
+- Existing pipeline / Topic Briefs / Source Library unchanged
+
+### Files touched
+
+- New migration: `improved_scripts` table + RLS
+- `src/lib/api.ts` (CRUD helpers)
+- `src/pages/ScriptImprover.tsx` (history panel + auto-save logic)
 
