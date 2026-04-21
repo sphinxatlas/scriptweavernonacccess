@@ -100,19 +100,41 @@ export default function ScriptImprover() {
     setIsStreaming(true);
     setRevisionMode("initial");
     setRevisionCount(0);
+    let liveOutput = "";
+    const minWords = targetMin ? parseInt(targetMin, 10) : null;
+    const maxWords = targetMax ? parseInt(targetMax, 10) : null;
     try {
       await streamImproveScript(
         {
           draftScript: draft,
-          targetMinWords: targetMin ? parseInt(targetMin, 10) : undefined,
-          targetMaxWords: targetMax ? parseInt(targetMax, 10) : undefined,
+          targetMinWords: minWords ?? undefined,
+          targetMaxWords: maxWords ?? undefined,
           toneNote: toneNote || undefined,
           mode: "initial",
         },
-        (delta) => setOutput((prev) => prev + delta),
-        () => {
+        (delta) => {
+          liveOutput += delta;
+          setOutput((prev) => prev + delta);
+        },
+        async () => {
           setIsStreaming(false);
           setRevisionMode(null);
+          // Auto-save as a new history entry
+          try {
+            const created = await createImprovedScript({
+              title: deriveTitle(draft),
+              draft_script: draft,
+              improved_output: liveOutput,
+              target_min_words: minWords,
+              target_max_words: maxWords,
+              tone_note: toneNote || null,
+            });
+            setCurrentScriptId(created.id);
+            refreshHistory();
+          } catch (err: any) {
+            console.error(err);
+            toast.error("Generated, but failed to save to history");
+          }
         },
         (hits) => setRefs(hits),
       );
@@ -138,6 +160,7 @@ export default function ScriptImprover() {
     setRefs([]);
     setIsStreaming(true);
     setRevisionMode(mode);
+    let liveOutput = "";
     try {
       await streamImproveScript(
         {
@@ -149,12 +172,29 @@ export default function ScriptImprover() {
           previousOutput: previous,
           feedbackNote: mode === "feedback" ? feedbackNote : undefined,
         },
-        (delta) => setOutput((prev) => prev + delta),
-        () => {
+        (delta) => {
+          liveOutput += delta;
+          setOutput((prev) => prev + delta);
+        },
+        async () => {
           setIsStreaming(false);
           setRevisionMode(null);
-          setRevisionCount((n) => n + 1);
+          const newCount = revisionCount + 1;
+          setRevisionCount(newCount);
           if (mode === "feedback") setFeedbackNote("");
+          // Persist updated output to current history entry
+          if (currentScriptId) {
+            try {
+              await updateImprovedScript(currentScriptId, {
+                improved_output: liveOutput,
+                revision_count: newCount,
+              });
+              refreshHistory();
+            } catch (err: any) {
+              console.error(err);
+              toast.error("Revision generated, but failed to save");
+            }
+          }
         },
         (hits) => setRefs(hits),
       );
