@@ -5,6 +5,7 @@ export type SourceFile = Tables<"source_files">;
 export type TopicBrief = Tables<"topic_briefs">;
 export type PipelineOutput = Tables<"pipeline_outputs">;
 export type EvidencePoint = Tables<"evidence_points">;
+export type ImprovedScript = Tables<"improved_scripts">;
 
 export type PipelineStepType = "competitor_format_analysis" | "retrieval" | "evidence_table" | "analysis_memo" | "outline" | "full_script" | "verification";
 
