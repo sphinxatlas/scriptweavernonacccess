@@ -269,6 +269,58 @@ export async function streamGenerateStep(
   onDone();
 }
 
+// Improved scripts history
+export interface CreateImprovedScriptInput {
+  title: string;
+  draft_script: string;
+  improved_output?: string;
+  target_min_words?: number | null;
+  target_max_words?: number | null;
+  tone_note?: string | null;
+}
+
+export async function listImprovedScripts() {
+  const { data, error } = await supabase
+    .from("improved_scripts")
+    .select("*")
+    .order("updated_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function createImprovedScript(input: CreateImprovedScriptInput) {
+  const { data, error } = await supabase
+    .from("improved_scripts")
+    .insert(input)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateImprovedScript(
+  id: string,
+  input: Partial<Pick<ImprovedScript, "title" | "improved_output" | "revision_count" | "tone_note" | "target_min_words" | "target_max_words" | "draft_script">>,
+) {
+  const { data, error } = await supabase
+    .from("improved_scripts")
+    .update(input)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function renameImprovedScript(id: string, title: string) {
+  return updateImprovedScript(id, { title });
+}
+
+export async function deleteImprovedScript(id: string) {
+  const { error } = await supabase.from("improved_scripts").delete().eq("id", id);
+  if (error) throw error;
+}
+
 export interface ReferenceHit {
   file_name: string;
   file_type: string;
