@@ -121,9 +121,26 @@ serve(async (req) => {
     const targetMinWords: number | undefined = body.targetMinWords;
     const targetMaxWords: number | undefined = body.targetMaxWords;
     const toneNote: string = (body.toneNote || "").toString();
+    const mode: "initial" | "lengthen" | "feedback" =
+      body.mode === "lengthen" || body.mode === "feedback" ? body.mode : "initial";
+    const previousOutput: string = (body.previousOutput || "").toString();
+    const feedbackNote: string = (body.feedbackNote || "").toString();
 
     if (!draftScript || draftScript.trim().length < 50) {
       return new Response(JSON.stringify({ error: "Draft script is too short. Paste at least a few sentences." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if ((mode === "lengthen" || mode === "feedback") && previousOutput.trim().length < 50) {
+      return new Response(JSON.stringify({ error: "Previous output is required for revision mode." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (mode === "feedback" && feedbackNote.trim().length < 3) {
+      return new Response(JSON.stringify({ error: "Feedback note is required for feedback mode." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
