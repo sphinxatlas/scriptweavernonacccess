@@ -222,6 +222,65 @@ export default function ScriptImprover() {
     URL.revokeObjectURL(url);
   };
 
+  const handleNewScript = () => {
+    if (isStreaming) return;
+    setDraft("");
+    setOutput("");
+    setRefs([]);
+    setFeedbackNote("");
+    setToneNote("");
+    setTargetMin("");
+    setTargetMax("");
+    setCurrentScriptId(null);
+    setRevisionCount(0);
+  };
+
+  const handleOpenScript = (entry: ImprovedScript) => {
+    if (isStreaming) return;
+    setDraft(entry.draft_script);
+    setOutput(entry.improved_output ?? "");
+    setRefs([]);
+    setFeedbackNote("");
+    setToneNote(entry.tone_note ?? "");
+    setTargetMin(entry.target_min_words ? String(entry.target_min_words) : "");
+    setTargetMax(entry.target_max_words ? String(entry.target_max_words) : "");
+    setCurrentScriptId(entry.id);
+    setRevisionCount(entry.revision_count ?? 0);
+    toast.success(`Opened "${entry.title}"`);
+  };
+
+  const handleDeleteScript = async (id: string) => {
+    try {
+      await deleteImprovedScript(id);
+      if (currentScriptId === id) {
+        setCurrentScriptId(null);
+      }
+      refreshHistory();
+      toast.success("Deleted");
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Failed to delete");
+    }
+  };
+
+  const startRename = (entry: ImprovedScript) => {
+    setRenamingId(entry.id);
+    setRenameValue(entry.title);
+  };
+
+  const commitRename = async () => {
+    if (!renamingId) return;
+    const title = renameValue.trim() || "Untitled script";
+    try {
+      await renameImprovedScript(renamingId, title);
+      setRenamingId(null);
+      refreshHistory();
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Failed to rename");
+    }
+  };
+
   return (
     <Layout>
       <div className="p-8 max-w-6xl">
