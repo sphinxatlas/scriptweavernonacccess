@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import SourceLibrary from "./pages/SourceLibrary";
 import TopicBriefs from "./pages/TopicBriefs";
 import PipelineView from "./pages/PipelineView";
+import ScriptImprover from "./pages/ScriptImprover";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,6 +21,7 @@ const App = () => (
           <Route path="/" element={<SourceLibrary />} />
           <Route path="/briefs" element={<TopicBriefs />} />
           <Route path="/briefs/:briefId" element={<PipelineView />} />
+          <Route path="/improve" element={<ScriptImprover />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
