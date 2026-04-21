@@ -111,6 +111,45 @@ export type Database = {
           },
         ]
       }
+      improved_scripts: {
+        Row: {
+          created_at: string
+          draft_script: string
+          id: string
+          improved_output: string
+          revision_count: number
+          target_max_words: number | null
+          target_min_words: number | null
+          title: string
+          tone_note: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          draft_script: string
+          id?: string
+          improved_output?: string
+          revision_count?: number
+          target_max_words?: number | null
+          target_min_words?: number | null
+          title?: string
+          tone_note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          draft_script?: string
+          id?: string
+          improved_output?: string
+          revision_count?: number
+          target_max_words?: number | null
+          target_min_words?: number | null
+          title?: string
+          tone_note?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pipeline_outputs: {
         Row: {
           brief_id: string
