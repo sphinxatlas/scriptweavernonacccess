@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,9 +7,40 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { streamImproveScript, type ReferenceHit } from "@/lib/api";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  streamImproveScript,
+  type ReferenceHit,
+  listImprovedScripts,
+  createImprovedScript,
+  updateImprovedScript,
+  deleteImprovedScript,
+  renameImprovedScript,
+  type ImprovedScript,
+} from "@/lib/api";
 import { toast } from "sonner";
-import { Sparkles, Upload, Copy, Download, ChevronDown, Loader2, BookOpen, Maximize2, MessageSquarePlus } from "lucide-react";
+import { Sparkles, Upload, Copy, Download, ChevronDown, Loader2, BookOpen, Maximize2, MessageSquarePlus, History, FilePlus2, Pencil, Trash2, Check, X } from "lucide-react";
+
+function deriveTitle(draft: string): string {
+  const firstLine = draft.split("\n").find((l) => l.trim().length > 0)?.trim() ?? "";
+  const trimmed = firstLine.replace(/^#+\s*/, "").slice(0, 60).trim();
+  return trimmed || "Untitled script";
+}
+
+function wordCount(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
 
 export default function ScriptImprover() {
   const [draft, setDraft] = useState("");
@@ -23,7 +54,29 @@ export default function ScriptImprover() {
   const [feedbackNote, setFeedbackNote] = useState("");
   const [revisionMode, setRevisionMode] = useState<"initial" | "lengthen" | "feedback" | null>(null);
   const [revisionCount, setRevisionCount] = useState(0);
+  const [currentScriptId, setCurrentScriptId] = useState<string | null>(null);
+  const [history, setHistory] = useState<ImprovedScript[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const refreshHistory = async () => {
+    try {
+      setHistoryLoading(true);
+      const data = await listImprovedScripts();
+      setHistory(data);
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Failed to load saved scripts");
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshHistory();
+  }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -47,19 +100,41 @@ export default function ScriptImprover() {
     setIsStreaming(true);
     setRevisionMode("initial");
     setRevisionCount(0);
+    let liveOutput = "";
+    const minWords = targetMin ? parseInt(targetMin, 10) : null;
+    const maxWords = targetMax ? parseInt(targetMax, 10) : null;
     try {
       await streamImproveScript(
         {
           draftScript: draft,
-          targetMinWords: targetMin ? parseInt(targetMin, 10) : undefined,
-          targetMaxWords: targetMax ? parseInt(targetMax, 10) : undefined,
+          targetMinWords: minWords ?? undefined,
+          targetMaxWords: maxWords ?? undefined,
           toneNote: toneNote || undefined,
           mode: "initial",
         },
-        (delta) => setOutput((prev) => prev + delta),
-        () => {
+        (delta) => {
+          liveOutput += delta;
+          setOutput((prev) => prev + delta);
+        },
+        async () => {
           setIsStreaming(false);
           setRevisionMode(null);
+          // Auto-save as a new history entry
+          try {
+            const created = await createImprovedScript({
+              title: deriveTitle(draft),
+              draft_script: draft,
+              improved_output: liveOutput,
+              target_min_words: minWords,
+              target_max_words: maxWords,
+              tone_note: toneNote || null,
+            });
+            setCurrentScriptId(created.id);
+            refreshHistory();
+          } catch (err: any) {
+            console.error(err);
+            toast.error("Generated, but failed to save to history");
+          }
         },
         (hits) => setRefs(hits),
       );
@@ -85,6 +160,7 @@ export default function ScriptImprover() {
     setRefs([]);
     setIsStreaming(true);
     setRevisionMode(mode);
+    let liveOutput = "";
     try {
       await streamImproveScript(
         {
@@ -96,12 +172,29 @@ export default function ScriptImprover() {
           previousOutput: previous,
           feedbackNote: mode === "feedback" ? feedbackNote : undefined,
         },
-        (delta) => setOutput((prev) => prev + delta),
-        () => {
+        (delta) => {
+          liveOutput += delta;
+          setOutput((prev) => prev + delta);
+        },
+        async () => {
           setIsStreaming(false);
           setRevisionMode(null);
-          setRevisionCount((n) => n + 1);
+          const newCount = revisionCount + 1;
+          setRevisionCount(newCount);
           if (mode === "feedback") setFeedbackNote("");
+          // Persist updated output to current history entry
+          if (currentScriptId) {
+            try {
+              await updateImprovedScript(currentScriptId, {
+                improved_output: liveOutput,
+                revision_count: newCount,
+              });
+              refreshHistory();
+            } catch (err: any) {
+              console.error(err);
+              toast.error("Revision generated, but failed to save");
+            }
+          }
         },
         (hits) => setRefs(hits),
       );
@@ -129,18 +222,93 @@ export default function ScriptImprover() {
     URL.revokeObjectURL(url);
   };
 
+  const handleNewScript = () => {
+    if (isStreaming) return;
+    setDraft("");
+    setOutput("");
+    setRefs([]);
+    setFeedbackNote("");
+    setToneNote("");
+    setTargetMin("");
+    setTargetMax("");
+    setCurrentScriptId(null);
+    setRevisionCount(0);
+  };
+
+  const handleOpenScript = (entry: ImprovedScript) => {
+    if (isStreaming) return;
+    setDraft(entry.draft_script);
+    setOutput(entry.improved_output ?? "");
+    setRefs([]);
+    setFeedbackNote("");
+    setToneNote(entry.tone_note ?? "");
+    setTargetMin(entry.target_min_words ? String(entry.target_min_words) : "");
+    setTargetMax(entry.target_max_words ? String(entry.target_max_words) : "");
+    setCurrentScriptId(entry.id);
+    setRevisionCount(entry.revision_count ?? 0);
+    toast.success(`Opened "${entry.title}"`);
+  };
+
+  const handleDeleteScript = async (id: string) => {
+    try {
+      await deleteImprovedScript(id);
+      if (currentScriptId === id) {
+        setCurrentScriptId(null);
+      }
+      refreshHistory();
+      toast.success("Deleted");
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Failed to delete");
+    }
+  };
+
+  const startRename = (entry: ImprovedScript) => {
+    setRenamingId(entry.id);
+    setRenameValue(entry.title);
+  };
+
+  const commitRename = async () => {
+    if (!renamingId) return;
+    const title = renameValue.trim() || "Untitled script";
+    try {
+      await renameImprovedScript(renamingId, title);
+      setRenamingId(null);
+      refreshHistory();
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Failed to rename");
+    }
+  };
+
   return (
     <Layout>
       <div className="p-8 max-w-6xl">
-        <div className="mb-8">
-          <h1 className="text-2xl font-mono font-bold text-foreground mb-2 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
-            Script Improver
-          </h1>
-          <p className="text-sm text-muted-foreground max-w-2xl">
-            Paste or upload a draft script. We rewrite it using your Script Writing Instructions as the highest-priority guide,
-            apply the Anti-AI Language Guide, and insert editor reference tags from your indexed source library where claims match canon.
-          </p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-mono font-bold text-foreground mb-2 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              Script Improver
+            </h1>
+            <p className="text-sm text-muted-foreground max-w-2xl">
+              Paste or upload a draft script. We rewrite it using your Script Writing Instructions as the highest-priority guide,
+              apply the Anti-AI Language Guide, and insert editor reference tags from your indexed source library where claims match canon.
+            </p>
+            {currentScriptId && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Editing saved script · auto-saving revisions
+              </p>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNewScript}
+            disabled={isStreaming}
+          >
+            <FilePlus2 className="w-3.5 h-3.5 mr-1.5" />
+            New script
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -387,6 +555,143 @@ export default function ScriptImprover() {
             </Collapsible>
           </Card>
         )}
+
+        {/* Saved scripts history */}
+        <Card className="mt-6 p-5 bg-card border-border">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <History className="w-4 h-4 text-primary" />
+              <h2 className="font-mono text-sm font-semibold text-foreground">
+                Saved scripts ({history.length})
+              </h2>
+            </div>
+            {historyLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
+          </div>
+
+          {history.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">
+              No saved scripts yet. Improve a draft and it will appear here automatically.
+            </p>
+          ) : (
+            <ScrollArea className="max-h-[420px] pr-3">
+              <div className="space-y-2">
+                {history.map((entry) => {
+                  const isCurrent = entry.id === currentScriptId;
+                  const created = new Date(entry.created_at).toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  });
+                  const wc = wordCount(entry.improved_output ?? "");
+                  return (
+                    <div
+                      key={entry.id}
+                      className={`rounded-md border p-3 transition-colors ${
+                        isCurrent
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-background hover:bg-muted/40"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          {renamingId === entry.id ? (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                value={renameValue}
+                                onChange={(e) => setRenameValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") commitRename();
+                                  if (e.key === "Escape") setRenamingId(null);
+                                }}
+                                autoFocus
+                                className="h-7 text-sm"
+                              />
+                              <Button size="sm" variant="ghost" onClick={commitRename} className="h-7 w-7 p-0">
+                                <Check className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setRenamingId(null)}
+                                className="h-7 w-7 p-0"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono text-sm font-semibold text-foreground truncate">
+                                {entry.title}
+                              </span>
+                              {isCurrent && (
+                                <Badge variant="secondary" className="text-[10px] uppercase">Current</Badge>
+                              )}
+                              {entry.revision_count > 0 && (
+                                <Badge variant="outline" className="text-[10px]">
+                                  rev {entry.revision_count}
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {created} · {wc.toLocaleString()} words
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleOpenScript(entry)}
+                            disabled={isStreaming}
+                          >
+                            Open
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => startRename(entry)}
+                            disabled={isStreaming}
+                            className="h-8 w-8 p-0"
+                            title="Rename"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={isStreaming}
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete this saved script?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  "{entry.title}" will be permanently removed. This can't be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteScript(entry.id)}>
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+          )}
+        </Card>
       </div>
     </Layout>
   );
