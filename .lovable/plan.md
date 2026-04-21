@@ -1,61 +1,47 @@
 
 
-## Script Improver Feature
+## Script Improver — Iterative Refinement
 
-A new section where you paste or upload an existing draft script. The system rewrites it using your **Script Instructions & Strategy** as the highest-priority writing guide, applies the **Anti-AI Language Guide**, and inserts relevant editor reference tags (`[BOOK: ...]`, `[FILM: ...]`, `[LEXICON: ...]`) from your indexed source library where the script makes claims that match canon.
+Add post-output controls so you can iterate on the improved script without restarting from the original draft.
 
 ### What you'll see
 
-A new sidebar entry **"Script Improver"** (route `/improve`) with a single page containing:
+After the first improved script streams in, two new controls appear above the output panel:
 
-1. **Input panel**
-   - Large textarea to paste a draft script (also accepts `.txt` / `.md` upload)
-   - Optional inputs: target word count, tone notes
-   - "Improve Script" button
+1. **"Make it longer" button** — one-click expansion (adds ~30–50% more length while preserving structure, voice, and all editor tags).
+2. **Feedback box + "Rewrite with feedback" button** — a textarea where you type notes like *"punchier hook, drop the third paragraph, more skeptical tone"*, then trigger a rewrite that applies your notes on top of the current improved script.
 
-2. **Output panel** (streams in real time)
-   - Improved script as clean, speakable voiceover paragraphs
-   - Editor tags on their own lines after evidence-based beats:
-     - `[BOOK: filename | chapter]`
-     - `[FILM: filename | timestamp range]`
-     - `[LEXICON: filename | context]` (metadata only, never spoken)
-   - Same quote discipline as Full Script: max 0–2 short quotes per 1,000 words, each under 12 words
-   - "So-what" takeaway after every evidence-based beat
-   - No `VISUAL NOTES`, no `[CLAIM]`, no `[SOURCE]` lines, no Lexicon mentions in narration
-   - Copy-to-clipboard + download buttons
+Each new output replaces the previous one in the output panel, but the original draft is preserved in the input panel so you can always start over. References panel updates with each rewrite.
 
-3. **Reference hits panel** (collapsible)
-   - Shows which book/transcript/lexicon chunks the model retrieved to support the rewrite, so you can verify the references are real
+### How it works
 
-### How it works under the hood
+- A new **revision mode** is added to the existing `improve-script` edge function. It accepts:
+  - `mode: "initial" | "lengthen" | "feedback"`
+  - `previousOutput?: string` (the last improved script)
+  - `feedbackNote?: string` (user's revision notes)
+- When `mode = "lengthen"`: prompt instructs the model to expand the previous output, keep all editor tags, add depth/examples/transitions, and respect existing rules (paraphrase-first, installment naming, lexicon ban, etc.). Targets ~30–50% more words.
+- When `mode = "feedback"`: prompt injects the previous output + the user's feedback as the highest-priority revision instruction (still under Script Writing Instructions). Re-runs retrieval against the *revised* claims so references stay accurate.
+- Same SSE streaming, same reference-hits payload.
 
-- New edge function `improve-script` (mirrors patterns in `generate-step`):
-  - Accepts `{ draftScript, targetMinWords?, targetMaxWords?, toneNote? }`
-  - Extracts key claim phrases from the draft (simple keyword/entity extraction in the function) and runs them through `search_chunks` against books / transcripts / lexicon to gather supporting passages
-  - Pulls `instructions` + `anti_ai_guide` chunks from the source library
-  - Builds a system prompt that:
-    - Injects Script Instructions as **HIGHEST PRIORITY** (same pattern as `full_script`)
-    - Injects Anti-AI Guide as mandatory
-    - Reuses the natural-voiceover rules: paraphrase-first, quote discipline, installment naming, lexicon-mention ban, editor-tag format, "so-what" beats
-    - Tells the model to preserve the creator's intent and structure of the draft, only improving voice/pacing/hooks and inserting editor tags where retrieved evidence matches
-  - Streams SSE response back (same shape as `streamGenerateStep`)
-- Frontend adds:
-  - `src/pages/ScriptImprover.tsx`
-  - `streamImproveScript()` helper in `src/lib/api.ts`
-  - New route in `src/App.tsx`
-  - New nav item in `src/components/AppSidebar.tsx`
+### Frontend changes
 
-### What is NOT changed
-
-- No database schema changes (improver is stateless — output isn't persisted unless you ask later)
-- Existing pipeline steps (Evidence Table, Outline, Full Script, etc.) are untouched
-- Source Library and Topic Briefs work exactly as today
+- `src/pages/ScriptImprover.tsx`:
+  - Track `output`, `previousOutput`, `feedbackNote`, `revisionCount` state
+  - After first output completes, render a **"Refine"** card under the output panel containing the two controls
+  - "Make it longer" disabled while streaming; shows spinner during rewrite
+  - Feedback textarea is required for the feedback button
+- `src/lib/api.ts`:
+  - Extend `streamImproveScript` payload with `mode`, `previousOutput`, `feedbackNote`
 
 ### Files touched
 
-- `supabase/functions/improve-script/index.ts` (new)
-- `src/pages/ScriptImprover.tsx` (new)
-- `src/lib/api.ts` (add `streamImproveScript`)
-- `src/App.tsx` (add route)
-- `src/components/AppSidebar.tsx` (add nav item)
+- `supabase/functions/improve-script/index.ts` (add mode handling + two new prompt branches)
+- `src/pages/ScriptImprover.tsx` (refine controls + state)
+- `src/lib/api.ts` (extended payload type)
+
+### What is NOT changed
+
+- No DB changes — still stateless
+- Original draft input untouched between revisions
+- All existing voiceover rules (quote discipline, installment naming, lexicon ban, editor tag format, "so-what" beats) apply to every revision
 
