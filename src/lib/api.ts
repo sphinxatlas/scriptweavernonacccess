@@ -276,7 +276,15 @@ export interface ReferenceHit {
 }
 
 export async function streamImproveScript(
-  input: { draftScript: string; targetMinWords?: number; targetMaxWords?: number; toneNote?: string },
+  input: {
+    draftScript: string;
+    targetMinWords?: number;
+    targetMaxWords?: number;
+    toneNote?: string;
+    mode?: "initial" | "lengthen" | "feedback";
+    previousOutput?: string;
+    feedbackNote?: string;
+  },
   onDelta: (text: string) => void,
   onDone: () => void,
   onReferences?: (refs: ReferenceHit[]) => void,

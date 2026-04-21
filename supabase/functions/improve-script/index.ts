@@ -121,9 +121,26 @@ serve(async (req) => {
     const targetMinWords: number | undefined = body.targetMinWords;
     const targetMaxWords: number | undefined = body.targetMaxWords;
     const toneNote: string = (body.toneNote || "").toString();
+    const mode: "initial" | "lengthen" | "feedback" =
+      body.mode === "lengthen" || body.mode === "feedback" ? body.mode : "initial";
+    const previousOutput: string = (body.previousOutput || "").toString();
+    const feedbackNote: string = (body.feedbackNote || "").toString();
 
     if (!draftScript || draftScript.trim().length < 50) {
       return new Response(JSON.stringify({ error: "Draft script is too short. Paste at least a few sentences." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if ((mode === "lengthen" || mode === "feedback") && previousOutput.trim().length < 50) {
+      return new Response(JSON.stringify({ error: "Previous output is required for revision mode." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (mode === "feedback" && feedbackNote.trim().length < 3) {
+      return new Response(JSON.stringify({ error: "Feedback note is required for feedback mode." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -163,7 +180,12 @@ serve(async (req) => {
     }
 
     // 2. Extract claim queries from the draft and run them against the source library
-    const queries = extractClaimQueries(draftScript, 12);
+    // For revision modes, prefer the latest output so retrieval matches the revised claims.
+    const querySource =
+      (mode === "lengthen" || mode === "feedback") && previousOutput
+        ? previousOutput
+        : draftScript;
+    const queries = extractClaimQueries(querySource, 12);
     const retrieved: Record<string, { content: string; file_name: string; file_type: string; query: string }> = {};
 
     await Promise.all(
@@ -228,13 +250,76 @@ serve(async (req) => {
       systemPrompt += `\n\nANTI AI LANGUAGE GUIDE (MANDATORY — strictly avoid AI tells, templated intros, repetitive triads, heavy em dashes, generic CTAs):\n${antiAiContext}`;
     }
 
-    const lengthInstruction = targetMinWords && targetMaxWords
+    const baseLengthInstruction = targetMinWords && targetMaxWords
       ? `Target word count: ${targetMinWords}–${targetMaxWords} words. Self-revise if outside the range.`
       : "Match the length of the input draft within ±15%.";
 
-    const userPrompt = `IMPROVE THE FOLLOWING DRAFT SCRIPT.
+    let userPrompt: string;
 
-${lengthInstruction}
+    if (mode === "lengthen") {
+      // Aim for ~30–50% more than the previous output.
+      const prevWordCount = previousOutput.trim().split(/\s+/).length;
+      const newMin = Math.round(prevWordCount * 1.3);
+      const newMax = Math.round(prevWordCount * 1.5);
+      const lengthenInstruction = targetMinWords && targetMaxWords
+        ? `Target word count: ${targetMinWords}–${targetMaxWords} words.`
+        : `Target word count: ${newMin}–${newMax} words (roughly 30–50% longer than the previous version, which was ~${prevWordCount} words).`;
+
+      userPrompt = `EXPAND THE FOLLOWING IMPROVED SCRIPT.
+
+${lengthenInstruction}
+${toneNote ? `Tone note from the creator: ${toneNote}` : ""}
+
+EXPANSION RULES:
+- Preserve every section, every editor tag, every "so-what" beat from the previous version.
+- Add depth: more specific examples, smoother transitions, fuller setups, richer payoffs.
+- Do NOT invent new factual claims. Only deepen what is already supported by the draft or retrieved evidence.
+- Keep all existing rules: paraphrase-first, installment naming, lexicon mention ban, editor tag format.
+- The expanded version must read as a single coherent voiceover, not the previous version with padding bolted on.
+
+## ORIGINAL DRAFT (for reference on intent only — do not regress to it):
+${draftScript}
+
+## PREVIOUS IMPROVED VERSION (this is what you must expand):
+${previousOutput}
+
+## RETRIEVED EVIDENCE FROM SOURCE LIBRARY (use only to support existing claims; insert editor tags where matched):
+${evidenceContext}
+
+Now produce the expanded improved script. Output the script only — no preamble, no commentary about what you changed.`;
+    } else if (mode === "feedback") {
+      const lengthForFeedback = targetMinWords && targetMaxWords
+        ? `Target word count: ${targetMinWords}–${targetMaxWords} words.`
+        : "Match the length of the previous improved version within ±15% unless the feedback explicitly asks for a different length.";
+
+      userPrompt = `REVISE THE PREVIOUS IMPROVED SCRIPT BASED ON CREATOR FEEDBACK.
+
+${lengthForFeedback}
+${toneNote ? `Tone note from the creator: ${toneNote}` : ""}
+
+## CREATOR FEEDBACK (HIGHEST-PRIORITY REVISION INSTRUCTION — apply faithfully, but never override the SCRIPT WRITING INSTRUCTIONS or the rules in the system prompt):
+${feedbackNote}
+
+REVISION RULES:
+- Apply the feedback precisely. If it asks to drop, restructure, or rewrite a section, do it.
+- Keep all existing rules: paraphrase-first, installment naming, lexicon mention ban, editor tag format, "so-what" beats.
+- Do NOT invent new factual claims. Use retrieved evidence to ground revised or expanded claims.
+- Preserve editor tags wherever the underlying evidence still applies; remove tags for content that is cut.
+
+## ORIGINAL DRAFT (for reference on intent only):
+${draftScript}
+
+## PREVIOUS IMPROVED VERSION (this is what you are revising):
+${previousOutput}
+
+## RETRIEVED EVIDENCE FROM SOURCE LIBRARY (use only to support existing or revised claims; insert editor tags where matched):
+${evidenceContext}
+
+Now produce the revised improved script. Output the script only — no preamble, no commentary about what you changed.`;
+    } else {
+      userPrompt = `IMPROVE THE FOLLOWING DRAFT SCRIPT.
+
+${baseLengthInstruction}
 ${toneNote ? `Tone note from the creator: ${toneNote}` : ""}
 
 ## DRAFT SCRIPT (preserve intent and section flow):
@@ -244,6 +329,7 @@ ${draftScript}
 ${evidenceContext}
 
 Now produce the improved script. Apply all rules above. Output the script only — no preamble, no commentary about what you changed.`;
+    }
 
     // Build retrieval summary for the client (collapsible reference panel)
     const referenceHits = retrievedList.map((r) => ({
