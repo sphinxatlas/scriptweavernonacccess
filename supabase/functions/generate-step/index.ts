@@ -344,6 +344,22 @@ Given the topic brief, evidence, and analysis memo, create a detailed SCRIPT OUT
 
 ${SOURCE_HIERARCHY_INSTRUCTION}
 
+${HOST_PERSONA_BINDING_INSTRUCTION}
+
+HOST PERSONA (binding voice — apply invisibly, do not summarize, do not name the host unless required):
+{{HOST_PERSONA}}
+
+${SCRIPT_INSTRUCTIONS_BINDING_INSTRUCTION}
+
+${ANTI_AI_BINDING_INSTRUCTION}
+
+${TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION}
+
+${COMMENTARY_TRANSCRIPTS_FRAMING_INSTRUCTION}
+
+VOICE-SHAPED OUTLINE (CRITICAL):
+Build the outline in a way that preserves the host's first person perspective, emotional beats, argument escalation, and spoken delivery. Do not make it a generic academic outline. The structure should already feel like the skeleton of a voiced video essay by this host.
+
 Format:
 ## Hook (0:00-0:30)
 ## Introduction (0:30-2:00)
@@ -385,6 +401,29 @@ IMPORTANT — WORD BUDGET INSTRUCTIONS (injected dynamically per brief):
 Given the topic brief, evidence, analysis, and outline, write a FULL SCRIPT.
 
 ${SOURCE_HIERARCHY_INSTRUCTION}
+
+${DUAL_HIERARCHY_INSTRUCTION}
+
+${HOST_PERSONA_BINDING_INSTRUCTION}
+
+HOST PERSONA (binding voice — apply invisibly, do not summarize, do not name the host unless required):
+{{HOST_PERSONA}}
+
+${SCRIPT_INSTRUCTIONS_BINDING_INSTRUCTION}
+
+${ANTI_AI_BINDING_INSTRUCTION}
+
+${TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION}
+
+${COMMENTARY_TRANSCRIPTS_FRAMING_INSTRUCTION}
+
+FIRST PERSON HOST VOICE (CRITICAL):
+- Write in first person as the host, using the Host Persona as the voice and worldview.
+- Do not name the host in narration unless the Host Persona explicitly requires it.
+- Do not write as a detached essay narrator.
+- Do not write as ChatGPT.
+- Do not write as a generic YouTube voiceover.
+- The script should sound like one specific person with strong taste, memory, opinions, emotional reactions, and fan instincts.
 
 SCRIPT INSTRUCTIONS PRIORITY (CRITICAL):
 - The Script Writing Instructions document (injected below as "SCRIPT INSTRUCTIONS & STRATEGY") is the HIGHEST PRIORITY writing guidance for this step.
