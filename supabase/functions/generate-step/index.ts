@@ -388,7 +388,147 @@ Additional checks:
 - Quote discipline score (percentage of quotes correctly labeled as exact vs paraphrase)`,
 };
 
-const STEP_ORDER = ["competitor_format_analysis", "retrieval", "evidence_table", "analysis_memo", "outline", "full_script", "verification"];
+STEP_PROMPTS["creative_brief"] = `You are a creative director for a Harry Potter YouTube channel.
+
+Your job: take the video title, angle note, format reference transcript(s), and any brief-specific HP topic transcripts provided, and generate a structured Creative Brief that will guide every subsequent step of the script pipeline.
+
+HOST PERSONA (write the brief with this voice and worldview in mind):
+{{HOST_PERSONA}}
+
+FORMAT REFERENCE RULES:
+- Analyze format reference transcript(s) for argumentative DNA ONLY
+- Extract: hook shape, argument structure, emotional arc, stacking technique, fairness move, closing reframe
+- NEVER use format references for HP content, facts, or information of any kind
+- Format references are from completely different topics — structural templates only
+
+HP TOPIC TRANSCRIPT RULES:
+- These are HP videos covering similar topics to this video
+- Use to understand: what angles exist, what claims have been made, what canon moments are relevant
+- Identify specific scenes or moments to verify against primary canon (books and movie transcripts)
+- Do NOT treat as proof of canon facts
+
+Generate the Creative Brief in this EXACT format:
+
+## Creative Brief: [Video Title]
+
+### Core Thesis
+[One sharp sentence stating the video's central argument. A claim, not a question.]
+
+### Proof Goal
+[What must be demonstrated by the end for the thesis to land. 1-2 sentences.]
+
+### Video Type
+[One of: Comparison / Movie-Focus / Book-Focus / Character Study / Plot Hole Dive / Grievance Analysis]
+
+### Emotional Arc
+[The emotional journey the viewer goes on. Extracted from format reference structure.]
+
+### Argument Structure
+[Beat-by-beat structure extracted from the format reference. Label each beat clearly.]
+
+### Hook Shape
+[Exact hook structure to use, derived from format reference.]
+
+### Tone Temperature
+[How the host should feel in this video. Calibrated to the host persona.]
+
+### Canon Weight
+[Which sources to lean on and why, based on the video type and thesis.]
+
+### Fairness Move
+[Where in the argument to acknowledge the counterargument or concede something. Critical for credibility.]
+
+### Key Claims to Investigate
+[5-8 specific claims, scenes, or moments from the angle note and topic transcripts that MUST be verified against primary canon. These become retrieval targets.]
+
+### What To Avoid
+[Specific angles or framings to avoid — drawn from what already exists in the topic transcripts.]
+
+### Stacking Technique
+[How individual argument points should accumulate into a verdict. Derived from format reference.]
+`;
+
+STEP_PROMPTS["six_category_extraction"] = `You are a research analyst for a Harry Potter YouTube channel.
+
+Given the Creative Brief and retrieved canon material, mine the evidence across six specific categories. This output feeds the evidence table and outline. Be sharp, specific, and argument-useful. Rank everything by: how surprising it is, how specific it is, how argument-useful it is. Generic observations rank last.
+
+IMPORTANT SOURCE RULES:
+- Only draw confirmed factual claims from primary canon: books and movie transcripts
+- HP topic transcripts and knowledge base sources can point you toward what to investigate but every claim must be confirmed in primary canon
+- Do NOT invent or fabricate evidence
+- If canon material does not support a claim, say so explicitly
+
+HOST PERSONA:
+{{HOST_PERSONA}}
+
+Produce output in this EXACT format:
+
+## Six-Category Extraction
+
+### 1. LITERAL RECORD
+The strongest direct evidence confirmed in primary canon.
+For each point:
+- **Claim**: [Precise statement]
+- **Source**: [Book or film title + location]
+- **Evidence Type**: exact quote / paraphrase / summary
+- **Content**: [The evidence — paraphrased unless quote is under 12 words and essential]
+- **Argument Value**: [Why this matters to the thesis]
+
+### 2. THE DELTA
+Where the book version and film version of the same moment diverge.
+For each delta:
+- **Scene**: [What scene or moment]
+- **Book Version**: [What the book does — source cited]
+- **Film Version**: [What the film does — source cited]
+- **What Changed**: [Specifically what was altered, removed, or added]
+- **Effect on Argument**: [What this change does to characterization or the thesis]
+
+### 3. THE PATTERN
+Recurring behavior or adaptation choices across multiple books/films that prove the thesis is not a one-off.
+For each pattern:
+- **Pattern**: [The recurring behavior]
+- **Instances**: [At least 3 specific examples with sources]
+- **What It Proves**: [Why this pattern matters to the argument]
+
+### 4. THE CONTRADICTION
+Logic gaps, character inconsistencies, broken rules, or downstream problems.
+For each contradiction:
+- **Contradiction**: [What is inconsistent or broken]
+- **Evidence**: [The specific moments — sources cited]
+- **Why It Matters**: [What this reveals]
+
+### 5. THE SUBTEXT
+What scenes are doing beneath their surface function.
+For each point:
+- **Surface Moment**: [What literally happens]
+- **Subtext**: [What it actually reveals]
+- **Source**: [Cited]
+- **Script Value**: [How this becomes a useful line of analysis]
+
+### 6. THE ANGLE
+The most counterintuitive or non-obvious reading of this evidence.
+For each angle:
+- **The Non-Obvious Reading**: [The surprising interpretation]
+- **Evidence Basis**: [What canon supports this]
+- **Why Most People Miss It**: [The common assumption and why it is incomplete]
+- **Script Value**: [How this becomes an original line of thought]
+
+## Evidence Gaps
+- What claims from the brief or topic transcripts could NOT be confirmed in primary canon?
+- What should the creator know is unverified?
+`;
+
+const STEP_ORDER = [
+  "creative_brief",
+  "six_category_extraction",
+  "evidence_table",
+  "analysis_memo",
+  "outline",
+  "full_script",
+  "verification",
+  "retrieval",
+  "competitor_format_analysis",
+];
 
 type SearchSourceType = "book" | "transcript" | "lexicon" | "competitor_analysis";
 
