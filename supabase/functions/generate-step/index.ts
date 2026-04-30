@@ -1047,6 +1047,34 @@ serve(async (req) => {
       .map((r: any) => r.brief_topic_transcripts)
       .filter(Boolean);
 
+    // Token-budget guard: HP topic transcripts can be 60k+ chars each. Inlining
+    // many of them alongside source excerpts and previous pipeline outputs blows
+    // past the AI gateway's 272k token input limit. Cap each transcript and the
+    // total combined size used in any single prompt.
+    const MAX_PER_TRANSCRIPT_CHARS = 12000;
+    const MAX_TOTAL_TRANSCRIPT_CHARS = 80000;
+    const truncateTopicTranscripts = (items: any[]): any[] => {
+      let total = 0;
+      const out: any[] = [];
+      for (const r of items) {
+        const raw = (r.transcript || "").toString();
+        const perCap = raw.length > MAX_PER_TRANSCRIPT_CHARS
+          ? raw.slice(0, MAX_PER_TRANSCRIPT_CHARS) + "\n\n[...transcript truncated for token budget...]"
+          : raw;
+        if (total + perCap.length > MAX_TOTAL_TRANSCRIPT_CHARS) {
+          const remaining = Math.max(0, MAX_TOTAL_TRANSCRIPT_CHARS - total);
+          if (remaining > 500) {
+            out.push({ ...r, transcript: perCap.slice(0, remaining) + "\n\n[...transcript truncated for token budget...]" });
+            total += remaining;
+          }
+          break;
+        }
+        out.push({ ...r, transcript: perCap });
+        total += perCap.length;
+      }
+      return out;
+    };
+
     // Special handling for competitor_format_analysis — uses pasted scripts only, no retrieval
     if (stepType === "competitor_format_analysis") {
       const scripts = [
@@ -1112,7 +1140,7 @@ serve(async (req) => {
         .join("\n\n---\n\n");
 
       const topicTranscriptBlock = topicTranscripts.length > 0
-        ? topicTranscripts
+        ? truncateTopicTranscripts(topicTranscripts)
             .map((r: any) => `### HP Topic Transcript: "${r.video_title}" by ${r.channel_name}\nUse for research leads and angle awareness. All claims must be confirmed in primary canon.\n\n${r.transcript}`)
             .join("\n\n---\n\n")
         : "No brief-specific HP topic transcripts provided for this brief.";
@@ -1671,7 +1699,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     const topicTranscriptUserBlock =
       ["evidence_table", "outline", "full_script"].includes(stepType) && topicTranscripts.length > 0
         ? `\n\n## Brief-Specific HP Topic Transcripts (THEORY, ANGLE, AND RESEARCH LEADS — not Tier 1 canon)\nTreat these as theory/angle/interpretation input. Factual canon claims still require Tier 1 book or movie transcript support. Theories may be used if plausible, coherent, and not obviously contradicted by canon. Frame theories honestly as theories.\n\n` +
-          topicTranscripts
+          truncateTopicTranscripts(topicTranscripts)
             .map((r: any) => `### "${r.video_title}" by ${r.channel_name}\n${r.transcript}`)
             .join("\n\n---\n\n")
         : "";
@@ -1690,7 +1718,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
       const topicTranscriptBlock = topicTranscripts.length > 0
         ? "\n## Brief-Specific HP Topic Transcripts (research leads — confirm all claims in primary canon before use)\n" +
-          topicTranscripts
+          truncateTopicTranscripts(topicTranscripts)
             .map((r: any) => `### "${r.video_title}" by ${r.channel_name}\n${r.transcript}`)
             .join("\n\n---\n\n")
         : "";
