@@ -169,6 +169,65 @@ export async function deleteTopicBrief(id: string) {
   if (error) throw error;
 }
 
+// Duplicate an existing Topic Brief: copies all input fields and linked transcripts,
+// but never copies pipeline outputs, evidence, creative_brief feedback/approval, or generated fields.
+export async function duplicateTopicBrief(briefId: string) {
+  const { data: original, error: fetchErr } = await supabase
+    .from("topic_briefs")
+    .select("*")
+    .eq("id", briefId)
+    .single();
+  if (fetchErr) throw fetchErr;
+  if (!original) throw new Error("Brief not found");
+
+  const insertPayload: any = {
+    title: `${original.title} (copy)`,
+    description: original.description ?? "",
+    angle_note: original.angle_note,
+    target_minutes: original.target_minutes,
+    target_min_words: original.target_min_words,
+    target_max_words: original.target_max_words,
+    comparison_mode: original.comparison_mode,
+    competitor_script_1: original.competitor_script_1,
+    competitor_script_2: original.competitor_script_2,
+    competitor_script_3: original.competitor_script_3,
+    competitor_script_4: original.competitor_script_4,
+    competitor_script_5: original.competitor_script_5,
+    // Explicitly do NOT copy: thesis, focus_areas, characters, proof_goal,
+    // priority_sources, emotional_angle, tone, creative_brief_feedback,
+    // creative_brief_approved (these are pipeline-generated or review state).
+  };
+
+  const { data: created, error: insertErr } = await supabase
+    .from("topic_briefs")
+    .insert(insertPayload)
+    .select()
+    .single();
+  if (insertErr) throw insertErr;
+
+  // Copy linked transcripts
+  const [{ data: formatLinks }, { data: topicLinks }] = await Promise.all([
+    supabase.from("brief_format_reference_links").select("transcript_id").eq("brief_id", briefId),
+    supabase.from("brief_topic_transcript_links").select("transcript_id").eq("brief_id", briefId),
+  ]);
+
+  const formatIds = (formatLinks || []).map((r: any) => r.transcript_id);
+  const topicIds = (topicLinks || []).map((r: any) => r.transcript_id);
+
+  if (formatIds.length > 0) {
+    await supabase.from("brief_format_reference_links").insert(
+      formatIds.map((id) => ({ brief_id: created.id, transcript_id: id })),
+    );
+  }
+  if (topicIds.length > 0) {
+    await supabase.from("brief_topic_transcript_links").insert(
+      topicIds.map((id) => ({ brief_id: created.id, transcript_id: id })),
+    );
+  }
+
+  return created;
+}
+
 export async function getPipelineOutputs(briefId: string) {
   const { data, error } = await supabase
     .from("pipeline_outputs")
