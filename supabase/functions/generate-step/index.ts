@@ -152,6 +152,64 @@ Writing hierarchy:
 The final script must not merely include these documents in the prompt. It must visibly apply them in the writing.
 `;
 
+const VIDEO_RETENTION_STRUCTURE_INSTRUCTION = `
+VIDEO RETENTION & ESCALATION LAYER (BINDING — applies to Creative Brief, Outline, and Full Script):
+
+This script must feel like a strong YouTube video, not a research essay. Build it around viewer retention, escalation, and payoff. The following structure is mandatory:
+
+A. VIEWER CLICK QUESTION
+- Identify the exact question, curiosity, or emotional promise that made the viewer click the title.
+- Every major section must move the viewer closer to the answer of that question.
+- Never drift into general explanation that does not serve the click question.
+
+B. TITLE PROMISE
+- Keep the title promise alive throughout the video.
+- The hook must surface the promise. The body must build on it. The conclusion must deliver on it.
+- Do not let the script wander into adjacent topics that dilute the title.
+
+C. CASUAL VIEWER CONTEXT
+- Before building any argument that depends on a specific HP concept, person, object, or rule, briefly explain it in 1–2 clear sentences for casual viewers.
+- Example: if the argument depends on the Marauder's Map, explain what the Map is and what it does before analyzing it.
+- Do not assume only hardcore fans are watching. Hardcore fans will tolerate a brief refresher; casual viewers will not tolerate confusion.
+
+D. ESCALATION LADDER (NO CIRCULAR ARGUMENTATION)
+Each section must add a NEW layer. The script must not loop back to the same point in different words. Use this ladder:
+- Hook: state the tension or bold claim that frames the click question.
+- Context: explain the casual-viewer pieces clearly.
+- Section 1: establish the surface-level problem.
+- Section 2: reveal why the problem is deeper than fans think.
+- Section 3: test the strongest counterarguments or fan theories.
+- Final section: deliver the real climax — the verdict, twist, or unexpected conclusion.
+If a planned section only restates an earlier section, it must be cut or replaced.
+
+E. SECTION RE-HOOKS
+- Every section must end with a SPECIFIC reason to keep watching.
+- Do NOT use lazy placeholders like "By the end, you'll understand why" or "Stick around to find out".
+- Re-hooks must tease the next concrete reveal.
+- Example: "But that excuse collapses the second Snape gets involved."
+- Example: "And this is where the Map stops being a cute magical object and starts becoming a threat to the entire plot."
+
+F. EMOTIONAL ARC
+- The video must move through a progression of feeling. It cannot stay flat.
+- Typical progression: curiosity → amusement → suspicion → tension → realization → payoff.
+- Each section should sit at a different emotional temperature than the one before it.
+
+G. CLIMAX AND PAYOFF
+- The final third of the script must contain the STRONGEST argument, not a recap of earlier points.
+- The climax must make the viewer feel that the video has finally answered the title.
+- The conclusion must land a clear verdict, not a polite summary.
+
+H. ANTI-REPETITION RULE
+- Do not restate the same argument in different words across sections.
+- Every section must EITHER reveal new information, complicate the previous point, or move the viewer closer to the final answer.
+- "We already said this" is a structural failure.
+
+I. SOURCE INTEGRATION RULE
+- Sources support the story and argument. They do not interrupt the pacing.
+- In the Full Script, editor tags may remain after evidence paragraphs for editing purposes, but they must NEVER replace natural spoken explanation or emotional transitions.
+- Citations live in editor tags. Voiceover lives in human, escalating spoken sentences.
+`;
+
 const STEP_PROMPTS: Record<string, string> = {
   competitor_format_analysis: `You are a YouTube format analyst. Given competitor scripts pasted by the creator, analyze their STRUCTURE and FORMAT ONLY.
 
