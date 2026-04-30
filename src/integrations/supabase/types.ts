@@ -14,6 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      brief_format_reference_links: {
+        Row: {
+          brief_id: string
+          transcript_id: string
+        }
+        Insert: {
+          brief_id: string
+          transcript_id: string
+        }
+        Update: {
+          brief_id?: string
+          transcript_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brief_format_reference_links_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "topic_briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brief_format_reference_links_transcript_id_fkey"
+            columns: ["transcript_id"]
+            isOneToOne: false
+            referencedRelation: "format_reference_transcripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brief_topic_transcript_links: {
+        Row: {
+          brief_id: string
+          transcript_id: string
+        }
+        Insert: {
+          brief_id: string
+          transcript_id: string
+        }
+        Update: {
+          brief_id?: string
+          transcript_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brief_topic_transcript_links_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "topic_briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brief_topic_transcript_links_transcript_id_fkey"
+            columns: ["transcript_id"]
+            isOneToOne: false
+            referencedRelation: "brief_topic_transcripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brief_topic_transcripts: {
+        Row: {
+          channel_name: string
+          created_at: string
+          id: string
+          transcript: string
+          video_title: string
+        }
+        Insert: {
+          channel_name: string
+          created_at?: string
+          id?: string
+          transcript: string
+          video_title: string
+        }
+        Update: {
+          channel_name?: string
+          created_at?: string
+          id?: string
+          transcript?: string
+          video_title?: string
+        }
+        Relationships: []
+      }
       evidence_points: {
         Row: {
           book_evidence: string | null
@@ -110,6 +194,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      format_reference_transcripts: {
+        Row: {
+          channel_name: string
+          created_at: string
+          id: string
+          transcript: string
+          video_title: string
+        }
+        Insert: {
+          channel_name: string
+          created_at?: string
+          id?: string
+          transcript: string
+          video_title: string
+        }
+        Update: {
+          channel_name?: string
+          created_at?: string
+          id?: string
+          transcript?: string
+          video_title?: string
+        }
+        Relationships: []
       }
       improved_scripts: {
         Row: {
@@ -214,6 +322,7 @@ export type Database = {
       }
       topic_briefs: {
         Row: {
+          angle_note: string | null
           characters: string[] | null
           comparison_mode: boolean
           competitor_script_1: string | null
@@ -222,6 +331,8 @@ export type Database = {
           competitor_script_4: string | null
           competitor_script_5: string | null
           created_at: string
+          creative_brief_approved: boolean
+          creative_brief_feedback: string | null
           description: string
           emotional_angle: string | null
           focus_areas: string[] | null
@@ -237,6 +348,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          angle_note?: string | null
           characters?: string[] | null
           comparison_mode?: boolean
           competitor_script_1?: string | null
@@ -245,6 +357,8 @@ export type Database = {
           competitor_script_4?: string | null
           competitor_script_5?: string | null
           created_at?: string
+          creative_brief_approved?: boolean
+          creative_brief_feedback?: string | null
           description: string
           emotional_angle?: string | null
           focus_areas?: string[] | null
@@ -260,6 +374,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          angle_note?: string | null
           characters?: string[] | null
           comparison_mode?: boolean
           competitor_script_1?: string | null
@@ -268,6 +383,8 @@ export type Database = {
           competitor_script_4?: string | null
           competitor_script_5?: string | null
           created_at?: string
+          creative_brief_approved?: boolean
+          creative_brief_feedback?: string | null
           description?: string
           emotional_angle?: string | null
           focus_areas?: string[] | null
@@ -327,6 +444,8 @@ export type Database = {
         | "verification"
         | "retrieval"
         | "competitor_format_analysis"
+        | "creative_brief"
+        | "six_category_extraction"
       source_file_type:
         | "book"
         | "transcript"
@@ -471,6 +590,8 @@ export const Constants = {
         "verification",
         "retrieval",
         "competitor_format_analysis",
+        "creative_brief",
+        "six_category_extraction",
       ],
       source_file_type: [
         "book",
