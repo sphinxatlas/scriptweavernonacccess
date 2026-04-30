@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { PIPELINE_STEPS, type PipelineStepType } from "@/lib/api";
-import { ArrowLeft, CheckCircle2, Circle, GitCompare, Info } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, GitCompare, Info, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BriefDetailsSheet } from "./BriefDetailsSheet";
 
@@ -42,9 +42,11 @@ export function PipelineSidebar({ brief, activeStep, setActiveStep, generating, 
       )}
 
       <div className="space-y-1 flex-1">
-        {PIPELINE_STEPS.map((step) => {
+        {PIPELINE_STEPS.filter((s) => s.visible).map((step) => {
           const hasOutput = !!getStepOutput(step.type);
           const isActive = activeStep === step.type;
+          const isCreativeBrief = step.type === "creative_brief";
+          const cbApproved = !!(brief && (brief as any).creative_brief_approved);
 
           return (
             <button
@@ -63,8 +65,21 @@ export function PipelineSidebar({ brief, activeStep, setActiveStep, generating, 
               ) : (
                 <Circle className="w-3.5 h-3.5 flex-shrink-0" />
               )}
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-xs font-mono font-medium truncate">{step.label}</p>
+                {isCreativeBrief && hasOutput && (
+                  cbApproved ? (
+                    <p className="text-[10px] text-green-500 flex items-center gap-1 mt-0.5">
+                      <CheckCircle2 className="w-2.5 h-2.5" />
+                      Approved
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-amber-500 flex items-center gap-1 mt-0.5">
+                      <Clock className="w-2.5 h-2.5" />
+                      Pending Review
+                    </p>
+                  )
+                )}
               </div>
             </button>
           );

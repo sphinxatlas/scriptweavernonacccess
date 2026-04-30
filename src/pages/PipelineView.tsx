@@ -194,7 +194,7 @@ export default function PipelineView() {
                   </Button>
                 </>
               )}
-              <Button size="sm" onClick={handleGenerate} disabled={generating} className="gap-1.5">
+              <Button size="sm" onClick={() => handleGenerate()} disabled={generating} className="gap-1.5">
                 {generating ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
