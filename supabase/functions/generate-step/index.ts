@@ -1757,7 +1757,19 @@ Please generate the ${stepType.replace(/_/g, " ")} based on the above informatio
         prevScript = prevOut?.content || "";
       }
 
-      userMessage += `\n\n## Current Full Script (this is what you are polishing)\n${prevScript || "(No previous Full Script available.)"}\n\n## Final Voice Pass Task\nApply a light voice-and-pacing polish to the Current Full Script above, following the FINAL VOICE PASS MODE rules in the system prompt. Preserve argument, structure, section order, evidence, source tags, editor tags, and canon claims. Improve only voice, pacing, rhythm, transitions, re-hooks, clarity, and non-generic phrasing. Do not introduce new unsupported claims. Do not mention the Script Writing Guide or the Host Persona. Output ONLY the revised full script.`;
+      // Final Voice Pass is a light polish — do NOT re-inject the entire pipeline
+      // context (sources, transcripts, evidence). The system prompt already carries
+      // the Script Writing Guide, Anti AI Guide, and Host Persona. Sending the full
+      // context blew past the 272k token limit. Override userMessage with a slim payload.
+      userMessage =
+        `## Topic Brief\nTitle: ${brief.title}\nAngle: ${brief.angle_note || brief.description || ""}\n\n` +
+        `## Current Full Script (this is what you are polishing)\n${prevScript || "(No previous Full Script available.)"}\n\n` +
+        `## Final Voice Pass Task\n` +
+        `Apply a light voice-and-pacing polish to the Current Full Script above, following the FINAL VOICE PASS MODE rules in the system prompt. ` +
+        `Preserve argument, structure, section order, evidence, source tags, editor tags, and canon claims. ` +
+        `Improve only voice, pacing, rhythm, transitions, re-hooks, clarity, and non-generic phrasing. ` +
+        `Do not introduce new unsupported claims. Do not mention the Script Writing Guide or the Host Persona. ` +
+        `Output ONLY the revised full script.`;
     }
 
     // Call Lovable AI
