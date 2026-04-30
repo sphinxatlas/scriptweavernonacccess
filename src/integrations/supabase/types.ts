@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      angle_lab_runs: {
+        Row: {
+          created_at: string
+          id: string
+          parsed_directions: Json | null
+          possible_topics: string | null
+          raw_output: string
+          updated_at: string
+          user_notes: string | null
+          working_idea: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          parsed_directions?: Json | null
+          possible_topics?: string | null
+          raw_output?: string
+          updated_at?: string
+          user_notes?: string | null
+          working_idea: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          parsed_directions?: Json | null
+          possible_topics?: string | null
+          raw_output?: string
+          updated_at?: string
+          user_notes?: string | null
+          working_idea?: string
+        }
+        Relationships: []
+      }
       brief_format_reference_links: {
         Row: {
           brief_id: string

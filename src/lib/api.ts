@@ -374,6 +374,54 @@ export async function streamAngleLab(
   onDone();
 }
 
+// ── Angle Lab runs (saved history) ──
+export interface AngleLabRun {
+  id: string;
+  working_idea: string;
+  possible_topics: string | null;
+  user_notes: string | null;
+  raw_output: string;
+  parsed_directions: any | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function listAngleLabRuns(): Promise<AngleLabRun[]> {
+  const { data, error } = await supabase
+    .from("angle_lab_runs")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data || []) as AngleLabRun[];
+}
+
+export async function createAngleLabRun(input: {
+  working_idea: string;
+  possible_topics?: string;
+  user_notes?: string;
+  raw_output: string;
+  parsed_directions?: any;
+}): Promise<AngleLabRun> {
+  const { data, error } = await supabase
+    .from("angle_lab_runs")
+    .insert({
+      working_idea: input.working_idea,
+      possible_topics: input.possible_topics ?? null,
+      user_notes: input.user_notes ?? null,
+      raw_output: input.raw_output,
+      parsed_directions: input.parsed_directions ?? null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as AngleLabRun;
+}
+
+export async function deleteAngleLabRun(id: string): Promise<void> {
+  const { error } = await supabase.from("angle_lab_runs").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // Improved scripts history
 export interface CreateImprovedScriptInput {
   title: string;
