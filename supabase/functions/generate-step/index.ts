@@ -1522,6 +1522,28 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     let systemPromptFinal = systemPrompt;
     let userMessage: string;
 
+    // ── FULL SCRIPT REVISION MODE ──
+    // When the Full Script step is regenerated with user revision feedback,
+    // we reuse the entire pipeline context (same as a normal full_script run)
+    // and append: the previous Full Script + the user's typed feedback +
+    // a binding revision task. We do NOT replace the source/guidance context.
+    const isFullScriptRevision =
+      stepType === "full_script" &&
+      typeof revisionFeedback === "string" &&
+      revisionFeedback.trim().length > 0;
+
+    if (isFullScriptRevision) {
+      systemPromptFinal +=
+        `\n\nFULL SCRIPT REVISION MODE (BINDING):\n` +
+        `- You are revising a previously generated Full Script for this same brief.\n` +
+        `- The previous Full Script and the user's revision feedback are included in the user message.\n` +
+        `- Preserve the strongest material from the previous script. Rebuild weak or repetitive sections.\n` +
+        `- Directly apply the user's feedback. Do not patch a few sentences cosmetically.\n` +
+        `- Reuse the full pipeline context (Topic Brief, Creative Brief, Insights & Research, Evidence Table, Outline, source excerpts, Script Writing Instructions, Anti AI Guide, Host Persona, HP topic transcripts, commentary transcripts).\n` +
+        `- Maintain target word count, editor tags after evidence paragraphs, source specificity, quote discipline, and the Lexicon mention ban.\n` +
+        `- Output ONLY the revised Full Script. Do not include an explanation of changes, a diff, a changelog, or commentary about the revision.\n`;
+    }
+
     // Brief-specific HP topic transcripts — pass as a distinct context block to
     // evidence_table, outline, and full_script (creative_brief and
     // six_category_extraction handle them on their own branches).
