@@ -1447,6 +1447,15 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
     let systemPrompt = STEP_PROMPTS[stepType] || "You are a helpful writing assistant.";
 
+    // Inject Host Persona into outline and full_script prompts (creative_brief and
+    // six_category_extraction inject it themselves on their own branches).
+    if (stepType === "outline" || stepType === "full_script") {
+      systemPrompt = systemPrompt.replace(
+        "{{HOST_PERSONA}}",
+        hostPersonaContext || "No host persona uploaded.",
+      );
+    }
+
     // Inject dynamic target length instructions for outline and full_script
     const targetMin = brief.target_min_words ?? 1400;
     const targetMax = brief.target_max_words ?? 1600;
@@ -1513,6 +1522,17 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     let systemPromptFinal = systemPrompt;
     let userMessage: string;
 
+    // Brief-specific HP topic transcripts — pass as a distinct context block to
+    // evidence_table, outline, and full_script (creative_brief and
+    // six_category_extraction handle them on their own branches).
+    const topicTranscriptUserBlock =
+      ["evidence_table", "outline", "full_script"].includes(stepType) && topicTranscripts.length > 0
+        ? `\n\n## Brief-Specific HP Topic Transcripts (THEORY, ANGLE, AND RESEARCH LEADS — not Tier 1 canon)\nTreat these as theory/angle/interpretation input. Factual canon claims still require Tier 1 book or movie transcript support. Theories may be used if plausible, coherent, and not obviously contradicted by canon. Frame theories honestly as theories.\n\n` +
+          topicTranscripts
+            .map((r: any) => `### "${r.video_title}" by ${r.channel_name}\n${r.transcript}`)
+            .join("\n\n---\n\n")
+        : "";
+
     if (stepType === "six_category_extraction") {
       // Get creative brief output
       const { data: creativeBriefOutput } = await supabase
@@ -1556,6 +1576,7 @@ ${queryPackContext}
 
 ${guidanceBlock}${previousContext ? `## Previous Pipeline Steps\n${previousContext}\n\n` : ""}${starredEvidence ? `${starredEvidence}\n\n` : ""}## Source Material Excerpts
 ${sourceContext}
+${topicTranscriptUserBlock}
 
 Please generate the ${stepType.replace(/_/g, " ")} based on the above information.`;
     }
