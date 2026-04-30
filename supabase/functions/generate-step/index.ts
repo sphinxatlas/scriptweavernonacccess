@@ -82,6 +82,76 @@ This is a Book vs Movie Comparison analysis. You MUST:
 - Use Lexicon only to provide context about when/why changes were made
 `;
 
+// ── BINDING WRITING / VOICE / THEORY INSTRUCTION BLOCKS ──
+// These wrap guidance documents (Host Persona, Script Instructions, Anti AI Guide)
+// and re-frame commentary + topic transcripts as theory/angle inputs rather than canon.
+
+const HOST_PERSONA_BINDING_INSTRUCTION = `
+HOST PERSONA — BINDING VOICE INSTRUCTION:
+Use this as the first person voice, worldview, emotional lens, and delivery style of the host.
+Do not cite it. Do not summarize it. Do not turn the persona into a character bio.
+Do not mention the host by name unless the persona document explicitly requires it.
+The script should feel written and spoken by this host, not by a generic narrator.
+Make the persona felt through worldview, rhythm, emotional reactions, phrasing, humor, skepticism, curiosity, and fan energy — not through introductions like "Hi, I'm ___".
+`;
+
+const SCRIPT_INSTRUCTIONS_BINDING_INSTRUCTION = `
+SCRIPT INSTRUCTIONS — BINDING WRITING CONSTRAINTS:
+This document is not evidence, but it is mandatory for structure, pacing, formatting, and final script execution.
+Follow it closely. It must visibly shape the structure and delivery of the output.
+`;
+
+const ANTI_AI_BINDING_INSTRUCTION = `
+ANTI AI GUIDE — BINDING STYLE CONSTRAINTS:
+This document is not evidence, but it is mandatory for human sounding writing quality.
+Apply it actively in the final prose. Avoid generic AI phrasing, padded transitions, mechanical paragraphing, templated triads, signposting, and empty summaries.
+`;
+
+const TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION = `
+BRIEF SPECIFIC HP TOPIC TRANSCRIPTS — THEORY, ANGLE, AND RESEARCH LEADS:
+These are topic relevant Harry Potter commentary, theory, or transcript materials selected for this brief.
+Use them to identify possible theories, conspiracy style arguments, interpretive angles, fandom questions, contradictions worth exploring, unusual readings of characters/scenes/adaptation choices, and argument structures that could make the video more compelling.
+They are NOT Tier 1 canon and must NOT be treated as direct proof of canon events.
+However, they do not need to be strictly confirmed by primary canon in every case, because some are theories, speculative arguments, or interpretive claims.
+
+Rules:
+- If a point is presented as a canon fact, it MUST be supported by Tier 1 book or movie transcript evidence.
+- If a point is a theory, interpretation, conspiracy, or speculative reading, it may be used if it makes logical sense and does not ignore obvious canon.
+- The script must clearly frame theories as theories, interpretations, possibilities, or readings.
+- Do not present topic transcript ideas as proven canon unless Tier 1 evidence supports them.
+- Do not let topic transcripts override clear book or movie evidence.
+- If a theory conflicts with canon, acknowledge the tension instead of hiding it.
+- Use these transcripts to make the script sharper, more interesting, and more fan aware — not to replace original analysis.
+`;
+
+const COMMENTARY_TRANSCRIPTS_FRAMING_INSTRUCTION = `
+COMMENTARY TRANSCRIPTS — INTERPRETIVE AND THEORY INPUT:
+These materials may contain analysis, theories, speculation, fandom interpretation, or competitor framing. They are NOT canon evidence.
+Use them to discover interesting angles, framings, and argument patterns.
+
+- For factual canon claims, verify with Tier 1 books or movie transcripts.
+- For theories and interpretive angles, do NOT require direct canon confirmation. Instead, check that the idea is plausible, logically coherent, interesting, and not obviously contradicted by primary canon.
+- Never present commentary material as proven canon unless Tier 1 evidence supports it.
+- Never copy commentary wording, structure, or phrasing into the script.
+`;
+
+const DUAL_HIERARCHY_INSTRUCTION = `
+DUAL HIERARCHY — THE FINAL SCRIPT MUST OBEY BOTH AT ONCE:
+
+Evidence hierarchy:
+- Tier 1 books and movie transcripts prove canon claims.
+- Lexicon can support background understanding but cannot be mentioned in narration.
+- Commentary and HP topic transcripts can inspire theories, angles, and interpretations, but cannot prove canon facts.
+- Guidance documents are not evidence.
+
+Writing hierarchy:
+- Host Persona is mandatory for first person voice.
+- Script Instructions are mandatory for structure and execution.
+- Anti AI Guide is mandatory for style and human writing quality.
+
+The final script must not merely include these documents in the prompt. It must visibly apply them in the writing.
+`;
+
 const STEP_PROMPTS: Record<string, string> = {
   competitor_format_analysis: `You are a YouTube format analyst. Given competitor scripts pasted by the creator, analyze their STRUCTURE and FORMAT ONLY.
 
@@ -185,6 +255,22 @@ Given the topic brief, retrieval results, and source material excerpts, create a
 
 ${SOURCE_HIERARCHY_INSTRUCTION}
 
+${TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION}
+
+${COMMENTARY_TRANSCRIPTS_FRAMING_INSTRUCTION}
+
+EVIDENCE CATEGORIZATION (CRITICAL — DO NOT FLATTEN):
+The Evidence Table must clearly separate four kinds of points. Group them under labeled subsections in this order:
+
+1. CANON SUPPORTED CLAIMS — require Tier 1 book or movie transcript support. Confidence: High/Medium based on source clarity.
+2. ADAPTATION CONTRASTS — book vs movie differences. Use book and movie transcript evidence where possible.
+3. INTERPRETIVE / THEORY ANGLES — do NOT require direct canon confirmation. Check that the theory is plausible, interesting, logically coherent, and not obviously contradicted by canon. Clearly label as theory / interpretation / speculative angle. Note what canon detail, scene, omission, contradiction, or pattern makes the theory worth considering.
+4. SPECULATION / CONSPIRACY STYLE IDEAS — fan-aware, speculative readings. Label clearly as speculation. Must still be grounded in some canon detail or pattern, even if interpretive.
+
+Do not remove interesting theory based material just because it cannot be fully proven.
+Do not present theories as facts.
+The goal is compelling, defensible Harry Potter video argumentation, not only academic confirmation.
+
 EVIDENCE QUALITY RULES (CRITICAL):
 1. QUALITY OVER QUANTITY: Select the 10-15 STRONGEST evidence points. Do NOT pad with weak or tangential evidence.
 2. PREFER COMPARISON POINTS: Where possible, each evidence point should include BOTH book evidence AND movie evidence with a clear contrast. Do not make the table mostly book-only unless no movie counterpart exists.
@@ -258,6 +344,22 @@ Given the topic brief, evidence, and analysis memo, create a detailed SCRIPT OUT
 
 ${SOURCE_HIERARCHY_INSTRUCTION}
 
+${HOST_PERSONA_BINDING_INSTRUCTION}
+
+HOST PERSONA (binding voice — apply invisibly, do not summarize, do not name the host unless required):
+{{HOST_PERSONA}}
+
+${SCRIPT_INSTRUCTIONS_BINDING_INSTRUCTION}
+
+${ANTI_AI_BINDING_INSTRUCTION}
+
+${TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION}
+
+${COMMENTARY_TRANSCRIPTS_FRAMING_INSTRUCTION}
+
+VOICE-SHAPED OUTLINE (CRITICAL):
+Build the outline in a way that preserves the host's first person perspective, emotional beats, argument escalation, and spoken delivery. Do not make it a generic academic outline. The structure should already feel like the skeleton of a voiced video essay by this host.
+
 Format:
 ## Hook (0:00-0:30)
 ## Introduction (0:30-2:00)
@@ -299,6 +401,29 @@ IMPORTANT — WORD BUDGET INSTRUCTIONS (injected dynamically per brief):
 Given the topic brief, evidence, analysis, and outline, write a FULL SCRIPT.
 
 ${SOURCE_HIERARCHY_INSTRUCTION}
+
+${DUAL_HIERARCHY_INSTRUCTION}
+
+${HOST_PERSONA_BINDING_INSTRUCTION}
+
+HOST PERSONA (binding voice — apply invisibly, do not summarize, do not name the host unless required):
+{{HOST_PERSONA}}
+
+${SCRIPT_INSTRUCTIONS_BINDING_INSTRUCTION}
+
+${ANTI_AI_BINDING_INSTRUCTION}
+
+${TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION}
+
+${COMMENTARY_TRANSCRIPTS_FRAMING_INSTRUCTION}
+
+FIRST PERSON HOST VOICE (CRITICAL):
+- Write in first person as the host, using the Host Persona as the voice and worldview.
+- Do not name the host in narration unless the Host Persona explicitly requires it.
+- Do not write as a detached essay narrator.
+- Do not write as ChatGPT.
+- Do not write as a generic YouTube voiceover.
+- The script should sound like one specific person with strong taste, memory, opinions, emotional reactions, and fan instincts.
 
 SCRIPT INSTRUCTIONS PRIORITY (CRITICAL):
 - The Script Writing Instructions document (injected below as "SCRIPT INSTRUCTIONS & STRATEGY") is the HIGHEST PRIORITY writing guidance for this step.
@@ -947,6 +1072,7 @@ Generate the Creative Brief now.`;
     }
 
     // Build compact retrieval query pack from brief fields (brief stays rich for generation)
+    // TODO: Add hybrid semantic/vector retrieval later using embeddings and pgvector. Current retrieval is keyword/full text search only.
     const queryPack = deriveRetrievalQueryPack(brief);
     const prioritySources = (brief.priority_sources || [])
       .map((s: string) => normalizeWhitespace(s))
@@ -1321,6 +1447,15 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
     let systemPrompt = STEP_PROMPTS[stepType] || "You are a helpful writing assistant.";
 
+    // Inject Host Persona into outline and full_script prompts (creative_brief and
+    // six_category_extraction inject it themselves on their own branches).
+    if (stepType === "outline" || stepType === "full_script") {
+      systemPrompt = systemPrompt.replace(
+        "{{HOST_PERSONA}}",
+        hostPersonaContext || "No host persona uploaded.",
+      );
+    }
+
     // Inject dynamic target length instructions for outline and full_script
     const targetMin = brief.target_min_words ?? 1400;
     const targetMax = brief.target_max_words ?? 1600;
@@ -1381,11 +1516,22 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     const guidanceSections: string[] = [];
     if (instructionContext) guidanceSections.push(`## Script Instructions & Strategy (GUIDANCE ONLY — not evidence, shapes writing quality/pacing/hooks/retention)\n${instructionContext}`);
     if (antiAiContext) guidanceSections.push(`## Anti AI Language Guide (WRITING GUIDANCE — avoid AI tells, keep output human and natural)\n${antiAiContext}`);
-    if (competitorContext) guidanceSections.push(`## Commentary Transcripts (SECONDARY COMMENTARY — angles and framing only, all factual claims must be confirmed against books/movie transcripts. No competitor wording reuse. Angle inspired by commentary transcript — requires canon confirmation)\n${competitorContext}`);
+    if (competitorContext) guidanceSections.push(`## Commentary Transcripts (INTERPRETIVE & THEORY INPUT — not canon evidence)\nUse for angles, framings, and argument patterns. Factual canon claims must be confirmed against Tier 1 books or movie transcripts. Theories and interpretive angles do NOT require direct canon confirmation, but they must be plausible, logically coherent, and not obviously contradicted by canon. Never present commentary material as proven canon. Never reuse commentary wording, structure, or phrasing.\n${competitorContext}`);
     const guidanceBlock = guidanceSections.length > 0 ? guidanceSections.join("\n\n") + "\n\n" : "";
 
     let systemPromptFinal = systemPrompt;
     let userMessage: string;
+
+    // Brief-specific HP topic transcripts — pass as a distinct context block to
+    // evidence_table, outline, and full_script (creative_brief and
+    // six_category_extraction handle them on their own branches).
+    const topicTranscriptUserBlock =
+      ["evidence_table", "outline", "full_script"].includes(stepType) && topicTranscripts.length > 0
+        ? `\n\n## Brief-Specific HP Topic Transcripts (THEORY, ANGLE, AND RESEARCH LEADS — not Tier 1 canon)\nTreat these as theory/angle/interpretation input. Factual canon claims still require Tier 1 book or movie transcript support. Theories may be used if plausible, coherent, and not obviously contradicted by canon. Frame theories honestly as theories.\n\n` +
+          topicTranscripts
+            .map((r: any) => `### "${r.video_title}" by ${r.channel_name}\n${r.transcript}`)
+            .join("\n\n---\n\n")
+        : "";
 
     if (stepType === "six_category_extraction") {
       // Get creative brief output
@@ -1430,6 +1576,7 @@ ${queryPackContext}
 
 ${guidanceBlock}${previousContext ? `## Previous Pipeline Steps\n${previousContext}\n\n` : ""}${starredEvidence ? `${starredEvidence}\n\n` : ""}## Source Material Excerpts
 ${sourceContext}
+${topicTranscriptUserBlock}
 
 Please generate the ${stepType.replace(/_/g, " ")} based on the above information.`;
     }
