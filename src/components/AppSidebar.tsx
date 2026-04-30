@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { to: "/", label: "Source Library", icon: Upload },
   { to: "/briefs", label: "Topic Briefs", icon: FileText },
+  { to: "/transcripts", label: "Transcript Library", icon: BookOpen },
   { to: "/improve", label: "Script Improver", icon: Wand2 },
 ];
 

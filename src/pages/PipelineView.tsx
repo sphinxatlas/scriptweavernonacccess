@@ -6,6 +6,7 @@ import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { PipelineSidebar } from "@/components/pipeline/PipelineSidebar";
 import { EvidencePanel } from "@/components/pipeline/EvidencePanel";
 import {
@@ -13,6 +14,7 @@ import {
   getPipelineOutputs,
   savePipelineOutput,
   streamGenerateStep,
+  updateBriefCreativeBriefFields,
   type PipelineStepType,
 } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,19 +26,22 @@ import {
   Copy,
   Download,
   Star,
+  ThumbsUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function PipelineView() {
   const { briefId } = useParams<{ briefId: string }>();
-  const [activeStep, setActiveStep] = useState<PipelineStepType>("competitor_format_analysis");
+  const [activeStep, setActiveStep] = useState<PipelineStepType>("creative_brief");
   const [generating, setGenerating] = useState(false);
   const [streamContent, setStreamContent] = useState("");
   const [starredOnly, setStarredOnly] = useState(false);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [approving, setApproving] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const { data: brief } = useQuery({
+  const { data: brief, refetch: refetchBrief } = useQuery({
     queryKey: ["brief", briefId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -62,8 +67,9 @@ export default function PipelineView() {
   const currentOutput = getStepOutput(activeStep);
   const displayContent = generating ? streamContent : currentOutput?.content || "";
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (overrideStep?: PipelineStepType) => {
     if (!briefId) return;
+    const step = overrideStep || activeStep;
     setGenerating(true);
     setStreamContent("");
 
@@ -72,22 +78,43 @@ export default function PipelineView() {
     try {
       await streamGenerateStep(
         briefId,
-        activeStep,
+        step,
         (delta) => {
           accumulated += delta;
           setStreamContent(accumulated);
         },
         async () => {
-          await savePipelineOutput(briefId, activeStep, accumulated);
+          await savePipelineOutput(briefId, step, accumulated);
           refetchOutputs();
           setGenerating(false);
-          toast.success(`${PIPELINE_STEPS.find((s) => s.type === activeStep)?.label} generated`);
+          toast.success(`${PIPELINE_STEPS.find((s) => s.type === step)?.label} generated`);
         },
         starredOnly
       );
     } catch (err: any) {
       setGenerating(false);
       toast.error(err.message || "Generation failed");
+    }
+  };
+
+  const handleApproveCreativeBrief = async () => {
+    if (!briefId) return;
+    setApproving(true);
+    try {
+      await updateBriefCreativeBriefFields(briefId, {
+        creative_brief_feedback: feedbackText,
+        creative_brief_approved: true,
+      });
+      await refetchBrief();
+      toast.success("Creative Brief approved — generating Insights & Research");
+      setActiveStep("six_category_extraction");
+      setFeedbackText("");
+      // Trigger generation of next step immediately
+      setTimeout(() => handleGenerate("six_category_extraction"), 0);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to approve");
+    } finally {
+      setApproving(false);
     }
   };
 
@@ -117,6 +144,11 @@ export default function PipelineView() {
 
   const showStarredToggle = activeStep === "outline" || activeStep === "full_script";
   const showEvidenceTab = activeStep === "evidence_table" && !generating;
+  const isCreativeBrief = activeStep === "creative_brief";
+  const creativeBriefApproved = !!(brief && (brief as any).creative_brief_approved);
+  const creativeBriefFeedback = brief && (brief as any).creative_brief_feedback;
+  const showCreativeBriefReview = isCreativeBrief && currentOutput && !generating && !creativeBriefApproved;
+  const showCreativeBriefApproved = isCreativeBrief && currentOutput && !generating && creativeBriefApproved;
 
   return (
     <Layout>
@@ -162,7 +194,7 @@ export default function PipelineView() {
                   </Button>
                 </>
               )}
-              <Button size="sm" onClick={handleGenerate} disabled={generating} className="gap-1.5">
+              <Button size="sm" onClick={() => handleGenerate()} disabled={generating} className="gap-1.5">
                 {generating ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -185,7 +217,51 @@ export default function PipelineView() {
 
           {/* Content area */}
           <div className="flex-1 overflow-hidden">
-            {showEvidenceTab && currentOutput ? (
+            {showCreativeBriefReview ? (
+              <div ref={contentRef} className="h-full overflow-auto p-6">
+                <MarkdownContent content={displayContent} />
+                <div className="border-t border-border my-6" />
+                <div className="space-y-3 max-w-3xl">
+                  <Label className="text-sm font-medium">Feedback (optional)</Label>
+                  <Textarea
+                    value={feedbackText}
+                    onChange={(e) => setFeedbackText(e.target.value)}
+                    placeholder="Add any changes or direction before the pipeline continues. Leave blank to approve as-is."
+                    rows={4}
+                    className="bg-secondary border-border resize-none"
+                  />
+                  <Button onClick={handleApproveCreativeBrief} disabled={approving} className="gap-1.5">
+                    {approving ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Approving...
+                      </>
+                    ) : (
+                      <>
+                        <ThumbsUp className="w-3.5 h-3.5" />
+                        Approve & Continue
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ) : showCreativeBriefApproved ? (
+              <div ref={contentRef} className="h-full overflow-auto p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/30">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Approved
+                  </span>
+                </div>
+                <MarkdownContent content={displayContent} />
+                {creativeBriefFeedback && (
+                  <div className="mt-6 p-4 rounded-md bg-secondary/50 border border-border">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Your feedback:</p>
+                    <p className="text-sm text-foreground/85 whitespace-pre-wrap">{creativeBriefFeedback}</p>
+                  </div>
+                )}
+              </div>
+            ) : showEvidenceTab && currentOutput ? (
               <Tabs defaultValue="output" className="h-full flex flex-col">
                 <TabsList className="mx-6 mt-3 w-fit">
                   <TabsTrigger value="output" className="text-xs">Generated Output</TabsTrigger>

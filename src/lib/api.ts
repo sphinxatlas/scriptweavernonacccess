@@ -7,16 +7,57 @@ export type PipelineOutput = Tables<"pipeline_outputs">;
 export type EvidencePoint = Tables<"evidence_points">;
 export type ImprovedScript = Tables<"improved_scripts">;
 
-export type PipelineStepType = "competitor_format_analysis" | "retrieval" | "evidence_table" | "analysis_memo" | "outline" | "full_script" | "verification";
+export type PipelineStepType =
+  | "creative_brief"
+  | "six_category_extraction"
+  | "competitor_format_analysis"
+  | "retrieval"
+  | "evidence_table"
+  | "analysis_memo"
+  | "outline"
+  | "full_script"
+  | "verification";
 
-export const PIPELINE_STEPS: { type: PipelineStepType; label: string; description: string }[] = [
-  { type: "competitor_format_analysis", label: "Competitor Format Analysis", description: "Analyze competitor scripts for structure, pacing, and hook patterns" },
-  { type: "retrieval", label: "Retrieval", description: "Search and organize source material by priority" },
-  { type: "evidence_table", label: "Evidence Table", description: "Structured evidence with source traces and quote discipline" },
-  { type: "analysis_memo", label: "Analysis Memo", description: "Synthesize themes and arguments from evidence" },
-  { type: "outline", label: "Script Outline", description: "Structure the video script with evidence citations" },
-  { type: "full_script", label: "Full Script", description: "Generate the complete script with source annotations" },
-  { type: "verification", label: "Verification Report", description: "Fact-check against sources with confidence scores" },
+export const PIPELINE_STEPS: {
+  type: PipelineStepType;
+  label: string;
+  description: string;
+  visible: boolean;
+}[] = [
+  {
+    type: "creative_brief",
+    label: "Creative Brief",
+    description: "Generates thesis, argument structure, emotional arc, and tone from your inputs.",
+    visible: true,
+  },
+  {
+    type: "six_category_extraction",
+    label: "Insights & Research",
+    description: "Mines canon for evidence, patterns, contradictions, subtext, and original angles.",
+    visible: true,
+  },
+  {
+    type: "evidence_table",
+    label: "Evidence Table",
+    description: "Curated shortlist of the strongest argument points with source citations.",
+    visible: true,
+  },
+  {
+    type: "outline",
+    label: "Outline",
+    description: "Full script outline with section structure, word budgets, and editor tags.",
+    visible: true,
+  },
+  {
+    type: "full_script",
+    label: "Full Script",
+    description: "Complete voiceover script with editor tags.",
+    visible: true,
+  },
+  { type: "retrieval", label: "Retrieval", description: "", visible: false },
+  { type: "analysis_memo", label: "Analysis Memo", description: "", visible: false },
+  { type: "verification", label: "Verification", description: "", visible: false },
+  { type: "competitor_format_analysis", label: "Format Analysis", description: "", visible: false },
 ];
 
 export async function uploadSourceFile(file: File, fileType: "book" | "transcript" | "instructions" | "lexicon" | "competitor_analysis" | "host_persona" | "anti_ai_guide") {
@@ -87,29 +128,17 @@ export const TARGET_LENGTH_OPTIONS = [
 
 export interface CreateBriefInput {
   title: string;
-  description: string;
-  thesis?: string;
-  focus_areas?: string[];
-  characters?: string[];
-  proof_goal?: string;
-  priority_sources?: string[];
-  emotional_angle?: string;
-  tone?: string;
-  comparison_mode?: boolean;
-  target_minutes?: number;
-  target_min_words?: number;
-  target_max_words?: number;
-  competitor_script_1?: string;
-  competitor_script_2?: string;
-  competitor_script_3?: string;
-  competitor_script_4?: string;
-  competitor_script_5?: string;
+  angle_note: string;
+  target_minutes: number;
+  target_min_words: number;
+  target_max_words: number;
+  comparison_mode: boolean;
 }
 
 export async function createTopicBrief(input: CreateBriefInput) {
   const { data, error } = await supabase
     .from("topic_briefs")
-    .insert(input)
+    .insert(input as any)
     .select()
     .single();
   if (error) throw error;
@@ -119,7 +148,7 @@ export async function createTopicBrief(input: CreateBriefInput) {
 export async function updateTopicBrief(id: string, input: Partial<CreateBriefInput>) {
   const { data, error } = await supabase
     .from("topic_briefs")
-    .update(input)
+    .update(input as any)
     .eq("id", id)
     .select()
     .single();
@@ -318,6 +347,118 @@ export async function renameImprovedScript(id: string, title: string) {
 
 export async function deleteImprovedScript(id: string) {
   const { error } = await supabase.from("improved_scripts").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ── Format Reference Transcripts ──
+export async function getFormatReferenceTranscripts() {
+  const { data, error } = await supabase
+    .from('format_reference_transcripts')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function saveFormatReferenceTranscript(input: {
+  channel_name: string;
+  video_title: string;
+  transcript: string;
+}) {
+  const { data, error } = await supabase
+    .from('format_reference_transcripts')
+    .insert(input)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteFormatReferenceTranscript(id: string) {
+  const { error } = await supabase
+    .from('format_reference_transcripts')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+}
+
+// ── Brief Topic Transcripts ──
+export async function getBriefTopicTranscripts() {
+  const { data, error } = await supabase
+    .from('brief_topic_transcripts')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function saveBriefTopicTranscript(input: {
+  channel_name: string;
+  video_title: string;
+  transcript: string;
+}) {
+  const { data, error } = await supabase
+    .from('brief_topic_transcripts')
+    .insert(input)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteBriefTopicTranscript(id: string) {
+  const { error } = await supabase
+    .from('brief_topic_transcripts')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+}
+
+// ── Brief Links ──
+export async function linkFormatReferencesToBrief(briefId: string, transcriptIds: string[]) {
+  await supabase.from('brief_format_reference_links').delete().eq('brief_id', briefId);
+  if (transcriptIds.length === 0) return;
+  const { error } = await supabase.from('brief_format_reference_links').insert(
+    transcriptIds.map(id => ({ brief_id: briefId, transcript_id: id }))
+  );
+  if (error) throw error;
+}
+
+export async function linkTopicTranscriptsToBrief(briefId: string, transcriptIds: string[]) {
+  await supabase.from('brief_topic_transcript_links').delete().eq('brief_id', briefId);
+  if (transcriptIds.length === 0) return;
+  const { error } = await supabase.from('brief_topic_transcript_links').insert(
+    transcriptIds.map(id => ({ brief_id: briefId, transcript_id: id }))
+  );
+  if (error) throw error;
+}
+
+export async function getBriefFormatReferences(briefId: string) {
+  const { data, error } = await supabase
+    .from('brief_format_reference_links')
+    .select('transcript_id, format_reference_transcripts(*)')
+    .eq('brief_id', briefId);
+  if (error) throw error;
+  return (data || []).map((r: any) => r.format_reference_transcripts).filter(Boolean);
+}
+
+export async function getBriefTopicTranscriptLinks(briefId: string) {
+  const { data, error } = await supabase
+    .from('brief_topic_transcript_links')
+    .select('transcript_id, brief_topic_transcripts(*)')
+    .eq('brief_id', briefId);
+  if (error) throw error;
+  return (data || []).map((r: any) => r.brief_topic_transcripts).filter(Boolean);
+}
+
+export async function updateBriefCreativeBriefFields(briefId: string, updates: {
+  creative_brief_feedback?: string;
+  creative_brief_approved?: boolean;
+}) {
+  const { error } = await supabase
+    .from('topic_briefs')
+    .update(updates)
+    .eq('id', briefId);
   if (error) throw error;
 }
 

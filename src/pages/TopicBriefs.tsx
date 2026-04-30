@@ -9,99 +9,158 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { getTopicBriefs, createTopicBrief, deleteTopicBrief, type CreateBriefInput, TARGET_LENGTH_OPTIONS } from "@/lib/api";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Plus, Trash2, ArrowRight, FileText, GitCompare, Clock, ChevronRight, BookOpen, Users, Target, Copy } from "lucide-react";
+import {
+  getTopicBriefs,
+  createTopicBrief,
+  deleteTopicBrief,
+  type CreateBriefInput,
+  TARGET_LENGTH_OPTIONS,
+  getFormatReferenceTranscripts,
+  saveFormatReferenceTranscript,
+  getBriefTopicTranscripts,
+  saveBriefTopicTranscript,
+  linkFormatReferencesToBrief,
+  linkTopicTranscriptsToBrief,
+} from "@/lib/api";
+import { Plus, Trash2, ArrowRight, FileText, GitCompare, Clock, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+const blankForm = (): CreateBriefInput => ({
+  title: "",
+  angle_note: "",
+  target_minutes: 10,
+  target_min_words: 1400,
+  target_max_words: 1600,
+  comparison_mode: false,
+});
+
+interface InlineTranscriptFormProps {
+  label: string;
+  onSave: (input: { channel_name: string; video_title: string; transcript: string }) => Promise<void>;
+  onCancel: () => void;
+}
+
+function InlineTranscriptForm({ label, onSave, onCancel }: InlineTranscriptFormProps) {
+  const [channel, setChannel] = useState("");
+  const [videoTitle, setVideoTitle] = useState("");
+  const [transcript, setTranscript] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const handle = async () => {
+    if (!channel.trim() || !videoTitle.trim() || !transcript.trim()) {
+      toast.error("All three fields are required");
+      return;
+    }
+    setBusy(true);
+    try {
+      await onSave({
+        channel_name: channel.trim(),
+        video_title: videoTitle.trim(),
+        transcript: transcript.trim(),
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="border border-primary/30 rounded-md p-3 mt-2 bg-card space-y-2">
+      <p className="text-xs font-medium text-foreground">{label}</p>
+      <Input
+        placeholder="Channel name"
+        value={channel}
+        onChange={(e) => setChannel(e.target.value)}
+        className="bg-secondary border-border"
+      />
+      <Input
+        placeholder="Video title"
+        value={videoTitle}
+        onChange={(e) => setVideoTitle(e.target.value)}
+        className="bg-secondary border-border"
+      />
+      <Textarea
+        placeholder="Paste the full transcript here..."
+        value={transcript}
+        onChange={(e) => setTranscript(e.target.value)}
+        rows={6}
+        className="bg-secondary border-border resize-none text-xs font-mono"
+      />
+      <div className="flex justify-end gap-2">
+        <Button variant="ghost" size="sm" onClick={onCancel} disabled={busy}>Cancel</Button>
+        <Button size="sm" onClick={handle} disabled={busy}>{busy ? "Saving..." : "Save"}</Button>
+      </div>
+    </div>
+  );
+}
 
 export default function TopicBriefs() {
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<CreateBriefInput>({
-    title: "",
-    description: "",
-    thesis: "",
-    focus_areas: [],
-    characters: [],
-    proof_goal: "",
-    priority_sources: [],
-    emotional_angle: "",
-    tone: "",
-    comparison_mode: false,
-    target_minutes: 10,
-    target_min_words: 1400,
-    target_max_words: 1600,
-    competitor_script_1: "",
-    competitor_script_2: "",
-    competitor_script_3: "",
-    competitor_script_4: "",
-    competitor_script_5: "",
-  });
+  const [form, setForm] = useState<CreateBriefInput>(blankForm());
   const [creating, setCreating] = useState(false);
+
+  const [selectedFormatIds, setSelectedFormatIds] = useState<string[]>([]);
+  const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
+  const [showFormatAdd, setShowFormatAdd] = useState(false);
+  const [showTopicAdd, setShowTopicAdd] = useState(false);
 
   const { data: briefs = [], refetch } = useQuery({
     queryKey: ["topic-briefs"],
     queryFn: getTopicBriefs,
   });
+  const { data: formatRefs = [], refetch: refetchFormatRefs } = useQuery({
+    queryKey: ["format-references"],
+    queryFn: getFormatReferenceTranscripts,
+  });
+  const { data: topicTranscripts = [], refetch: refetchTopicTranscripts } = useQuery({
+    queryKey: ["topic-transcripts"],
+    queryFn: getBriefTopicTranscripts,
+  });
 
   const updateForm = (key: keyof CreateBriefInput, value: any) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  const handleArrayInput = (key: "focus_areas" | "characters" | "priority_sources", value: string) =>
-    updateForm(key, value.split(",").map((s) => s.trim()).filter(Boolean));
+  const resetForm = () => {
+    setForm(blankForm());
+    setSelectedFormatIds([]);
+    setSelectedTopicIds([]);
+    setShowFormatAdd(false);
+    setShowTopicAdd(false);
+  };
 
   const handleCreate = async () => {
-    if (!form.title.trim() || !form.description.trim()) {
-      toast.error("Title and description are required");
+    if (!form.title.trim()) {
+      toast.error("Video title is required");
+      return;
+    }
+    if (!form.angle_note.trim()) {
+      toast.error("Angle note is required");
+      return;
+    }
+    if (selectedFormatIds.length === 0) {
+      toast.error("At least one format reference video is required");
       return;
     }
     setCreating(true);
     try {
-      await createTopicBrief({
+      const created = await createTopicBrief({
         ...form,
         title: form.title.trim(),
-        description: form.description.trim(),
+        angle_note: form.angle_note.trim(),
       });
-      toast.success("Topic brief created");
-      setForm({
-        title: "", description: "", thesis: "", focus_areas: [], characters: [],
-        proof_goal: "", priority_sources: [], emotional_angle: "", tone: "", comparison_mode: false,
-        target_minutes: 10, target_min_words: 1400, target_max_words: 1600,
-        competitor_script_1: "", competitor_script_2: "", competitor_script_3: "", competitor_script_4: "", competitor_script_5: "",
-      });
+      await linkFormatReferencesToBrief(created.id, selectedFormatIds);
+      await linkTopicTranscriptsToBrief(created.id, selectedTopicIds);
+      toast.success("Brief created");
+      resetForm();
       setShowForm(false);
       refetch();
+      navigate(`/briefs/${created.id}`);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
       setCreating(false);
     }
-  };
-
-  const handleDuplicate = (brief: any) => {
-    setForm({
-      title: `Copy of ${brief.title}`,
-      description: brief.description || "",
-      thesis: brief.thesis || "",
-      focus_areas: brief.focus_areas || [],
-      characters: brief.characters || [],
-      proof_goal: brief.proof_goal || "",
-      priority_sources: brief.priority_sources || [],
-      emotional_angle: brief.emotional_angle || "",
-      tone: brief.tone || "",
-      comparison_mode: brief.comparison_mode || false,
-      target_minutes: brief.target_minutes || 10,
-      target_min_words: brief.target_min_words || 1400,
-      target_max_words: brief.target_max_words || 1600,
-      competitor_script_1: brief.competitor_script_1 || "",
-      competitor_script_2: brief.competitor_script_2 || "",
-      competitor_script_3: brief.competitor_script_3 || "",
-      competitor_script_4: brief.competitor_script_4 || "",
-      competitor_script_5: brief.competitor_script_5 || "",
-    });
-    setShowForm(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDelete = async (id: string) => {
@@ -113,6 +172,16 @@ export default function TopicBriefs() {
       toast.error(err.message);
     }
   };
+
+  const availableFormatRefs = formatRefs.filter((r: any) => !selectedFormatIds.includes(r.id));
+  const availableTopicTranscripts = topicTranscripts.filter((r: any) => !selectedTopicIds.includes(r.id));
+
+  const selectedFormatItems = selectedFormatIds
+    .map((id) => formatRefs.find((r: any) => r.id === id))
+    .filter(Boolean) as any[];
+  const selectedTopicItems = selectedTopicIds
+    .map((id) => topicTranscripts.find((r: any) => r.id === id))
+    .filter(Boolean) as any[];
 
   return (
     <Layout>
@@ -133,93 +202,31 @@ export default function TopicBriefs() {
         {showForm && (
           <div className="border border-primary/30 rounded-lg p-5 mb-6 bg-card">
             <h3 className="font-mono text-sm font-semibold text-foreground mb-4">New Topic Brief</h3>
-            <div className="space-y-3">
-              {/* Required */}
-              <Input
-                placeholder="Title — e.g., Why Snape's Redemption Arc is Overrated"
-                value={form.title}
-                onChange={(e) => updateForm("title", e.target.value)}
-                className="bg-secondary border-border"
-              />
-              <Textarea
-                placeholder="Description — angle, key arguments, evidence to explore..."
-                value={form.description}
-                onChange={(e) => updateForm("description", e.target.value)}
-                rows={3}
-                className="bg-secondary border-border resize-none"
-              />
+            <div className="space-y-4">
+              {/* Video Title */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Video Title</Label>
+                <Input
+                  placeholder="e.g., Why Snape's Redemption Arc is Overrated"
+                  value={form.title}
+                  onChange={(e) => updateForm("title", e.target.value)}
+                  className="bg-secondary border-border mt-1"
+                />
+              </div>
 
-              {/* Optional fields */}
-              <div className="pt-2 border-t border-border">
-                <p className="text-xs text-muted-foreground mb-3 font-medium">Optional Research Fields</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Thesis</Label>
-                    <Input
-                      placeholder="The central argument..."
-                      value={form.thesis || ""}
-                      onChange={(e) => updateForm("thesis", e.target.value)}
-                      className="bg-secondary border-border mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">What should this video prove?</Label>
-                    <Input
-                      placeholder="The key proof goal..."
-                      value={form.proof_goal || ""}
-                      onChange={(e) => updateForm("proof_goal", e.target.value)}
-                      className="bg-secondary border-border mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Focus Areas (comma-separated)</Label>
-                    <Input
-                      placeholder="e.g., character arcs, plot holes, symbolism"
-                      value={form.focus_areas?.join(", ") || ""}
-                      onChange={(e) => handleArrayInput("focus_areas", e.target.value)}
-                      className="bg-secondary border-border mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Key Characters (comma-separated)</Label>
-                    <Input
-                      placeholder="e.g., Snape, Dumbledore, Harry"
-                      value={form.characters?.join(", ") || ""}
-                      onChange={(e) => handleArrayInput("characters", e.target.value)}
-                      className="bg-secondary border-border mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Emotional Angle</Label>
-                    <Input
-                      placeholder="e.g., bittersweet, provocative, nostalgic"
-                      value={form.emotional_angle || ""}
-                      onChange={(e) => updateForm("emotional_angle", e.target.value)}
-                      className="bg-secondary border-border mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Tone</Label>
-                    <Input
-                      placeholder="e.g., analytical, conversational, passionate"
-                      value={form.tone || ""}
-                      onChange={(e) => updateForm("tone", e.target.value)}
-                      className="bg-secondary border-border mt-1"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="text-xs text-muted-foreground">Priority Sources — optional soft boost only</Label>
-                    <Input
-                      placeholder="Leave blank to search all uploaded primary sources. e.g., Half-Blood Prince"
-                      value={form.priority_sources?.join(", ") || ""}
-                      onChange={(e) => handleArrayInput("priority_sources", e.target.value)}
-                      className="bg-secondary border-border mt-1"
-                    />
-                    <p className="text-[10px] text-muted-foreground/60 mt-1">
-                      Optional soft boost only. Leave blank to search all uploaded primary sources automatically.
-                    </p>
-                  </div>
-                </div>
+              {/* Angle Note */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Angle Note</Label>
+                <p className="text-[11px] text-muted-foreground/70 mb-1">
+                  Your angle or direction for this video. A few sentences. The system will develop this into a full thesis.
+                </p>
+                <Textarea
+                  placeholder="e.g., Snape's redemption is built on a single act, but the books frame him as far more selfish than fans remember..."
+                  value={form.angle_note}
+                  onChange={(e) => updateForm("angle_note", e.target.value)}
+                  rows={4}
+                  className="bg-secondary border-border resize-none"
+                />
               </div>
 
               {/* Target Length */}
@@ -229,7 +236,7 @@ export default function TopicBriefs() {
                   Target Length (Voiceover)
                 </Label>
                 <Select
-                  value={String(form.target_minutes || 10)}
+                  value={String(form.target_minutes)}
                   onValueChange={(v) => {
                     const opt = TARGET_LENGTH_OPTIONS.find((o) => o.minutes === Number(v));
                     if (opt) {
@@ -252,41 +259,7 @@ export default function TopicBriefs() {
                 </Select>
               </div>
 
-              {/* Competitor Scripts - Collapsible */}
-              <div className="pt-2 border-t border-border">
-                <Collapsible>
-                  <CollapsibleTrigger className="flex items-center justify-between w-full group">
-                    <div>
-                      <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                        <ChevronRight className="w-3 h-3 transition-transform group-data-[state=open]:rotate-90" />
-                        Competitor Scripts (format reference only)
-                      </p>
-                      <p className="text-[10px] text-muted-foreground/60 ml-[18px]">Optional — paste scripts for structure analysis</p>
-                    </div>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <div className="space-y-3 mt-3">
-                      {([1, 2, 3, 4, 5] as const).map((num) => {
-                        const key = `competitor_script_${num}` as keyof CreateBriefInput;
-                        return (
-                          <div key={num}>
-                            <Label className="text-xs text-muted-foreground">Competitor Script {num}</Label>
-                            <Textarea
-                              placeholder={`Paste competitor script ${num} here (optional)...`}
-                              value={(form[key] as string) || ""}
-                              onChange={(e) => updateForm(key, e.target.value)}
-                              rows={4}
-                              className="bg-secondary border-border resize-none mt-1 text-xs"
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              </div>
-
-              {/* Comparison mode toggle */}
+              {/* Comparison Mode */}
               <div className="flex items-center gap-3 pt-2 border-t border-border">
                 <Switch
                   checked={form.comparison_mode}
@@ -301,8 +274,150 @@ export default function TopicBriefs() {
                 </div>
               </div>
 
+              {/* Format Reference Videos */}
+              <div className="pt-2 border-t border-border">
+                <Label className="text-xs text-muted-foreground">
+                  Format Reference Videos <span className="text-destructive">*</span>
+                </Label>
+                <p className="text-[11px] text-muted-foreground/70 mb-2">
+                  Non-HP format reference videos. Used for argument structure and positioning only — never for Harry Potter content. Min 1, max 2.
+                </p>
+                {selectedFormatItems.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {selectedFormatItems.map((item) => (
+                      <Badge
+                        key={item.id}
+                        variant="outline"
+                        className="gap-1.5 py-1 pl-2 pr-1 text-xs"
+                      >
+                        <span>{item.channel_name} — {item.video_title}</span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedFormatIds((prev) => prev.filter((id) => id !== item.id))}
+                          className="hover:bg-secondary rounded p-0.5"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                {selectedFormatIds.length >= 2 ? (
+                  <p className="text-xs text-muted-foreground">Maximum 2 format references selected.</p>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value=""
+                      onValueChange={(v) => {
+                        if (v) setSelectedFormatIds((prev) => [...prev, v]);
+                      }}
+                    >
+                      <SelectTrigger className="bg-secondary border-border flex-1">
+                        <SelectValue placeholder={availableFormatRefs.length === 0 ? "No format references available" : "Select a format reference..."} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableFormatRefs.map((r: any) => (
+                          <SelectItem key={r.id} value={r.id}>
+                            {r.channel_name} — {r.video_title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowFormatAdd((v) => !v)}
+                    >
+                      Add New
+                    </Button>
+                  </div>
+                )}
+                {showFormatAdd && (
+                  <InlineTranscriptForm
+                    label="New Format Reference"
+                    onCancel={() => setShowFormatAdd(false)}
+                    onSave={async (input) => {
+                      const created = await saveFormatReferenceTranscript(input);
+                      await refetchFormatRefs();
+                      setSelectedFormatIds((prev) => prev.length < 2 ? [...prev, created.id] : prev);
+                      setShowFormatAdd(false);
+                      toast.success("Format reference added");
+                    }}
+                  />
+                )}
+              </div>
+
+              {/* HP Topic Transcripts */}
+              <div className="pt-2 border-t border-border">
+                <Label className="text-xs text-muted-foreground">HP Topic Transcripts (optional)</Label>
+                <p className="text-[11px] text-muted-foreground/70 mb-2">
+                  HP videos covering a similar topic to this video. Used as research leads. Optional, no maximum.
+                </p>
+                {selectedTopicItems.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {selectedTopicItems.map((item) => (
+                      <Badge
+                        key={item.id}
+                        variant="outline"
+                        className="gap-1.5 py-1 pl-2 pr-1 text-xs"
+                      >
+                        <span>{item.channel_name} — {item.video_title}</span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTopicIds((prev) => prev.filter((id) => id !== item.id))}
+                          className="hover:bg-secondary rounded p-0.5"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Select
+                    value=""
+                    onValueChange={(v) => {
+                      if (v) setSelectedTopicIds((prev) => [...prev, v]);
+                    }}
+                  >
+                    <SelectTrigger className="bg-secondary border-border flex-1">
+                      <SelectValue placeholder={availableTopicTranscripts.length === 0 ? "No HP topic transcripts available" : "Select an HP topic transcript..."} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableTopicTranscripts.map((r: any) => (
+                        <SelectItem key={r.id} value={r.id}>
+                          {r.channel_name} — {r.video_title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowTopicAdd((v) => !v)}
+                  >
+                    Add New
+                  </Button>
+                </div>
+                {showTopicAdd && (
+                  <InlineTranscriptForm
+                    label="New HP Topic Transcript"
+                    onCancel={() => setShowTopicAdd(false)}
+                    onSave={async (input) => {
+                      const created = await saveBriefTopicTranscript(input);
+                      await refetchTopicTranscripts();
+                      setSelectedTopicIds((prev) => [...prev, created.id]);
+                      setShowTopicAdd(false);
+                      toast.success("HP topic transcript added");
+                    }}
+                  />
+                )}
+              </div>
+
               <div className="flex gap-2 justify-end pt-2">
-                <Button variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
+                <Button variant="ghost" onClick={() => { setShowForm(false); resetForm(); }}>Cancel</Button>
                 <Button onClick={handleCreate} disabled={creating}>
                   {creating ? "Creating..." : "Create Brief"}
                 </Button>
@@ -322,7 +437,7 @@ export default function TopicBriefs() {
           </div>
         ) : (
           <div className="space-y-3">
-            {briefs.map((brief) => (
+            {briefs.map((brief: any) => (
               <div
                 key={brief.id}
                 className={cn(
@@ -332,7 +447,7 @@ export default function TopicBriefs() {
                 onClick={() => navigate(`/briefs/${brief.id}`)}
               >
                 <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  {(brief as any).comparison_mode ? (
+                  {brief.comparison_mode ? (
                     <GitCompare className="w-4 h-4 text-primary" />
                   ) : (
                     <FileText className="w-4 h-4 text-primary" />
@@ -341,56 +456,28 @@ export default function TopicBriefs() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-mono text-sm font-semibold text-foreground truncate">{brief.title}</h3>
-                    {(brief as any).comparison_mode && (
+                    {brief.comparison_mode && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium shrink-0">
                         Comparison
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{brief.description}</p>
-                  {(brief as any).thesis && (
-                    <p className="text-xs text-muted-foreground/70 mt-1 italic line-clamp-1">Thesis: {(brief as any).thesis}</p>
+                  {brief.angle_note && (
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{brief.angle_note}</p>
                   )}
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <p className="text-xs text-muted-foreground/60">
                       {new Date(brief.created_at).toLocaleDateString()}
                     </p>
-                    {(brief as any).target_minutes && (
+                    {brief.target_minutes && (
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1">
                         <Clock className="w-3 h-3" />
-                        {(brief as any).target_minutes} min
-                      </Badge>
-                    )}
-                    {(brief as any).focus_areas?.length > 0 && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1">
-                        <Target className="w-3 h-3" />
-                        {(brief as any).focus_areas.length} focus areas
-                      </Badge>
-                    )}
-                    {(brief as any).characters?.length > 0 && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1">
-                        <Users className="w-3 h-3" />
-                        {(brief as any).characters.length} characters
-                      </Badge>
-                    )}
-                    {[1,2,3,4,5].some(n => (brief as any)[`competitor_script_${n}`]) && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1">
-                        <BookOpen className="w-3 h-3" />
-                        Competitor scripts
+                        {brief.target_minutes} min
                       </Badge>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                    onClick={(e) => { e.stopPropagation(); handleDuplicate(brief); }}
-                    title="Duplicate brief"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                  </Button>
                   <Button
                     size="icon"
                     variant="ghost"
