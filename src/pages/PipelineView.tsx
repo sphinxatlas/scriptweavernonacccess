@@ -28,9 +28,11 @@ import {
   Star,
   ThumbsUp,
   Wand2,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function PipelineView() {
   const { briefId } = useParams<{ briefId: string }>();
@@ -71,7 +73,7 @@ export default function PipelineView() {
 
   const handleGenerate = async (
     overrideStep?: PipelineStepType,
-    revisionOpts?: { revisionFeedback: string; previousFullScript: string },
+    revisionOpts?: { revisionFeedback?: string; previousFullScript?: string; finalVoicePass?: boolean },
   ) => {
     if (!briefId) return;
     const step = overrideStep || activeStep;
@@ -92,14 +94,19 @@ export default function PipelineView() {
           await savePipelineOutput(briefId, step, accumulated);
           refetchOutputs();
           setGenerating(false);
-          toast.success(`${PIPELINE_STEPS.find((s) => s.type === step)?.label} generated`);
-          if (revisionOpts) setRevisionFeedback("");
+          if (revisionOpts?.finalVoicePass) {
+            toast.success("Final Voice Pass complete");
+          } else {
+            toast.success(`${PIPELINE_STEPS.find((s) => s.type === step)?.label} generated`);
+          }
+          if (revisionOpts?.revisionFeedback) setRevisionFeedback("");
         },
         starredOnly,
         revisionOpts
           ? {
               revisionFeedback: revisionOpts.revisionFeedback,
               previousFullScript: revisionOpts.previousFullScript,
+              finalVoicePass: revisionOpts.finalVoicePass,
             }
           : undefined,
       );
@@ -117,6 +124,15 @@ export default function PipelineView() {
     }
     const prev = (currentOutput?.content || "").toString();
     handleGenerate("full_script", { revisionFeedback: fb, previousFullScript: prev });
+  };
+
+  const handleFinalVoicePass = () => {
+    const prev = (currentOutput?.content || "").toString();
+    if (!prev.trim()) {
+      toast.error("Generate a Full Script first.");
+      return;
+    }
+    handleGenerate("full_script", { previousFullScript: prev, finalVoicePass: true });
   };
 
   const REVISION_CHIPS: { label: string; append: string }[] = [
