@@ -1072,6 +1072,7 @@ Generate the Creative Brief now.`;
     }
 
     // Build compact retrieval query pack from brief fields (brief stays rich for generation)
+    // TODO: Add hybrid semantic/vector retrieval later using embeddings and pgvector. Current retrieval is keyword/full text search only.
     const queryPack = deriveRetrievalQueryPack(brief);
     const prioritySources = (brief.priority_sources || [])
       .map((s: string) => normalizeWhitespace(s))
