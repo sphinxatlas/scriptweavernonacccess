@@ -21,7 +21,9 @@ import {
   Trash2,
   History,
   ChevronRight,
+  Shuffle,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 // ── Parsing helpers ──
 
@@ -59,8 +61,8 @@ function extractField(body: string, label: string): string {
 function parseOutput(output: string): ParsedOutput {
   const directions: ParsedDirection[] = [];
 
-  // Split by "### Direction:" headings
-  const dirRegex = /###\s*Direction:\s*([^\n]+)\n([\s\S]*?)(?=\n###\s*Direction:|\n##\s+|$)/gi;
+  // Split by "### Direction:" or "### Angle Option:" headings
+  const dirRegex = /###\s*(?:Direction|Angle Option):\s*([^\n]+)\n([\s\S]*?)(?=\n###\s*(?:Direction|Angle Option):|\n##\s+|$)/gi;
   let m: RegExpExecArray | null;
   while ((m = dirRegex.exec(output)) !== null) {
     const name = m[1].trim().replace(/^\[|\]$/g, "").trim();
@@ -73,8 +75,12 @@ function parseOutput(output: string): ParsedOutput {
     });
   }
 
-  const bestRecommended = extractSection(output, /##\s*Best Recommended Angle\s*\n/i);
-  const handoff = extractSection(output, /##\s*Creative Brief Handoff Text\s*\n/i);
+  const bestRecommended =
+    extractSection(output, /##\s*Best Recommended Angle\s*\n/i) ||
+    extractSection(output, /##\s*Best Transfer Recommendation\s*\n/i);
+  const handoff =
+    extractSection(output, /##\s*Creative Brief Handoff Text\s*\n/i) ||
+    extractSection(output, /##\s*Topic Brief Handoff\s*\n/i);
 
   return { directions, bestRecommended, handoff };
 }
@@ -98,6 +104,11 @@ export default function AngleLab() {
   const [workingIdea, setWorkingIdea] = useState("");
   const [directions, setDirections] = useState("");
   const [notes, setNotes] = useState("");
+
+  // Niche Transfer mode
+  const [nicheMode, setNicheMode] = useState(false);
+  const [nicheTranscript, setNicheTranscript] = useState("");
+  const [nicheContext, setNicheContext] = useState("");
 
   // Run / output state
   const [output, setOutput] = useState("");
@@ -126,8 +137,12 @@ export default function AngleLab() {
   const parsed = useMemo(() => parseOutput(output), [output]);
 
   const handleRun = async () => {
-    if (!workingIdea.trim()) {
+    if (!nicheMode && !workingIdea.trim()) {
       toast.error("Working idea is required");
+      return;
+    }
+    if (nicheMode && !nicheTranscript.trim()) {
+      toast.error("Outside niche transcript is required for Niche Transfer mode");
       return;
     }
     setRunning(true);
@@ -140,6 +155,8 @@ export default function AngleLab() {
           workingIdea: workingIdea.trim(),
           directions: directions.trim() || undefined,
           notes: notes.trim() || undefined,
+          nicheTranscript: nicheMode ? nicheTranscript.trim() : undefined,
+          nicheContext: nicheMode ? nicheContext.trim() || undefined : undefined,
         },
         (delta) => {
           acc += delta;
@@ -150,16 +167,29 @@ export default function AngleLab() {
 
       // Save run on completion
       const parsedFinal = parseOutput(acc);
+      // Persist niche inputs inside user_notes so they round-trip in history
+      const persistedNotes = nicheMode
+        ? [
+            notes.trim(),
+            "---",
+            "[NICHE TRANSFER MODE]",
+            nicheContext.trim() ? `Context: ${nicheContext.trim()}` : "",
+            `Outside niche transcript:\n${nicheTranscript.trim()}`,
+          ]
+            .filter(Boolean)
+            .join("\n\n")
+        : notes.trim() || undefined;
       try {
         const saved = await createAngleLabRun({
-          working_idea: workingIdea.trim(),
+          working_idea: workingIdea.trim() || (nicheMode ? "[Niche Transfer]" : ""),
           possible_topics: directions.trim() || undefined,
-          user_notes: notes.trim() || undefined,
+          user_notes: persistedNotes,
           raw_output: acc,
           parsed_directions: {
             directions: parsedFinal.directions,
             bestRecommended: parsedFinal.bestRecommended,
             handoff: parsedFinal.handoff,
+            nicheMode,
           },
         });
         setActiveRunId(saved.id);
@@ -179,7 +209,24 @@ export default function AngleLab() {
     setActiveRunId(run.id);
     setWorkingIdea(run.working_idea);
     setDirections(run.possible_topics || "");
-    setNotes(run.user_notes || "");
+    // Try to split persisted niche transfer payload back out
+    const raw = run.user_notes || "";
+    const nicheIdx = raw.indexOf("[NICHE TRANSFER MODE]");
+    if (nicheIdx !== -1) {
+      const before = raw.slice(0, nicheIdx).replace(/---\s*$/m, "").trim();
+      const after = raw.slice(nicheIdx + "[NICHE TRANSFER MODE]".length).trim();
+      const ctxMatch = after.match(/^Context:\s*([^\n]+)/m);
+      const transcriptMatch = after.match(/Outside niche transcript:\s*\n([\s\S]+)$/);
+      setNotes(before);
+      setNicheMode(true);
+      setNicheContext(ctxMatch ? ctxMatch[1].trim() : "");
+      setNicheTranscript(transcriptMatch ? transcriptMatch[1].trim() : "");
+    } else {
+      setNotes(raw);
+      setNicheMode(false);
+      setNicheContext("");
+      setNicheTranscript("");
+    }
     setOutput(run.raw_output || "");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -257,7 +304,7 @@ export default function AngleLab() {
 
             <div>
               <Label className="text-xs text-muted-foreground">
-                Working idea <span className="text-destructive">*</span>
+                Working idea {nicheMode ? <span className="text-muted-foreground/60">(optional in Niche Transfer)</span> : <span className="text-destructive">*</span>}
               </Label>
               <Input
                 placeholder='e.g., "The biggest plot hole that ruined Harry Potter"'
@@ -298,9 +345,61 @@ export default function AngleLab() {
               />
             </div>
 
+            {/* Niche Transfer mode */}
+            <div className="pt-3 border-t border-border space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Shuffle className="w-4 h-4 text-primary shrink-0" />
+                  <Label className="text-xs font-semibold text-foreground cursor-pointer">
+                    Niche Transfer mode
+                  </Label>
+                </div>
+                <Switch checked={nicheMode} onCheckedChange={setNicheMode} />
+              </div>
+              <p className="text-[11px] text-muted-foreground/70 -mt-1">
+                Adapt a proven mechanic from a video in another niche. The transcript is used for
+                structure inspiration only — never as Harry Potter evidence.
+              </p>
+
+              {nicheMode && (
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">
+                      Channel / video / context (optional)
+                    </Label>
+                    <Input
+                      placeholder="e.g., MrBeast — Last to Leave Wins $500,000"
+                      value={nicheContext}
+                      onChange={(e) => setNicheContext(e.target.value)}
+                      className="bg-secondary border-border mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">
+                      Outside niche transcript <span className="text-destructive">*</span>
+                    </Label>
+                    <Textarea
+                      placeholder="Paste the full transcript of the outside-niche video here…"
+                      value={nicheTranscript}
+                      onChange={(e) => setNicheTranscript(e.target.value)}
+                      rows={8}
+                      className="bg-secondary border-border resize-none text-xs font-mono"
+                    />
+                    <p className="text-[11px] text-muted-foreground/70 mt-1">
+                      Used for mechanic / structure / hook extraction only. Never cited as canon.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <Button onClick={handleRun} disabled={running} className="gap-1.5 w-full">
               <Sparkles className="w-4 h-4" />
-              {running ? "Brainstorming…" : "Run Angle Lab"}
+              {running
+                ? "Brainstorming…"
+                : nicheMode
+                ? "Run Niche Transfer"
+                : "Run Angle Lab"}
             </Button>
 
             <p className="text-[11px] text-muted-foreground/70">
