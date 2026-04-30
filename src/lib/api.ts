@@ -375,7 +375,13 @@ export async function streamGenerateStep(
 
 // ── Angle Lab ──
 export async function streamAngleLab(
-  input: { workingIdea: string; directions?: string; notes?: string },
+  input: {
+    workingIdea: string;
+    directions?: string;
+    notes?: string;
+    nicheTranscript?: string;
+    nicheContext?: string;
+  },
   onDelta: (text: string) => void,
   onDone: () => void,
 ) {
