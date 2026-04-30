@@ -783,6 +783,39 @@ serve(async (req) => {
       .single();
     if (briefError || !brief) throw new Error("Brief not found");
 
+    // Fetch host persona
+    const { data: personaFiles } = await supabase
+      .from("source_files")
+      .select("id")
+      .eq("file_type", "host_persona");
+    let hostPersonaContext = "";
+    if (personaFiles && personaFiles.length > 0) {
+      const { data: personaChunks } = await supabase
+        .from("file_chunks")
+        .select("content")
+        .in("file_id", personaFiles.map((f: any) => f.id))
+        .order("chunk_index");
+      hostPersonaContext = (personaChunks || []).map((c: any) => c.content).join("\n\n");
+    }
+
+    // Fetch format reference transcripts linked to this brief
+    const { data: formatRefLinks } = await supabase
+      .from("brief_format_reference_links")
+      .select("transcript_id, format_reference_transcripts(channel_name, video_title, transcript)")
+      .eq("brief_id", briefId);
+    const formatRefs = (formatRefLinks || [])
+      .map((r: any) => r.format_reference_transcripts)
+      .filter(Boolean);
+
+    // Fetch brief-specific HP topic transcripts linked to this brief
+    const { data: topicTranscriptLinks } = await supabase
+      .from("brief_topic_transcript_links")
+      .select("transcript_id, brief_topic_transcripts(channel_name, video_title, transcript)")
+      .eq("brief_id", briefId);
+    const topicTranscripts = (topicTranscriptLinks || [])
+      .map((r: any) => r.brief_topic_transcripts)
+      .filter(Boolean);
+
     // Special handling for competitor_format_analysis — uses pasted scripts only, no retrieval
     if (stepType === "competitor_format_analysis") {
       const scripts = [
@@ -830,6 +863,67 @@ serve(async (req) => {
         const t = await response.text();
         console.error("AI gateway error:", response.status, t);
         throw new Error("AI gateway error");
+      }
+
+      return new Response(response.body, {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
+    }
+
+    // ── CREATIVE BRIEF STEP ──
+    if (stepType === "creative_brief") {
+      if (formatRefs.length === 0) {
+        throw new Error("No format reference transcripts linked to this brief. Please add at least one format reference in the Transcript Library before generating the Creative Brief.");
+      }
+
+      const formatRefBlock = formatRefs
+        .map((r: any) => `### Format Reference: "${r.video_title}" by ${r.channel_name}\nIMPORTANT: This is from a non-HP topic. Use for structure and positioning only — never for HP content.\n\n${r.transcript}`)
+        .join("\n\n---\n\n");
+
+      const topicTranscriptBlock = topicTranscripts.length > 0
+        ? topicTranscripts
+            .map((r: any) => `### HP Topic Transcript: "${r.video_title}" by ${r.channel_name}\nUse for research leads and angle awareness. All claims must be confirmed in primary canon.\n\n${r.transcript}`)
+            .join("\n\n---\n\n")
+        : "No brief-specific HP topic transcripts provided for this brief.";
+
+      const systemPrompt = STEP_PROMPTS["creative_brief"]
+        .replace("{{HOST_PERSONA}}", hostPersonaContext || "No host persona uploaded.");
+
+      const userMessage = `## Video Title
+${brief.title}
+
+## Creator Angle Note
+${brief.angle_note || brief.description || "(No angle note provided)"}
+
+## Format Reference Transcripts (non-HP — structure and positioning only)
+${formatRefBlock}
+
+## Brief-Specific HP Topic Transcripts (research leads — confirm all claims in primary canon)
+${topicTranscriptBlock}
+
+Generate the Creative Brief now.`;
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage },
+          ],
+          stream: true,
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (response.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        const t = await response.text();
+        throw new Error(`AI gateway error: ${response.status} ${t}`);
       }
 
       return new Response(response.body, {
