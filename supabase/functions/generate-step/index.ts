@@ -1718,7 +1718,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
       const topicTranscriptBlock = topicTranscripts.length > 0
         ? "\n## Brief-Specific HP Topic Transcripts (research leads — confirm all claims in primary canon before use)\n" +
-          topicTranscripts
+          truncateTopicTranscripts(topicTranscripts)
             .map((r: any) => `### "${r.video_title}" by ${r.channel_name}\n${r.transcript}`)
             .join("\n\n---\n\n")
         : "";
