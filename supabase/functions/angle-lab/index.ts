@@ -12,13 +12,18 @@ const SYSTEM_PROMPT = `You are the ANGLE LAB — a pre-brief brainstorming partn
 Your job is NOT to write a script, an outline longer than 5–7 bullets, or any titles.
 Your job is to help the creator pick the strongest content angle BEFORE they create a Topic Brief.
 
-SOURCE USE RULES (CRITICAL):
-- Commentary transcripts (competitor_analysis files) and brief-specific HP topic transcripts are your PRIMARY material for discovering repeated fan debates, common explanations, possible theories, audience interest, and strong argument routes. Lean on them heavily for angle inspiration.
-- Books and movie transcripts are used to SENSE-CHECK whether each angle has enough canon support to sustain a full video. They are not the source of the angle — they are the reality check.
-- Lexicon is optional context. Mention only when genuinely useful.
-- Never invent canon. If you cite a book or movie scene, it must appear in the provided source excerpts. If you cannot find canon support, say so honestly.
-- Commentary and topic transcript material can inspire angles even without direct canon confirmation, but flag any claim that would need primary canon to hold up in the final video.
+SOURCE PRIORITY (STRICT — apply in this order):
+1. **Competitor / commentary transcripts (PRIMARY angle discovery).** These are proven, winning concepts from large channels. Mine them HEAVILY for repeated fan debates, framing patterns, argument structures, audience hooks, recurring takes, and ideation. This is your #1 source for identifying strong angles.
+2. **HP Topic Transcripts (secondary, topic-specific signals).** Useful for fan debate context and topic-specific signal. Lower priority than commentary, but still valuable.
+3. **Books and movie transcripts (canon validation).** Use to check whether each angle has enough canon support and evidence potential to sustain a full video. They are not the source of the angle — they are the reality check.
+4. **Lexicon (secondary clarification only).** Mention only when genuinely useful.
+5. **Script writing document / instructions (script viability lens).** Use to judge angle quality through the lens of structure, retention, and script viability — never as canon.
+
+HARD RULES:
+- Never invent canon. If you cite a book or movie scene, it must appear in the provided excerpts. If canon support is missing, say so honestly.
+- Commentary / theory transcripts can inspire theories and framing, but they are NEVER treated as canon.
 - Do NOT copy phrasing from competitor / commentary transcripts.
+- Always identify which proposed ideas ALREADY appear in successful competitor/commentary videos (proven concept) vs. which are fresh.
 
 OUTPUT RULES:
 - No titles. No script. No long outline.
@@ -29,13 +34,14 @@ OUTPUT RULES:
 For EACH direction the creator listed (and 1–2 strong directions you discover from the transcripts if the creator left the field blank), produce:
 
 ### Direction: [name of the direction]
-- **Angle strength:** High / Medium / Low
-- **Why it could work:** 2–4 sentences grounded in what the transcripts and canon excerpts actually show.
-- **Main argument route:** The single clearest line of argument this video would follow.
-- **Useful canon evidence to look for:** Specific scenes, books, films, or character moments to mine. Cite the source files where relevant.
-- **Useful commentary / theory material:** Specific theories, debates, or framings from the commentary / HP topic transcripts that fuel this angle. Reference the channel or video title when possible.
-- **Weak spots or risks:** Where the angle gets thin, where canon may push back, where it could feel circular or like a known take.
-- **Full video potential:** Yes / Maybe / No — with a one-sentence reason.
+- **Core angle:** One tight sentence stating the actual angle.
+- **Why it could work as a video:** 2–4 sentences grounded in what the transcripts and canon excerpts actually show.
+- **Competitor transcript signals:** Specific framings, recurring takes, debates, or argument structures from the commentary transcripts that prove this angle works. Reference channel / video title when possible. Note whether this is a PROVEN concept (already appears in successful videos) or a FRESH take.
+- **HP topic transcript signals:** Relevant fan debate context or topic-specific signal from the HP Topic Transcripts. Skip if not relevant.
+- **Canon evidence potential:** Specific scenes, books, films, or character moments that could support this angle. Cite source files. Be honest if canon support looks thin.
+- **Possible weak spots or risks:** Where the angle gets thin, circular, overdone, or where canon may push back.
+- **Quick script shape:** 3–5 bullets max — rough beat structure (hook → escalation → payoff). Not a full outline.
+- **Recommendation score:** X / 10, with a one-line reason.
 
 ## Best Recommended Angle
 - **Recommended angle:** [the chosen direction, in plain words]
@@ -76,6 +82,15 @@ async function fetchChunksByType(supabase: any, fileType: string, queries: strin
     });
   });
   return Array.from(merged.values()).sort((a, b) => (b.rank ?? 0) - (a.rank ?? 0));
+}
+
+async function fetchAllByType(supabase: any, fileType: string, limit: number) {
+  const { data } = await supabase
+    .from("source_files")
+    .select("id, name, file_type")
+    .eq("file_type", fileType)
+    .limit(limit);
+  return data || [];
 }
 
 function formatChunks(chunks: any[], cap: number, perChunkChars: number) {
@@ -120,23 +135,45 @@ serve(async (req) => {
     const baseQueries = [workingIdea.trim(), ...directionLines].filter(Boolean).slice(0, 8);
     if (baseQueries.length === 0) baseQueries.push(workingIdea.trim());
 
-    // Heavy weight on commentary + topic transcripts; lighter on canon for sense-check
-    const [commentaryChunks, bookChunks, movieChunks, lexiconChunks] = await Promise.all([
-      fetchChunksByType(supabase, "competitor_analysis", baseQueries, 8),
+    // PRIORITY 1: heaviest weight on competitor/commentary (proven angles).
+    // PRIORITY 2: HP topic transcripts.
+    // PRIORITY 3: books + movies (canon validation).
+    // PRIORITY 4: lexicon.
+    // PRIORITY 5: script writing instructions (viability lens).
+    const [
+      commentaryChunks,
+      bookChunks,
+      movieChunks,
+      lexiconChunks,
+      instructionsChunks,
+      scriptStrategyChunks,
+    ] = await Promise.all([
+      fetchChunksByType(supabase, "competitor_analysis", baseQueries, 12),
       fetchChunksByType(supabase, "book", baseQueries, 5),
       fetchChunksByType(supabase, "transcript", baseQueries, 5),
       fetchChunksByType(supabase, "lexicon", baseQueries, 3),
+      fetchChunksByType(supabase, "instructions", baseQueries, 3),
+      fetchChunksByType(supabase, "script_strategy", baseQueries, 3),
     ]);
 
-    // Pull ALL brief-specific HP topic transcripts (not linked to any brief here — Angle Lab is pre-brief)
-    const { data: topicTranscripts } = await supabase
-      .from("brief_topic_transcripts")
-      .select("channel_name, video_title, transcript")
-      .order("created_at", { ascending: false })
-      .limit(8);
+    // FULL Transcript Library — Angle Lab does NOT require manual selection.
+    // (Creative Brief still uses only its own brief-linked transcripts; that logic is untouched.)
+    const [{ data: allTopicTranscripts }, { data: allFormatTranscripts }] = await Promise.all([
+      supabase
+        .from("brief_topic_transcripts")
+        .select("channel_name, video_title, transcript")
+        .order("created_at", { ascending: false })
+        .limit(20),
+      supabase
+        .from("format_reference_transcripts")
+        .select("channel_name, video_title, transcript")
+        .order("created_at", { ascending: false })
+        .limit(20),
+    ]);
+    const topicTranscripts = allTopicTranscripts;
 
     const commentaryBlock = commentaryChunks.length
-      ? formatChunks(commentaryChunks, 16, 900)
+      ? formatChunks(commentaryChunks, 20, 1000)
       : "(No commentary transcript matches found.)";
     const bookBlock = bookChunks.length
       ? formatChunks(bookChunks, 10, 700)
@@ -147,15 +184,28 @@ serve(async (req) => {
     const lexiconBlock = lexiconChunks.length
       ? formatChunks(lexiconChunks, 6, 500)
       : "(No lexicon matches found.)";
+    const scriptGuidanceChunks = [...instructionsChunks, ...scriptStrategyChunks];
+    const scriptGuidanceBlock = scriptGuidanceChunks.length
+      ? formatChunks(scriptGuidanceChunks, 6, 600)
+      : "(No script writing guidance matches found.)";
 
     const topicBlock = (topicTranscripts || []).length
       ? (topicTranscripts as any[])
           .map(
             (t) =>
-              `### HP Topic Transcript: "${t.video_title}" by ${t.channel_name}\n${clipText(t.transcript, 4000)}`,
+              `### HP Topic Transcript: "${t.video_title}" by ${t.channel_name}\n${clipText(t.transcript, 3500)}`,
           )
           .join("\n\n---\n\n")
-      : "(No brief-specific HP topic transcripts uploaded.)";
+      : "(No HP topic transcripts in library.)";
+
+    const formatBlock = (allFormatTranscripts || []).length
+      ? (allFormatTranscripts as any[])
+          .map(
+            (t) =>
+              `### Format Reference Transcript: "${t.video_title}" by ${t.channel_name}\n${clipText(t.transcript, 3500)}`,
+          )
+          .join("\n\n---\n\n")
+      : "(No format reference transcripts in library.)";
 
     const userMessage = `## Creator Inputs
 
@@ -170,24 +220,30 @@ ${(notes || "").trim() || "(none provided)"}
 
 ---
 
-## Commentary Transcripts (PRIMARY for angle inspiration — fan debates, theories, common takes)
+## PRIORITY 1 — Competitor / Commentary Transcripts (PRIMARY angle discovery — proven, winning concepts)
 ${commentaryBlock}
 
-## Brief-Specific HP Topic Transcripts (PRIMARY for angle inspiration — research leads, theories)
+## PRIORITY 1b — Format Reference Transcripts (full library — proven video formats / framings)
+${formatBlock}
+
+## PRIORITY 2 — HP Topic Transcripts (full library — fan debate + topic signals)
 ${topicBlock}
 
-## Book Excerpts (canon sense-check)
+## PRIORITY 3 — Book Excerpts (canon validation)
 ${bookBlock}
 
-## Movie Transcript Excerpts (canon sense-check)
+## PRIORITY 3 — Movie Transcript Excerpts (canon validation)
 ${movieBlock}
 
-## Lexicon Snippets (optional context)
+## PRIORITY 4 — Lexicon Snippets (secondary clarification only)
 ${lexiconBlock}
+
+## PRIORITY 5 — Script Writing Guidance (viability lens — structure, retention, hooks)
+${scriptGuidanceBlock}
 
 ---
 
-Now run the Angle Lab analysis using the structure defined in the system prompt. Remember: no titles, no script, no outline longer than 5–7 bullets.`;
+Now run the Angle Lab analysis using the structure defined in the system prompt. Mine PRIORITY 1 hardest for proven angles, then layer in the rest. Remember: no titles, no script, no outline longer than 5–7 bullets.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
