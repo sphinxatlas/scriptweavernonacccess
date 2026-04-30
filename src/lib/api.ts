@@ -136,9 +136,13 @@ export interface CreateBriefInput {
 }
 
 export async function createTopicBrief(input: CreateBriefInput) {
+  const payload = {
+    ...input,
+    description: input.angle_note ?? "",
+  };
   const { data, error } = await supabase
     .from("topic_briefs")
-    .insert(input as any)
+    .insert(payload as any)
     .select()
     .single();
   if (error) throw error;
@@ -146,9 +150,13 @@ export async function createTopicBrief(input: CreateBriefInput) {
 }
 
 export async function updateTopicBrief(id: string, input: Partial<CreateBriefInput>) {
+  const payload: any = { ...input };
+  if (Object.prototype.hasOwnProperty.call(input, "angle_note")) {
+    payload.description = input.angle_note ?? "";
+  }
   const { data, error } = await supabase
     .from("topic_briefs")
-    .update(input as any)
+    .update(payload)
     .eq("id", id)
     .select()
     .single();
