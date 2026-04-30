@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
@@ -99,6 +99,25 @@ export default function TopicBriefs() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<CreateBriefInput>(blankForm());
   const [creating, setCreating] = useState(false);
+
+  // Prefill from Angle Lab handoff (sessionStorage), if present.
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("angleLabPrefill");
+      if (!raw) return;
+      sessionStorage.removeItem("angleLabPrefill");
+      const parsed = JSON.parse(raw);
+      setForm((prev) => ({
+        ...prev,
+        title: parsed.title || prev.title,
+        angle_note: parsed.angle_note || prev.angle_note,
+      }));
+      setShowForm(true);
+      toast.success("Angle Lab handoff loaded into new brief");
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const [selectedFormatIds, setSelectedFormatIds] = useState<string[]>([]);
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);

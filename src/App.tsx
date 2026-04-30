@@ -8,6 +8,7 @@ import TopicBriefs from "./pages/TopicBriefs";
 import PipelineView from "./pages/PipelineView";
 import ScriptImprover from "./pages/ScriptImprover";
 import TranscriptLibrary from "./pages/TranscriptLibrary";
+import AngleLab from "./pages/AngleLab";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,6 +21,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<SourceLibrary />} />
+          <Route path="/angle-lab" element={<AngleLab />} />
           <Route path="/briefs" element={<TopicBriefs />} />
           <Route path="/briefs/:briefId" element={<PipelineView />} />
           <Route path="/improve" element={<ScriptImprover />} />
