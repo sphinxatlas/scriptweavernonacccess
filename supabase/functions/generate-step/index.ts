@@ -1699,7 +1699,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     const topicTranscriptUserBlock =
       ["evidence_table", "outline", "full_script"].includes(stepType) && topicTranscripts.length > 0
         ? `\n\n## Brief-Specific HP Topic Transcripts (THEORY, ANGLE, AND RESEARCH LEADS — not Tier 1 canon)\nTreat these as theory/angle/interpretation input. Factual canon claims still require Tier 1 book or movie transcript support. Theories may be used if plausible, coherent, and not obviously contradicted by canon. Frame theories honestly as theories.\n\n` +
-          topicTranscripts
+          truncateTopicTranscripts(topicTranscripts)
             .map((r: any) => `### "${r.video_title}" by ${r.channel_name}\n${r.transcript}`)
             .join("\n\n---\n\n")
         : "";
