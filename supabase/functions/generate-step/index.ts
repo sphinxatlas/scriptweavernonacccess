@@ -255,6 +255,22 @@ Given the topic brief, retrieval results, and source material excerpts, create a
 
 ${SOURCE_HIERARCHY_INSTRUCTION}
 
+${TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION}
+
+${COMMENTARY_TRANSCRIPTS_FRAMING_INSTRUCTION}
+
+EVIDENCE CATEGORIZATION (CRITICAL — DO NOT FLATTEN):
+The Evidence Table must clearly separate four kinds of points. Group them under labeled subsections in this order:
+
+1. CANON SUPPORTED CLAIMS — require Tier 1 book or movie transcript support. Confidence: High/Medium based on source clarity.
+2. ADAPTATION CONTRASTS — book vs movie differences. Use book and movie transcript evidence where possible.
+3. INTERPRETIVE / THEORY ANGLES — do NOT require direct canon confirmation. Check that the theory is plausible, interesting, logically coherent, and not obviously contradicted by canon. Clearly label as theory / interpretation / speculative angle. Note what canon detail, scene, omission, contradiction, or pattern makes the theory worth considering.
+4. SPECULATION / CONSPIRACY STYLE IDEAS — fan-aware, speculative readings. Label clearly as speculation. Must still be grounded in some canon detail or pattern, even if interpretive.
+
+Do not remove interesting theory based material just because it cannot be fully proven.
+Do not present theories as facts.
+The goal is compelling, defensible Harry Potter video argumentation, not only academic confirmation.
+
 EVIDENCE QUALITY RULES (CRITICAL):
 1. QUALITY OVER QUANTITY: Select the 10-15 STRONGEST evidence points. Do NOT pad with weak or tangential evidence.
 2. PREFER COMPARISON POINTS: Where possible, each evidence point should include BOTH book evidence AND movie evidence with a clear contrast. Do not make the table mostly book-only unless no movie counterpart exists.
