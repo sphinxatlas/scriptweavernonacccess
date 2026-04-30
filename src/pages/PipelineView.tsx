@@ -263,6 +263,26 @@ export default function PipelineView() {
                   </Button>
                 </>
               )}
+              {activeStep === "full_script" && currentOutput && !generating && (
+                <TooltipProvider delayDuration={150}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleFinalVoicePass}
+                        className="gap-1.5 text-xs"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        Final Voice Pass
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs text-xs">
+                      Lightly refines the current script using the Script Writing Guide and Melty persona. Keeps the argument, structure, sources, and evidence intact.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
               <Button size="sm" onClick={() => handleGenerate()} disabled={generating} className="gap-1.5">
                 {generating ? (
                   <>
