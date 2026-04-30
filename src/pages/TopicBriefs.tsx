@@ -13,6 +13,7 @@ import {
   getTopicBriefs,
   createTopicBrief,
   deleteTopicBrief,
+  duplicateTopicBrief,
   type CreateBriefInput,
   TARGET_LENGTH_OPTIONS,
   getFormatReferenceTranscripts,
@@ -22,7 +23,7 @@ import {
   linkFormatReferencesToBrief,
   linkTopicTranscriptsToBrief,
 } from "@/lib/api";
-import { Plus, Trash2, ArrowRight, FileText, GitCompare, Clock, X } from "lucide-react";
+import { Plus, Trash2, ArrowRight, FileText, GitCompare, Clock, X, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -189,6 +190,17 @@ export default function TopicBriefs() {
       refetch();
     } catch (err: any) {
       toast.error(err.message);
+    }
+  };
+
+  const handleDuplicate = async (id: string) => {
+    try {
+      const created = await duplicateTopicBrief(id);
+      toast.success("Brief duplicated");
+      refetch();
+      navigate(`/briefs/${created.id}`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to duplicate brief");
     }
   };
 
@@ -497,6 +509,15 @@ export default function TopicBriefs() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    title="Duplicate brief inputs"
+                    onClick={(e) => { e.stopPropagation(); handleDuplicate(brief.id); }}
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </Button>
                   <Button
                     size="icon"
                     variant="ghost"
