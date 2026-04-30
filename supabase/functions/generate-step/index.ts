@@ -1341,15 +1341,18 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     }
 
     // Build expanded brief context
-    let briefContext = `**Title:** ${brief.title}\n**Description:** ${brief.description}`;
+    let briefContext = `**Title:** ${brief.title}`;
+    if (brief.angle_note) briefContext += `\n**Angle:** ${brief.angle_note}`;
+    else if (brief.description) briefContext += `\n**Description:** ${brief.description}`;
     if (brief.thesis) briefContext += `\n**Thesis:** ${brief.thesis}`;
     if (brief.focus_areas?.length) briefContext += `\n**Focus Areas:** ${brief.focus_areas.join(", ")}`;
     if (brief.characters?.length) briefContext += `\n**Key Characters:** ${brief.characters.join(", ")}`;
-    if (brief.proof_goal) briefContext += `\n**What This Video Should Prove:** ${brief.proof_goal}`;
+    if (brief.proof_goal) briefContext += `\n**Proof Goal:** ${brief.proof_goal}`;
     if (brief.priority_sources?.length) briefContext += `\n**Priority Sources (soft boost only, not a filter):** ${brief.priority_sources.join(", ")}`;
     if (brief.emotional_angle) briefContext += `\n**Emotional Angle:** ${brief.emotional_angle}`;
     if (brief.tone) briefContext += `\n**Tone:** ${brief.tone}`;
     if (brief.comparison_mode) briefContext += `\n**Mode:** Book vs Movie Comparison`;
+    if (brief.creative_brief_feedback) briefContext += `\n**Creator Feedback:** ${brief.creative_brief_feedback}`;
 
     const queryPackContext = `**Primary Query:** ${queryPack.primaryQuery}
 **Subqueries:** ${queryPack.subqueries.length ? queryPack.subqueries.join(" | ") : "none"}
@@ -1366,7 +1369,45 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     if (competitorContext) guidanceSections.push(`## Commentary Transcripts (SECONDARY COMMENTARY — angles and framing only, all factual claims must be confirmed against books/movie transcripts. No competitor wording reuse. Angle inspired by commentary transcript — requires canon confirmation)\n${competitorContext}`);
     const guidanceBlock = guidanceSections.length > 0 ? guidanceSections.join("\n\n") + "\n\n" : "";
 
-    const userMessage = `## Topic Brief
+    let systemPromptFinal = systemPrompt;
+    let userMessage: string;
+
+    if (stepType === "six_category_extraction") {
+      // Get creative brief output
+      const { data: creativeBriefOutput } = await supabase
+        .from("pipeline_outputs")
+        .select("content")
+        .eq("brief_id", briefId)
+        .eq("step_type", "creative_brief")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const creativeBriefContent = creativeBriefOutput?.content || "";
+
+      const topicTranscriptBlock = topicTranscripts.length > 0
+        ? "\n## Brief-Specific HP Topic Transcripts (research leads — confirm all claims in primary canon before use)\n" +
+          topicTranscripts
+            .map((r: any) => `### "${r.video_title}" by ${r.channel_name}\n${r.transcript}`)
+            .join("\n\n---\n\n")
+        : "";
+
+      systemPromptFinal = STEP_PROMPTS["six_category_extraction"]
+        .replace("{{HOST_PERSONA}}", hostPersonaContext || "No host persona uploaded.");
+
+      userMessage = `## Creative Brief
+${creativeBriefContent || `Title: ${brief.title}\nAngle: ${brief.angle_note || brief.description || ""}`}
+
+${topicTranscriptBlock}
+
+## Creator Feedback on Brief
+${brief.creative_brief_feedback || "None provided."}
+
+## Retrieved Canon Material (books and movie transcripts — primary evidence only)
+${sourceContext}
+
+Mine all six categories now. Rank everything by surprise value, specificity, and argument usefulness. Be precise about sources.`;
+    } else {
+      userMessage = `## Topic Brief
 ${briefContext}
 
 ## Retrieval Query Pack (Derived)
@@ -1376,6 +1417,7 @@ ${guidanceBlock}${previousContext ? `## Previous Pipeline Steps\n${previousConte
 ${sourceContext}
 
 Please generate the ${stepType.replace(/_/g, " ")} based on the above information.`;
+    }
 
     // Call Lovable AI
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -1387,7 +1429,7 @@ Please generate the ${stepType.replace(/_/g, " ")} based on the above informatio
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: systemPromptFinal },
           { role: "user", content: userMessage },
         ],
         stream: true,
