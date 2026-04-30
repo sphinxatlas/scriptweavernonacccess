@@ -6,6 +6,21 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function getModelForStep(stepType: string) {
+  if (
+    [
+      "creative_brief",
+      "six_category_extraction",
+      "analysis_memo",
+      "outline",
+      "full_script",
+    ].includes(stepType)
+  ) {
+    return "openai/gpt-5.2";
+  }
+  return "google/gemini-2.5-flash";
+}
+
 const SOURCE_HIERARCHY_INSTRUCTION = `
 IMPORTANT SOURCE HIERARCHY RULES:
 
@@ -840,7 +855,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: getModelForStep(stepType),
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userMessage },
@@ -910,7 +925,7 @@ Generate the Creative Brief now.`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: getModelForStep(stepType),
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userMessage },
@@ -1427,7 +1442,7 @@ Please generate the ${stepType.replace(/_/g, " ")} based on the above informatio
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: getModelForStep(stepType),
         messages: [
           { role: "system", content: systemPromptFinal },
           { role: "user", content: userMessage },
