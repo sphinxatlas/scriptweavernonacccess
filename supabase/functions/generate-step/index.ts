@@ -485,6 +485,17 @@ ${TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION}
 
 ${COMMENTARY_TRANSCRIPTS_FRAMING_INSTRUCTION}
 
+${VIDEO_RETENTION_STRUCTURE_INSTRUCTION}
+
+OUTLINE ESCALATION FIDELITY (CRITICAL — Full Script step):
+- Follow the Outline's escalation ladder strictly. Do not reorder sections, collapse two sections into one, or restate an earlier section's point in a later section.
+- Preserve the Creative Brief's Video Engine: Viewer Click Question, Title Promise, Expected Answer, Surprising Actual Answer, Emotional Arc, Escalation Ladder, and Final Payoff must all be honored in the spoken script.
+- Each section in the Full Script must match the Outline's "New information revealed" and "Emotional function" for that section.
+- Each section must end with the specific re-hook the Outline planned. Do not soften it into a generic "more on that soon" placeholder.
+- Include casual viewer context for any HP concept the argument depends on, EARLY — before the first section that relies on it.
+- Build toward ONE clear climax in the final third of the script. The conclusion must feel like a payoff and a verdict, not a summary.
+- Avoid circular argumentation. If two sections are saying the same thing, the second one must escalate or be cut.
+
 FIRST PERSON HOST VOICE (CRITICAL):
 - Write in first person as the host, using the Host Persona as the voice and worldview.
 - Do not name the host in narration unless the Host Persona explicitly requires it.
