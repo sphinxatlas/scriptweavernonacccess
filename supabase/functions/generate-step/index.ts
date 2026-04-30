@@ -415,6 +415,8 @@ ${TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION}
 
 ${COMMENTARY_TRANSCRIPTS_FRAMING_INSTRUCTION}
 
+${VIDEO_RETENTION_STRUCTURE_INSTRUCTION}
+
 VOICE-SHAPED OUTLINE (CRITICAL):
 Build the outline in a way that preserves the host's first person perspective, emotional beats, argument escalation, and spoken delivery. Do not make it a generic academic outline. The structure should already feel like the skeleton of a voiced video essay by this host.
 
@@ -432,6 +434,14 @@ Format:
 ...
 ## Conclusion
 ## Call to Action
+
+SECTION FIELDS (MANDATORY — every Section block must include these labeled lines):
+- Section purpose: [what this section accomplishes for the click question]
+- New information revealed: [what NEW layer this section adds — must not repeat any previous section]
+- Emotional function: [the feeling this section moves the viewer into — e.g., curiosity, suspicion, tension, realization]
+- Re-hook into next section: [a specific tease for the next reveal — no generic placeholders]
+- Word budget: [X words]
+Each section must clearly build on the previous one. If a section does not reveal new information or escalate, restructure or cut it.
 
 Include timing estimates and specific evidence citations for each section.
 Mark any Lexicon-derived points as secondary support.
