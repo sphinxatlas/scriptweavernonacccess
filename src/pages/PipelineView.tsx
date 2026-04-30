@@ -353,6 +353,62 @@ export default function PipelineView() {
                     Generating from source material...
                   </div>
                 )}
+
+                {showFullScriptRevision && (
+                  <div className="mt-8 border-t border-border pt-6 max-w-3xl">
+                    <div className="mb-3">
+                      <h3 className="text-sm font-mono font-bold text-foreground flex items-center gap-2">
+                        <Wand2 className="w-3.5 h-3.5 text-primary" />
+                        Revise this Full Script
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Pipeline step revision for the current Full Script. Not the separate Script Improver tool. Your feedback is reapplied with the full pipeline context (brief, evidence, outline, sources, persona, and writing guidance).
+                      </p>
+                    </div>
+
+                    <Label className="text-xs font-medium">Revision Feedback (required)</Label>
+                    <Textarea
+                      value={revisionFeedback}
+                      onChange={(e) => setRevisionFeedback(e.target.value)}
+                      placeholder="Tell ScriptForge what to improve in this script. You can mention content, structure, repetition, pacing, tone, missing context, argument strength, source use, or anything else."
+                      rows={6}
+                      className="bg-secondary border-border resize-none mt-1.5"
+                    />
+
+                    <p className="text-[11px] text-muted-foreground mt-3 mb-2">
+                      Optional quick chips — click to append helpful feedback. None are required.
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {REVISION_CHIPS.map((chip) => (
+                        <button
+                          key={chip.label}
+                          type="button"
+                          onClick={() => appendChip(chip.append)}
+                          className="text-[11px] px-2 py-1 rounded-md border border-border bg-secondary/50 hover:bg-secondary text-foreground/80 hover:text-foreground transition-colors"
+                        >
+                          {chip.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="mt-4 flex items-center gap-3">
+                      <Button
+                        size="sm"
+                        onClick={handleReviseFullScript}
+                        disabled={!revisionFeedback.trim() || generating}
+                        className="gap-1.5"
+                      >
+                        <Wand2 className="w-3.5 h-3.5" />
+                        Revise Full Script
+                      </Button>
+                      {!revisionFeedback.trim() && (
+                        <span className="text-[11px] text-muted-foreground">
+                          Please add revision feedback before regenerating.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
