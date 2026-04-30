@@ -614,6 +614,8 @@ Your job: take the video title, angle note, format reference transcript(s), and 
 HOST PERSONA (write the brief with this voice and worldview in mind):
 {{HOST_PERSONA}}
 
+${VIDEO_RETENTION_STRUCTURE_INSTRUCTION}
+
 FORMAT REFERENCE RULES:
 - Analyze format reference transcript(s) for argumentative DNA ONLY
 - Extract: hook shape, argument structure, emotional arc, stacking technique, fairness move, closing reframe
@@ -665,6 +667,16 @@ Generate the Creative Brief in this EXACT format:
 
 ### Stacking Technique
 [How individual argument points should accumulate into a verdict. Derived from format reference.]
+
+### Video Engine
+This section operationalizes the retention and escalation layer. Fill every field with specific, concrete content — no placeholders.
+- **Viewer Click Question:** [The exact question, curiosity, or emotional promise the title triggers in a viewer's mind.]
+- **Title Promise:** [What the title implicitly promises to deliver by the end of the video.]
+- **Expected Answer:** [What a casual viewer probably expects the answer to be when they click.]
+- **Surprising Actual Answer:** [The non-obvious, more interesting answer this video will deliver. This is the engine of the payoff.]
+- **Emotional Arc:** [Ordered progression of feeling, e.g. curiosity → suspicion → tension → realization → payoff. 4–6 stages.]
+- **Escalation Ladder:** [Beat-by-beat ladder showing how each section escalates beyond the previous one. Hook → Context → Section 1 surface problem → Section 2 deeper problem → Section 3 counterargument test → Final climax. Each rung must add a NEW layer.]
+- **Final Payoff:** [The verdict, twist, or unexpected conclusion the final third of the script will deliver. This must directly answer the Viewer Click Question.]
 `;
 
 STEP_PROMPTS["six_category_extraction"] = `You are a research analyst for a Harry Potter YouTube channel.
