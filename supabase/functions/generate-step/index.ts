@@ -1140,7 +1140,7 @@ serve(async (req) => {
         .join("\n\n---\n\n");
 
       const topicTranscriptBlock = topicTranscripts.length > 0
-        ? topicTranscripts
+        ? truncateTopicTranscripts(topicTranscripts)
             .map((r: any) => `### HP Topic Transcript: "${r.video_title}" by ${r.channel_name}\nUse for research leads and angle awareness. All claims must be confirmed in primary canon.\n\n${r.transcript}`)
             .join("\n\n---\n\n")
         : "No brief-specific HP topic transcripts provided for this brief.";
