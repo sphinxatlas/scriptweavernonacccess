@@ -82,6 +82,76 @@ This is a Book vs Movie Comparison analysis. You MUST:
 - Use Lexicon only to provide context about when/why changes were made
 `;
 
+// ── BINDING WRITING / VOICE / THEORY INSTRUCTION BLOCKS ──
+// These wrap guidance documents (Host Persona, Script Instructions, Anti AI Guide)
+// and re-frame commentary + topic transcripts as theory/angle inputs rather than canon.
+
+const HOST_PERSONA_BINDING_INSTRUCTION = `
+HOST PERSONA — BINDING VOICE INSTRUCTION:
+Use this as the first person voice, worldview, emotional lens, and delivery style of the host.
+Do not cite it. Do not summarize it. Do not turn the persona into a character bio.
+Do not mention the host by name unless the persona document explicitly requires it.
+The script should feel written and spoken by this host, not by a generic narrator.
+Make the persona felt through worldview, rhythm, emotional reactions, phrasing, humor, skepticism, curiosity, and fan energy — not through introductions like "Hi, I'm ___".
+`;
+
+const SCRIPT_INSTRUCTIONS_BINDING_INSTRUCTION = `
+SCRIPT INSTRUCTIONS — BINDING WRITING CONSTRAINTS:
+This document is not evidence, but it is mandatory for structure, pacing, formatting, and final script execution.
+Follow it closely. It must visibly shape the structure and delivery of the output.
+`;
+
+const ANTI_AI_BINDING_INSTRUCTION = `
+ANTI AI GUIDE — BINDING STYLE CONSTRAINTS:
+This document is not evidence, but it is mandatory for human sounding writing quality.
+Apply it actively in the final prose. Avoid generic AI phrasing, padded transitions, mechanical paragraphing, templated triads, signposting, and empty summaries.
+`;
+
+const TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION = `
+BRIEF SPECIFIC HP TOPIC TRANSCRIPTS — THEORY, ANGLE, AND RESEARCH LEADS:
+These are topic relevant Harry Potter commentary, theory, or transcript materials selected for this brief.
+Use them to identify possible theories, conspiracy style arguments, interpretive angles, fandom questions, contradictions worth exploring, unusual readings of characters/scenes/adaptation choices, and argument structures that could make the video more compelling.
+They are NOT Tier 1 canon and must NOT be treated as direct proof of canon events.
+However, they do not need to be strictly confirmed by primary canon in every case, because some are theories, speculative arguments, or interpretive claims.
+
+Rules:
+- If a point is presented as a canon fact, it MUST be supported by Tier 1 book or movie transcript evidence.
+- If a point is a theory, interpretation, conspiracy, or speculative reading, it may be used if it makes logical sense and does not ignore obvious canon.
+- The script must clearly frame theories as theories, interpretations, possibilities, or readings.
+- Do not present topic transcript ideas as proven canon unless Tier 1 evidence supports them.
+- Do not let topic transcripts override clear book or movie evidence.
+- If a theory conflicts with canon, acknowledge the tension instead of hiding it.
+- Use these transcripts to make the script sharper, more interesting, and more fan aware — not to replace original analysis.
+`;
+
+const COMMENTARY_TRANSCRIPTS_FRAMING_INSTRUCTION = `
+COMMENTARY TRANSCRIPTS — INTERPRETIVE AND THEORY INPUT:
+These materials may contain analysis, theories, speculation, fandom interpretation, or competitor framing. They are NOT canon evidence.
+Use them to discover interesting angles, framings, and argument patterns.
+
+- For factual canon claims, verify with Tier 1 books or movie transcripts.
+- For theories and interpretive angles, do NOT require direct canon confirmation. Instead, check that the idea is plausible, logically coherent, interesting, and not obviously contradicted by primary canon.
+- Never present commentary material as proven canon unless Tier 1 evidence supports it.
+- Never copy commentary wording, structure, or phrasing into the script.
+`;
+
+const DUAL_HIERARCHY_INSTRUCTION = `
+DUAL HIERARCHY — THE FINAL SCRIPT MUST OBEY BOTH AT ONCE:
+
+Evidence hierarchy:
+- Tier 1 books and movie transcripts prove canon claims.
+- Lexicon can support background understanding but cannot be mentioned in narration.
+- Commentary and HP topic transcripts can inspire theories, angles, and interpretations, but cannot prove canon facts.
+- Guidance documents are not evidence.
+
+Writing hierarchy:
+- Host Persona is mandatory for first person voice.
+- Script Instructions are mandatory for structure and execution.
+- Anti AI Guide is mandatory for style and human writing quality.
+
+The final script must not merely include these documents in the prompt. It must visibly apply them in the writing.
+`;
+
 const STEP_PROMPTS: Record<string, string> = {
   competitor_format_analysis: `You are a YouTube format analyst. Given competitor scripts pasted by the creator, analyze their STRUCTURE and FORMAT ONLY.
 
