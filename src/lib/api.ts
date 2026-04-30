@@ -289,7 +289,7 @@ export async function streamGenerateStep(
   onDelta: (text: string) => void,
   onDone: () => void,
   starredOnly?: boolean,
-  options?: { revisionFeedback?: string; previousFullScript?: string },
+  options?: { revisionFeedback?: string; previousFullScript?: string; finalVoicePass?: boolean },
 ) {
   const resp = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-step`,
@@ -305,6 +305,7 @@ export async function streamGenerateStep(
         starredOnly,
         revisionFeedback: options?.revisionFeedback,
         previousFullScript: options?.previousFullScript,
+        finalVoicePass: options?.finalVoicePass,
       }),
     }
   );

@@ -996,7 +996,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { briefId, stepType, starredOnly, revisionFeedback, previousFullScript } = await req.json();
+    const { briefId, stepType, starredOnly, revisionFeedback, previousFullScript, finalVoicePass } = await req.json();
     if (!briefId || !stepType) throw new Error("briefId and stepType are required");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -1623,6 +1623,9 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
       typeof revisionFeedback === "string" &&
       revisionFeedback.trim().length > 0;
 
+    const isFinalVoicePass =
+      stepType === "full_script" && !!finalVoicePass && !isFullScriptRevision;
+
     if (isFullScriptRevision) {
       systemPromptFinal +=
         `\n\nFULL SCRIPT REVISION MODE (BINDING):\n` +
@@ -1633,6 +1636,33 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
         `- Reuse the full pipeline context (Topic Brief, Creative Brief, Insights & Research, Evidence Table, Outline, source excerpts, Script Writing Instructions, Anti AI Guide, Host Persona, HP topic transcripts, commentary transcripts).\n` +
         `- Maintain target word count, editor tags after evidence paragraphs, source specificity, quote discipline, and the Lexicon mention ban.\n` +
         `- Output ONLY the revised Full Script. Do not include an explanation of changes, a diff, a changelog, or commentary about the revision.\n`;
+    }
+
+    if (isFinalVoicePass) {
+      systemPromptFinal +=
+        `\n\nFINAL VOICE PASS MODE (BINDING):\n` +
+        `You are performing a FINAL VOICE PASS on an existing full script.\n` +
+        `This is not a full rewrite and not a new script generation.\n\n` +
+        `Your job:\n` +
+        `- Preserve the existing argument, structure, section order, evidence, source tags, editor tags, and core canon claims.\n` +
+        `- Reapply the Script Writing Guide and Host Persona more strongly.\n` +
+        `- Make the script sound more like the intended host voice without making it feel forced.\n` +
+        `- Improve pacing, rhythm, tension, emotional movement, transitions, and punch.\n` +
+        `- Remove generic AI phrasing, repetitive phrasing, flat transitions, and overly academic wording.\n` +
+        `- Add small moments to breathe where the argument or emotion needs space.\n` +
+        `- Strengthen re-hooks and section endings only where they are currently weak.\n` +
+        `- Make the script feel more YouTube-native and spoken aloud.\n` +
+        `- Keep canon claims and evidence discipline intact.\n` +
+        `- Do not add major new arguments unless a missing connective sentence is needed.\n` +
+        `- Do not introduce new unsupported canon claims.\n` +
+        `- Do not change the title promise.\n` +
+        `- Do not over-do the host voice. The voice should feel natural, not like a character performance.\n\n` +
+        `Use the Host Persona as an invisible voice guide.\n` +
+        `Do not name the host.\n` +
+        `Do not summarize the persona.\n` +
+        `Do not mention the Script Writing Guide.\n` +
+        `Do not explain your changes. No preamble, no changelog, no diff.\n` +
+        `Output ONLY the revised full script.\n`;
     }
 
     // Brief-specific HP topic transcripts — pass as a distinct context block to
@@ -1711,6 +1741,23 @@ Please generate the ${stepType.replace(/_/g, " ")} based on the above informatio
       }
 
       userMessage += `\n\n## Previous Full Script\n${prevScript || "(No previous Full Script available.)"}\n\n## User Revision Feedback\n${revisionFeedback.trim()}\n\n## Revision Task\nRevise the previous Full Script using the user feedback. Do not simply patch a few sentences. Rebuild the script where necessary while preserving the strongest material. Use the full pipeline context again, including the Topic Brief, Creative Brief, Insights & Research, Evidence Table, Outline, source excerpts, Script Writing Instructions, Anti AI Guide, Host Persona, HP topic transcripts, and commentary transcripts where relevant.\n\nThe revised script must directly address the feedback and produce a cleaner, stronger, less repetitive, more source-grounded, more host-voiced final script.\n\nOutput only the revised Full Script.`;
+    }
+
+    if (isFinalVoicePass) {
+      let prevScript = (previousFullScript || "").toString();
+      if (!prevScript) {
+        const { data: prevOut } = await supabase
+          .from("pipeline_outputs")
+          .select("content")
+          .eq("brief_id", briefId)
+          .eq("step_type", "full_script")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        prevScript = prevOut?.content || "";
+      }
+
+      userMessage += `\n\n## Current Full Script (this is what you are polishing)\n${prevScript || "(No previous Full Script available.)"}\n\n## Final Voice Pass Task\nApply a light voice-and-pacing polish to the Current Full Script above, following the FINAL VOICE PASS MODE rules in the system prompt. Preserve argument, structure, section order, evidence, source tags, editor tags, and canon claims. Improve only voice, pacing, rhythm, transitions, re-hooks, clarity, and non-generic phrasing. Do not introduce new unsupported claims. Do not mention the Script Writing Guide or the Host Persona. Output ONLY the revised full script.`;
     }
 
     // Call Lovable AI
