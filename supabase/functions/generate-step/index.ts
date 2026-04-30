@@ -1603,6 +1603,25 @@ ${topicTranscriptUserBlock}
 Please generate the ${stepType.replace(/_/g, " ")} based on the above information.`;
     }
 
+    if (isFullScriptRevision) {
+      // Use the previous Full Script the client supplied, falling back to the latest
+      // saved full_script output for this brief if the client didn't pass one.
+      let prevScript = (previousFullScript || "").toString();
+      if (!prevScript) {
+        const { data: prevOut } = await supabase
+          .from("pipeline_outputs")
+          .select("content")
+          .eq("brief_id", briefId)
+          .eq("step_type", "full_script")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        prevScript = prevOut?.content || "";
+      }
+
+      userMessage += `\n\n## Previous Full Script\n${prevScript || "(No previous Full Script available.)"}\n\n## User Revision Feedback\n${revisionFeedback.trim()}\n\n## Revision Task\nRevise the previous Full Script using the user feedback. Do not simply patch a few sentences. Rebuild the script where necessary while preserving the strongest material. Use the full pipeline context again, including the Topic Brief, Creative Brief, Insights & Research, Evidence Table, Outline, source excerpts, Script Writing Instructions, Anti AI Guide, Host Persona, HP topic transcripts, and commentary transcripts where relevant.\n\nThe revised script must directly address the feedback and produce a cleaner, stronger, less repetitive, more source-grounded, more host-voiced final script.\n\nOutput only the revised Full Script.`;
+    }
+
     // Call Lovable AI
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
