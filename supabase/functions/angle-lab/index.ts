@@ -61,6 +61,68 @@ Write a clean, copy-pasteable angle note (one tight paragraph or a short structu
 
 Do not output anything after the handoff text.`;
 
+const NICHE_TRANSFER_SYSTEM_PROMPT = `You are the ANGLE LAB — NICHE TRANSFER MODE — a pre-brief brainstorming partner for a Harry Potter YouTube creator.
+
+The creator has supplied a transcript from a successful video in a DIFFERENT niche. Your job is to extract the underlying content mechanic, structure, emotional hook, argument pattern, and audience promise from that outside-niche video, and then propose Harry Potter angle ideas that would replicate that mechanic — NOT the topic.
+
+ABSOLUTE RULES:
+- The outside niche transcript is NEVER evidence. Never cite it as a source for any Harry Potter claim.
+- Never copy the outside niche topic literally. Do not force a Harry Potter equivalent if the transfer is weak — say so honestly.
+- Never invent canon. If you reference a book or movie scene, it must appear in the provided HP excerpts. If canon support is missing, say so.
+- Commentary / theory transcripts can inspire framing, but they are NEVER treated as canon.
+- Do NOT copy phrasing from competitor / commentary transcripts.
+- No titles. No script. No long outline.
+
+SOURCE HIERARCHY FOR THIS MODE (STRICT):
+1. Outside niche transcript → structure / mechanic inspiration ONLY.
+2. HP competitor / commentary transcripts (PRIMARY ideation signal — proven audience interest).
+3. HP topic transcripts (strong supporting ideation signal — fan debate context).
+4. Books / movie transcripts → evidence validation and contradiction testing only.
+5. Script writing guidance → judge whether the angle has a strong viewer question, escalation, re-hooks, payoff, and YouTube-native structure.
+6. Host persona / Melty → evaluate voice compatibility and possible delivery only. Not evidence.
+
+OUTPUT — use the EXACT markdown structure below, in order:
+
+## Extracted Mechanic From Outside Niche Reference
+- Core viewer question:
+- Emotional engine:
+- Content mechanic:
+- Structure pattern:
+- Type of payoff:
+- Why this worked in its original niche:
+- What should be transferred into Harry Potter:
+- What should NOT be transferred:
+
+## Harry Potter Angle Matches
+(Propose 3–5 distinct HP angle options. For EACH, use this structure:)
+
+### Angle Option: [specific Harry Potter idea]
+- Core angle:
+- Why this matches the outside-niche mechanic:
+- Competitor/commentary transcript signals:
+- Canon evidence potential:
+- Possible weak spots or risks:
+- Quick script shape:
+  - Hook:
+  - Context:
+  - Escalation:
+  - Climax:
+  - Payoff:
+- Why this could work for Melty:
+- Recommendation score: X / 10
+
+## Best Transfer Recommendation
+- Best HP angle:
+- Why this is the strongest:
+- What makes it proven:
+- What makes it fresh:
+- What evidence is needed before creating the Topic Brief:
+
+## Topic Brief Handoff
+(One clean, copy-pasteable block, ~120–200 words, ready to drop into the Topic Brief angle description. It must include: the chosen angle, the audience question, the emotional arc, the core argument, the strongest evidence directions, the intended payoff, and any warnings about weak evidence or theory framing. Stay neutral on title/packaging.)
+
+Do not output anything after the Topic Brief Handoff.`;
+
 async function fetchChunksByType(supabase: any, fileType: string, queries: string[], perQuery: number) {
   // Run a few text searches per type and merge.
   const results = await Promise.all(
@@ -112,8 +174,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { workingIdea, directions, notes } = await req.json();
-    if (!workingIdea || typeof workingIdea !== "string" || !workingIdea.trim()) {
+    const { workingIdea, directions, notes, nicheTranscript, nicheContext } = await req.json();
+    const isNicheTransfer = !!(nicheTranscript && typeof nicheTranscript === "string" && nicheTranscript.trim());
+    if (!isNicheTransfer && (!workingIdea || typeof workingIdea !== "string" || !workingIdea.trim())) {
       return new Response(JSON.stringify({ error: "workingIdea is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -132,8 +195,16 @@ serve(async (req) => {
       .map((l: string) => l.replace(/^[-*•\s]+/, "").trim())
       .filter(Boolean);
 
-    const baseQueries = [workingIdea.trim(), ...directionLines].filter(Boolean).slice(0, 8);
-    if (baseQueries.length === 0) baseQueries.push(workingIdea.trim());
+    const baseQueries = [workingIdea?.trim(), ...directionLines].filter(Boolean).slice(0, 8);
+    if (baseQueries.length === 0) {
+      // Fall back to generic HP angle queries when working idea is empty (niche transfer w/o seed)
+      baseQueries.push(
+        "Harry Potter mystery plot hole",
+        "Harry Potter character motivation",
+        "Harry Potter magic system contradiction",
+        "Harry Potter fan debate theory",
+      );
+    }
 
     // PRIORITY 1: heaviest weight on competitor/commentary (proven angles).
     // PRIORITY 2: HP topic transcripts.
@@ -207,10 +278,13 @@ serve(async (req) => {
           .join("\n\n---\n\n")
       : "(No format reference transcripts in library.)";
 
-    const userMessage = `## Creator Inputs
+    const nicheTranscriptClipped = isNicheTransfer ? clipText(nicheTranscript.trim(), 16000) : "";
+    const nicheContextClean = (nicheContext || "").toString().trim();
+
+    const standardUserMessage = `## Creator Inputs
 
 **Working idea (required):**
-${workingIdea.trim()}
+${(workingIdea || "").trim()}
 
 **Possible topics / directions (optional):**
 ${directionLines.length ? directionLines.map((d: string) => `- ${d}`).join("\n") : "(none provided — feel free to surface 2–3 strong directions from the transcripts)"}
@@ -245,6 +319,57 @@ ${scriptGuidanceBlock}
 
 Now run the Angle Lab analysis using the structure defined in the system prompt. Mine PRIORITY 1 hardest for proven angles, then layer in the rest. Remember: no titles, no script, no outline longer than 5–7 bullets.`;
 
+    const nicheUserMessage = `## NICHE TRANSFER MODE
+
+The creator wants to adapt a proven content mechanic from another niche into a Harry Potter angle.
+
+## Outside Niche Reference (MECHANIC INSPIRATION ONLY — never cite as evidence, never copy the topic)
+${nicheContextClean ? `**Context / channel / video:** ${nicheContextClean}\n\n` : ""}**Transcript:**
+${nicheTranscriptClipped}
+
+---
+
+## Creator Seed Inputs (optional steering)
+
+**Working HP idea (optional):**
+${(workingIdea || "").trim() || "(none — feel free to surface fresh HP angles that fit the mechanic)"}
+
+**Possible HP topics / directions (optional):**
+${directionLines.length ? directionLines.map((d: string) => `- ${d}`).join("\n") : "(none provided)"}
+
+**My notes / instinct (optional):**
+${(notes || "").trim() || "(none provided)"}
+
+---
+
+## PRIORITY 2 — HP Competitor / Commentary Transcripts (PRIMARY ideation signal — proven HP audience interest)
+${commentaryBlock}
+
+## PRIORITY 2b — Format Reference Transcripts (proven video formats / framings)
+${formatBlock}
+
+## PRIORITY 3 — HP Topic Transcripts (fan debate + topic signals)
+${topicBlock}
+
+## PRIORITY 4 — Book Excerpts (canon validation only)
+${bookBlock}
+
+## PRIORITY 4 — Movie Transcript Excerpts (canon validation only)
+${movieBlock}
+
+## PRIORITY 5 — Script Writing Guidance (viability lens — viewer question, escalation, re-hooks, payoff)
+${scriptGuidanceBlock}
+
+## Lexicon Snippets (secondary clarification only)
+${lexiconBlock}
+
+---
+
+Now run NICHE TRANSFER ANALYSIS using the EXACT output structure from the system prompt. Extract the mechanic from the outside niche transcript first, then propose 3–5 HP angle options that replicate the mechanic — never the topic. Prioritize HP angles with proven competitor/commentary signal. Be honest if the transfer is weak.`;
+
+    const userMessage = isNicheTransfer ? nicheUserMessage : standardUserMessage;
+    const systemPrompt = isNicheTransfer ? NICHE_TRANSFER_SYSTEM_PROMPT : SYSTEM_PROMPT;
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -254,7 +379,7 @@ Now run the Angle Lab analysis using the structure defined in the system prompt.
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: systemPrompt },
           { role: "user", content: userMessage },
         ],
         stream: true,
