@@ -1047,6 +1047,34 @@ serve(async (req) => {
       .map((r: any) => r.brief_topic_transcripts)
       .filter(Boolean);
 
+    // Token-budget guard: HP topic transcripts can be 60k+ chars each. Inlining
+    // many of them alongside source excerpts and previous pipeline outputs blows
+    // past the AI gateway's 272k token input limit. Cap each transcript and the
+    // total combined size used in any single prompt.
+    const MAX_PER_TRANSCRIPT_CHARS = 12000;
+    const MAX_TOTAL_TRANSCRIPT_CHARS = 80000;
+    const truncateTopicTranscripts = (items: any[]): any[] => {
+      let total = 0;
+      const out: any[] = [];
+      for (const r of items) {
+        const raw = (r.transcript || "").toString();
+        const perCap = raw.length > MAX_PER_TRANSCRIPT_CHARS
+          ? raw.slice(0, MAX_PER_TRANSCRIPT_CHARS) + "\n\n[...transcript truncated for token budget...]"
+          : raw;
+        if (total + perCap.length > MAX_TOTAL_TRANSCRIPT_CHARS) {
+          const remaining = Math.max(0, MAX_TOTAL_TRANSCRIPT_CHARS - total);
+          if (remaining > 500) {
+            out.push({ ...r, transcript: perCap.slice(0, remaining) + "\n\n[...transcript truncated for token budget...]" });
+            total += remaining;
+          }
+          break;
+        }
+        out.push({ ...r, transcript: perCap });
+        total += perCap.length;
+      }
+      return out;
+    };
+
     // Special handling for competitor_format_analysis — uses pasted scripts only, no retrieval
     if (stepType === "competitor_format_analysis") {
       const scripts = [
