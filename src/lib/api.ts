@@ -230,6 +230,7 @@ export async function streamGenerateStep(
   onDelta: (text: string) => void,
   onDone: () => void,
   starredOnly?: boolean,
+  options?: { revisionFeedback?: string; previousFullScript?: string },
 ) {
   const resp = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-step`,
@@ -239,7 +240,13 @@ export async function streamGenerateStep(
         "Content-Type": "application/json",
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ briefId, stepType, starredOnly }),
+      body: JSON.stringify({
+        briefId,
+        stepType,
+        starredOnly,
+        revisionFeedback: options?.revisionFeedback,
+        previousFullScript: options?.previousFullScript,
+      }),
     }
   );
 

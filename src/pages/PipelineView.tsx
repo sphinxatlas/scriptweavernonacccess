@@ -27,6 +27,7 @@ import {
   Download,
   Star,
   ThumbsUp,
+  Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -39,6 +40,7 @@ export default function PipelineView() {
   const [starredOnly, setStarredOnly] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
   const [approving, setApproving] = useState(false);
+  const [revisionFeedback, setRevisionFeedback] = useState("");
   const contentRef = useRef<HTMLDivElement>(null);
 
   const { data: brief, refetch: refetchBrief } = useQuery({
@@ -67,7 +69,10 @@ export default function PipelineView() {
   const currentOutput = getStepOutput(activeStep);
   const displayContent = generating ? streamContent : currentOutput?.content || "";
 
-  const handleGenerate = async (overrideStep?: PipelineStepType) => {
+  const handleGenerate = async (
+    overrideStep?: PipelineStepType,
+    revisionOpts?: { revisionFeedback: string; previousFullScript: string },
+  ) => {
     if (!briefId) return;
     const step = overrideStep || activeStep;
     setGenerating(true);
@@ -88,13 +93,59 @@ export default function PipelineView() {
           refetchOutputs();
           setGenerating(false);
           toast.success(`${PIPELINE_STEPS.find((s) => s.type === step)?.label} generated`);
+          if (revisionOpts) setRevisionFeedback("");
         },
-        starredOnly
+        starredOnly,
+        revisionOpts
+          ? {
+              revisionFeedback: revisionOpts.revisionFeedback,
+              previousFullScript: revisionOpts.previousFullScript,
+            }
+          : undefined,
       );
     } catch (err: any) {
       setGenerating(false);
       toast.error(err.message || "Generation failed");
     }
+  };
+
+  const handleReviseFullScript = () => {
+    const fb = revisionFeedback.trim();
+    if (!fb) {
+      toast.error("Please add revision feedback before regenerating.");
+      return;
+    }
+    const prev = (currentOutput?.content || "").toString();
+    handleGenerate("full_script", { revisionFeedback: fb, previousFullScript: prev });
+  };
+
+  const REVISION_CHIPS: { label: string; append: string }[] = [
+    { label: "Reduce repetition", append: "Reduce repetition and remove points that are being made more than once. Keep the strongest version of each idea." },
+    { label: "Sharpen the argument", append: "Make the central argument sharper and more decisive. Cut hedging and tighten the logic." },
+    { label: "Add more canon evidence", append: "Add more specific canon evidence from the books and movie transcripts to support the key claims." },
+    { label: "More book/movie contrast", append: "Use more direct book vs movie contrast where the adaptation choices reveal something meaningful." },
+    { label: "More personality / Melty-driven", append: "Make the voice feel more personality-driven and host-led, not detached or generic." },
+    { label: "Stronger hook", append: "Rewrite the hook so it lands harder in the first 15 seconds and earns the watch." },
+    { label: "Improve pacing", append: "Improve pacing — speed up slow stretches, add rehooks, and remove sections that drag." },
+    { label: "Stronger ending", append: "Make the ending stronger, with a sharper payoff and a more memorable closing line." },
+    { label: "Add more context", append: "Add more context where the argument assumes the viewer already knows the setup." },
+    { label: "Less generic", append: "Make the writing less generic. Replace vague phrasing with specific scenes, lines, and moments." },
+    { label: "More emotionally engaging", append: "Make it more emotionally engaging — name the feeling, not just the fact." },
+    { label: "More plausible theory", append: "Make any theories feel more plausible by grounding them more clearly in canon detail." },
+    { label: "Less academic", append: "Make the script less academic and more YouTube-spoken — like a creator talking, not an essay being read." },
+    { label: "Add 'so what' after evidence", append: "After every evidence beat, add a clear 'so what' — the takeaway or interpretation, not just the fact." },
+    { label: "Smoother transitions", append: "Smooth out the transitions between sections so the script flows as one continuous argument." },
+    { label: "More YouTube-native", append: "Make it more YouTube-native: conversational, opinionated, and built for retention." },
+    { label: "Strengthen the conclusion", append: "Strengthen the conclusion so the thesis lands with weight and the viewer feels the argument was proven." },
+    { label: "Keep title/angle present", append: "Keep the title and core angle visibly present throughout the script, not just in the hook and outro." },
+  ];
+
+  const appendChip = (text: string) => {
+    setRevisionFeedback((prev) => {
+      const trimmed = prev.trim();
+      if (!trimmed) return text;
+      return trimmed + "\n\n" + text;
+    });
   };
 
   const handleApproveCreativeBrief = async () => {
@@ -149,6 +200,8 @@ export default function PipelineView() {
   const creativeBriefFeedback = brief && (brief as any).creative_brief_feedback;
   const showCreativeBriefReview = isCreativeBrief && currentOutput && !generating && !creativeBriefApproved;
   const showCreativeBriefApproved = isCreativeBrief && currentOutput && !generating && creativeBriefApproved;
+  const showFullScriptRevision =
+    activeStep === "full_script" && !!currentOutput && !generating;
 
   return (
     <Layout>
@@ -298,6 +351,62 @@ export default function PipelineView() {
                   <div className="flex items-center gap-2 mt-4 text-xs text-primary">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                     Generating from source material...
+                  </div>
+                )}
+
+                {showFullScriptRevision && (
+                  <div className="mt-8 border-t border-border pt-6 max-w-3xl">
+                    <div className="mb-3">
+                      <h3 className="text-sm font-mono font-bold text-foreground flex items-center gap-2">
+                        <Wand2 className="w-3.5 h-3.5 text-primary" />
+                        Revise this Full Script
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Pipeline step revision for the current Full Script. Not the separate Script Improver tool. Your feedback is reapplied with the full pipeline context (brief, evidence, outline, sources, persona, and writing guidance).
+                      </p>
+                    </div>
+
+                    <Label className="text-xs font-medium">Revision Feedback (required)</Label>
+                    <Textarea
+                      value={revisionFeedback}
+                      onChange={(e) => setRevisionFeedback(e.target.value)}
+                      placeholder="Tell ScriptForge what to improve in this script. You can mention content, structure, repetition, pacing, tone, missing context, argument strength, source use, or anything else."
+                      rows={6}
+                      className="bg-secondary border-border resize-none mt-1.5"
+                    />
+
+                    <p className="text-[11px] text-muted-foreground mt-3 mb-2">
+                      Optional quick chips — click to append helpful feedback. None are required.
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {REVISION_CHIPS.map((chip) => (
+                        <button
+                          key={chip.label}
+                          type="button"
+                          onClick={() => appendChip(chip.append)}
+                          className="text-[11px] px-2 py-1 rounded-md border border-border bg-secondary/50 hover:bg-secondary text-foreground/80 hover:text-foreground transition-colors"
+                        >
+                          {chip.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="mt-4 flex items-center gap-3">
+                      <Button
+                        size="sm"
+                        onClick={handleReviseFullScript}
+                        disabled={!revisionFeedback.trim() || generating}
+                        className="gap-1.5"
+                      >
+                        <Wand2 className="w-3.5 h-3.5" />
+                        Revise Full Script
+                      </Button>
+                      {!revisionFeedback.trim() && (
+                        <span className="text-[11px] text-muted-foreground">
+                          Please add revision feedback before regenerating.
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
