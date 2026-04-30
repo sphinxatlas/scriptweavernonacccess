@@ -138,7 +138,7 @@ export interface CreateBriefInput {
 export async function createTopicBrief(input: CreateBriefInput) {
   const { data, error } = await supabase
     .from("topic_briefs")
-    .insert(input)
+    .insert(input as any)
     .select()
     .single();
   if (error) throw error;
@@ -148,7 +148,7 @@ export async function createTopicBrief(input: CreateBriefInput) {
 export async function updateTopicBrief(id: string, input: Partial<CreateBriefInput>) {
   const { data, error } = await supabase
     .from("topic_briefs")
-    .update(input)
+    .update(input as any)
     .eq("id", id)
     .select()
     .single();
