@@ -604,6 +604,60 @@ export async function deleteBriefTopicTranscript(id: string) {
   if (error) throw error;
 }
 
+// ── Alternative Sources (secondary, non-canon) ──
+export interface AlternativeSource {
+  id: string;
+  title: string;
+  source_type: string | null;
+  source_author: string | null;
+  url: string | null;
+  content: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getAlternativeSources(): Promise<AlternativeSource[]> {
+  const { data, error } = await supabase
+    .from('alternative_sources')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as AlternativeSource[];
+}
+
+export async function saveAlternativeSource(input: {
+  title: string;
+  content: string;
+  source_type?: string | null;
+  source_author?: string | null;
+  url?: string | null;
+  notes?: string | null;
+}): Promise<AlternativeSource> {
+  const { data, error } = await supabase
+    .from('alternative_sources')
+    .insert({
+      title: input.title,
+      content: input.content,
+      source_type: input.source_type ?? null,
+      source_author: input.source_author ?? null,
+      url: input.url ?? null,
+      notes: input.notes ?? null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as AlternativeSource;
+}
+
+export async function deleteAlternativeSource(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('alternative_sources')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+}
+
 // ── Brief Links ──
 export async function linkFormatReferencesToBrief(briefId: string, transcriptIds: string[]) {
   await supabase.from('brief_format_reference_links').delete().eq('brief_id', briefId);
