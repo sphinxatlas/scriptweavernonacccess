@@ -1734,6 +1734,11 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
             .join("\n\n---\n\n")
         : "";
 
+    const altSourceUserBlock =
+      ["evidence_table", "outline", "full_script", "six_category_extraction"].includes(stepType)
+        ? formatAlternativeSourcesBlock("Alternative Sources")
+        : "";
+
     if (stepType === "six_category_extraction") {
       // Get creative brief output
       const { data: creativeBriefOutput } = await supabase
@@ -1759,7 +1764,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
       userMessage = `## Creative Brief
 ${creativeBriefContent || `Title: ${brief.title}\nAngle: ${brief.angle_note || brief.description || ""}`}
 
-${topicTranscriptBlock}
+${topicTranscriptBlock}${altSourceUserBlock}
 
 ## Creator Feedback on Brief
 ${brief.creative_brief_feedback || "None provided."}
@@ -1777,7 +1782,7 @@ ${queryPackContext}
 
 ${guidanceBlock}${previousContext ? `## Previous Pipeline Steps\n${previousContext}\n\n` : ""}${starredEvidence ? `${starredEvidence}\n\n` : ""}## Source Material Excerpts
 ${sourceContext}
-${topicTranscriptUserBlock}
+${topicTranscriptUserBlock}${altSourceUserBlock}
 
 Please generate the ${stepType.replace(/_/g, " ")} based on the above information.`;
     }
