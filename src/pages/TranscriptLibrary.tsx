@@ -196,6 +196,12 @@ function TranscriptSection({ section }: { section: Section }) {
 
 export default function TranscriptLibrary() {
   return (
+    <TranscriptLibraryInner />
+  );
+}
+
+function TranscriptLibraryInner() {
+  return (
     <Layout>
       <div className="p-8 max-w-5xl">
         <div className="mb-6">
