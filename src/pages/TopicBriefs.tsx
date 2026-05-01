@@ -218,15 +218,21 @@ export default function TopicBriefs() {
     }
   };
 
-  const availableFormatRefs = formatRefs.filter((r: any) => !selectedFormatIds.includes(r.id));
-  const availableTopicTranscripts = topicTranscripts.filter((r: any) => !selectedTopicIds.includes(r.id));
-
-  const selectedFormatItems = selectedFormatIds
-    .map((id) => formatRefs.find((r: any) => r.id === id))
-    .filter(Boolean) as any[];
-  const selectedTopicItems = selectedTopicIds
-    .map((id) => topicTranscripts.find((r: any) => r.id === id))
-    .filter(Boolean) as any[];
+  const formatOptions: MultiSelectOption[] = formatRefs.map((r: any) => ({
+    value: r.id,
+    label: r.video_title,
+    sublabel: r.channel_name,
+  }));
+  const topicOptions: MultiSelectOption[] = topicTranscripts.map((r: any) => ({
+    value: r.id,
+    label: r.video_title,
+    sublabel: r.channel_name,
+  }));
+  const altOptions: MultiSelectOption[] = (alternativeSources as any[]).map((r: any) => ({
+    value: r.id,
+    label: r.title,
+    sublabel: r.source_type || r.source_author || undefined,
+  }));
 
   return (
     <Layout>
