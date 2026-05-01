@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      alternative_sources: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          notes: string | null
+          source_author: string | null
+          source_type: string | null
+          title: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          source_author?: string | null
+          source_type?: string | null
+          title: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          source_author?: string | null
+          source_type?: string | null
+          title?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       angle_lab_runs: {
         Row: {
           created_at: string
