@@ -1691,6 +1691,29 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
       systemPrompt += `\n\nANTI AI LANGUAGE GUIDE (MANDATORY — apply these rules strictly):\n- Avoid common AI phrases, templated intros, and AI word clusters described below\n- Avoid over-tidy signposting, repetitive triads, and generic CTAs\n- Do not use em dashes heavily\n- Keep wording natural and voiceover-friendly\n- The final script must sound human, original, and not trigger obvious AI detection signals\n\nAnti AI Language Guide content:\n${antiAiContext}`;
     }
 
+    // Originality safeguard — when the Selected Source Analysis output is in the
+    // upstream context for outline / full_script / evidence_table, the model must
+    // treat secondary-source signals as audience intelligence, NOT as canon proof,
+    // and must silently self-check for over-reliance on selected transcripts.
+    if (["evidence_table", "outline", "full_script"].includes(stepType)) {
+      systemPrompt += `\n\nORIGINALITY SAFEGUARD (MANDATORY):
+If a Selected Source Analysis output appears in the previous pipeline context, treat it as AUDIENCE INTELLIGENCE only — recurring fan signals, overused angles to avoid, audience objections to address, candidate claims to validate, and original synthesis opportunities.
+
+Rules:
+- Do NOT copy or closely paraphrase claims, jokes, transitions, structures, or conclusions from the selected HP topic transcripts or Alternative Sources.
+- Do NOT promote any "candidate claim" or "needs validation" item from the Selected Source Analysis to a confirmed factual claim unless it is independently supported by Tier 1 canon (books / movie transcripts) in the retrieved Source Material Excerpts.
+- DO use the Selected Source Analysis to: avoid overdone angles, address likely audience objections, sharpen escalation, strengthen re-hooks, and produce a more original Melty-driven final argument.
+- Honour the "Do-Not-Copy Notes" section of the Selected Source Analysis if present.
+
+Before finalizing your output, silently self-check:
+1. Am I repeating a secondary source's exact argument too closely?
+2. Am I reusing their joke, phrase, structure, or conclusion?
+3. Is my conclusion an original synthesis grounded in the canon extraction (Insights & Research / Evidence Table)?
+4. Does this feel like Melty's original take, not a remix of other creators?
+5. Are selected sources being used as audience intelligence rather than as substituted substance?
+If any answer reveals overreliance, revise toward a more original, canon-grounded argument before producing the final output. Do not mention this self-check in the output.`;
+    }
+
     // Add comparison mode instruction if enabled
     if (brief.comparison_mode) {
       systemPrompt = COMPARISON_MODE_INSTRUCTION + "\n\n" + systemPrompt;
