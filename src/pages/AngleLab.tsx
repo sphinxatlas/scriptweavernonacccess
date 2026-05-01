@@ -10,9 +10,14 @@ import {
   listAngleLabRuns,
   createAngleLabRun,
   deleteAngleLabRun,
+  getFormatReferenceTranscripts,
+  getBriefTopicTranscripts,
+  getAlternativeSources,
   type AngleLabRun,
 } from "@/lib/api";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { MultiSelectChips, type MultiSelectOption } from "@/components/MultiSelectChips";
 import {
   Lightbulb,
   Sparkles,
@@ -110,6 +115,40 @@ export default function AngleLab() {
   const [nicheTranscript, setNicheTranscript] = useState("");
   const [nicheContext, setNicheContext] = useState("");
 
+  // Secondary source selections (apply to both standard and Niche / Creative Transfer modes)
+  const [selectedFormatIds, setSelectedFormatIds] = useState<string[]>([]);
+  const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
+  const [selectedAltIds, setSelectedAltIds] = useState<string[]>([]);
+
+  const { data: formatRefs = [] } = useQuery({
+    queryKey: ["format-references"],
+    queryFn: getFormatReferenceTranscripts,
+  });
+  const { data: topicRefs = [] } = useQuery({
+    queryKey: ["topic-transcripts"],
+    queryFn: getBriefTopicTranscripts,
+  });
+  const { data: altSources = [] } = useQuery({
+    queryKey: ["alternative-sources"],
+    queryFn: getAlternativeSources,
+  });
+
+  const formatOptions: MultiSelectOption[] = (formatRefs as any[]).map((t) => ({
+    value: t.id,
+    label: t.video_title,
+    sublabel: t.channel_name,
+  }));
+  const topicOptions: MultiSelectOption[] = (topicRefs as any[]).map((t) => ({
+    value: t.id,
+    label: t.video_title,
+    sublabel: t.channel_name,
+  }));
+  const altOptions: MultiSelectOption[] = (altSources as any[]).map((s) => ({
+    value: s.id,
+    label: s.title,
+    sublabel: [s.source_type, s.source_author].filter(Boolean).join(" · "),
+  }));
+
   // Run / output state
   const [output, setOutput] = useState("");
   const [running, setRunning] = useState(false);
@@ -157,6 +196,9 @@ export default function AngleLab() {
           notes: notes.trim() || undefined,
           nicheTranscript: nicheMode ? nicheTranscript.trim() : undefined,
           nicheContext: nicheMode ? nicheContext.trim() || undefined : undefined,
+          formatReferenceIds: selectedFormatIds,
+          topicTranscriptIds: selectedTopicIds,
+          alternativeSourceIds: selectedAltIds,
         },
         (delta) => {
           acc += delta;
