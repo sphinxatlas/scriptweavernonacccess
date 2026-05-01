@@ -12,6 +12,7 @@ export type PipelineStepType =
   | "six_category_extraction"
   | "competitor_format_analysis"
   | "retrieval"
+  | "selected_source_analysis"
   | "evidence_table"
   | "analysis_memo"
   | "outline"
@@ -34,6 +35,12 @@ export const PIPELINE_STEPS: {
     type: "six_category_extraction",
     label: "Insights & Research",
     description: "Mines canon for evidence, patterns, contradictions, subtext, and original angles.",
+    visible: true,
+  },
+  {
+    type: "selected_source_analysis",
+    label: "Selected Source Analysis",
+    description: "Pressure-tests the angle against the secondary sources selected for this brief — surfaces fan signals, overused angles, objections, and original synthesis routes. Never canon proof.",
     visible: true,
   },
   {
