@@ -680,6 +680,24 @@ export async function linkTopicTranscriptsToBrief(briefId: string, transcriptIds
   if (error) throw error;
 }
 
+export async function linkAlternativeSourcesToBrief(briefId: string, sourceIds: string[]) {
+  await supabase.from('brief_alternative_source_links' as any).delete().eq('brief_id', briefId);
+  if (sourceIds.length === 0) return;
+  const { error } = await supabase.from('brief_alternative_source_links' as any).insert(
+    sourceIds.map(id => ({ brief_id: briefId, alternative_source_id: id }))
+  );
+  if (error) throw error;
+}
+
+export async function getBriefAlternativeSourceLinks(briefId: string): Promise<AlternativeSource[]> {
+  const { data, error } = await supabase
+    .from('brief_alternative_source_links' as any)
+    .select('alternative_source_id, alternative_sources(*)')
+    .eq('brief_id', briefId);
+  if (error) throw error;
+  return (data || []).map((r: any) => r.alternative_sources).filter(Boolean) as AlternativeSource[];
+}
+
 export async function getBriefFormatReferences(briefId: string) {
   const { data, error } = await supabase
     .from('brief_format_reference_links')
