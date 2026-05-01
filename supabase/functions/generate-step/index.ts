@@ -1784,7 +1784,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     // evidence_table, outline, and full_script (creative_brief and
     // six_category_extraction handle them on their own branches).
     const topicTranscriptUserBlock =
-      ["evidence_table", "outline", "full_script"].includes(stepType) && topicTranscripts.length > 0
+      ["evidence_table", "outline", "full_script", "selected_source_analysis"].includes(stepType) && topicTranscripts.length > 0
         ? `\n\n## Brief-Specific HP Topic Transcripts (THEORY, ANGLE, AND RESEARCH LEADS — not Tier 1 canon)\nTreat these as theory/angle/interpretation input. Factual canon claims still require Tier 1 book or movie transcript support. Theories may be used if plausible, coherent, and not obviously contradicted by canon. Frame theories honestly as theories.\n\n` +
           truncateTopicTranscripts(topicTranscripts)
             .map((r: any) => `### "${r.video_title}" by ${r.channel_name}\n${r.transcript}`)
@@ -1792,10 +1792,53 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
         : "";
 
     const altSourceUserBlock =
-      ["evidence_table", "outline", "full_script", "six_category_extraction"].includes(stepType)
+      ["evidence_table", "outline", "full_script", "six_category_extraction", "selected_source_analysis"].includes(stepType)
         ? formatAlternativeSourcesBlock("Alternative Sources")
         : "";
 
+    if (stepType === "selected_source_analysis") {
+      // Pull the Creative Brief and Insights & Research outputs as upstream context.
+      const { data: cbOut } = await supabase
+        .from("pipeline_outputs")
+        .select("content")
+        .eq("brief_id", briefId)
+        .eq("step_type", "creative_brief")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const { data: insightsOut } = await supabase
+        .from("pipeline_outputs")
+        .select("content")
+        .eq("brief_id", briefId)
+        .eq("step_type", "six_category_extraction")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const creativeBriefContent = cbOut?.content || "";
+      const insightsContent = insightsOut?.content || "";
+      const hasSelectedSecondary = topicTranscripts.length > 0 || alternativeSources.length > 0;
+
+      systemPromptFinal = STEP_PROMPTS["selected_source_analysis"];
+
+      userMessage = `## Topic Brief
+Title: ${brief.title}
+Description: ${brief.description || ""}
+Angle: ${brief.angle_note || ""}
+Tone: ${brief.tone || ""}
+Thesis: ${brief.thesis || ""}
+
+## Creative Brief Output
+${creativeBriefContent || "(Creative Brief not yet generated — proceed using Topic Brief only.)"}
+
+## Insights & Research Output (canon-first extraction — your primary upstream context)
+${insightsContent || "(Insights & Research not yet generated — proceed cautiously and flag canon gaps.)"}
+
+${hasSelectedSecondary ? "## Selected Secondary Sources (analyze ONLY these)" : "## Selected Secondary Sources\n(None attached. Produce a minimal graceful analysis based on the Creative Brief and Insights & Research only — do not invent fan signals.)"}
+${topicTranscriptUserBlock}${altSourceUserBlock}
+
+Now produce the Selected Source Analysis in the exact format specified. Be honest about source weight — never promote a secondary-source claim to canon. Surface what's overused, what's underdeveloped, what objections exist, and where original synthesis is possible against the canon extraction above.`;
+    } else if (stepType === "six_category_extraction") {
     if (stepType === "six_category_extraction") {
       // Get creative brief output
       const { data: creativeBriefOutput } = await supabase
