@@ -206,13 +206,15 @@ export async function duplicateTopicBrief(briefId: string) {
   if (insertErr) throw insertErr;
 
   // Copy linked transcripts
-  const [{ data: formatLinks }, { data: topicLinks }] = await Promise.all([
+  const [{ data: formatLinks }, { data: topicLinks }, { data: altLinks }] = await Promise.all([
     supabase.from("brief_format_reference_links").select("transcript_id").eq("brief_id", briefId),
     supabase.from("brief_topic_transcript_links").select("transcript_id").eq("brief_id", briefId),
+    supabase.from("brief_alternative_source_links" as any).select("alternative_source_id").eq("brief_id", briefId),
   ]);
 
   const formatIds = (formatLinks || []).map((r: any) => r.transcript_id);
   const topicIds = (topicLinks || []).map((r: any) => r.transcript_id);
+  const altIds = ((altLinks as any[]) || []).map((r: any) => r.alternative_source_id);
 
   if (formatIds.length > 0) {
     await supabase.from("brief_format_reference_links").insert(
@@ -222,6 +224,11 @@ export async function duplicateTopicBrief(briefId: string) {
   if (topicIds.length > 0) {
     await supabase.from("brief_topic_transcript_links").insert(
       topicIds.map((id) => ({ brief_id: created.id, transcript_id: id })),
+    );
+  }
+  if (altIds.length > 0) {
+    await supabase.from("brief_alternative_source_links" as any).insert(
+      altIds.map((id) => ({ brief_id: created.id, alternative_source_id: id })),
     );
   }
 
@@ -678,6 +685,24 @@ export async function linkTopicTranscriptsToBrief(briefId: string, transcriptIds
     transcriptIds.map(id => ({ brief_id: briefId, transcript_id: id }))
   );
   if (error) throw error;
+}
+
+export async function linkAlternativeSourcesToBrief(briefId: string, sourceIds: string[]) {
+  await supabase.from('brief_alternative_source_links' as any).delete().eq('brief_id', briefId);
+  if (sourceIds.length === 0) return;
+  const { error } = await supabase.from('brief_alternative_source_links' as any).insert(
+    sourceIds.map(id => ({ brief_id: briefId, alternative_source_id: id }))
+  );
+  if (error) throw error;
+}
+
+export async function getBriefAlternativeSourceLinks(briefId: string): Promise<AlternativeSource[]> {
+  const { data, error } = await supabase
+    .from('brief_alternative_source_links' as any)
+    .select('alternative_source_id, alternative_sources(*)')
+    .eq('brief_id', briefId);
+  if (error) throw error;
+  return (data || []).map((r: any) => r.alternative_sources).filter(Boolean) as AlternativeSource[];
 }
 
 export async function getBriefFormatReferences(briefId: string) {

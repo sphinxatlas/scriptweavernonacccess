@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { MultiSelectChips, type MultiSelectOption } from "@/components/MultiSelectChips";
 import {
   getTopicBriefs,
   createTopicBrief,
@@ -20,10 +21,12 @@ import {
   saveFormatReferenceTranscript,
   getBriefTopicTranscripts,
   saveBriefTopicTranscript,
+  getAlternativeSources,
   linkFormatReferencesToBrief,
   linkTopicTranscriptsToBrief,
+  linkAlternativeSourcesToBrief,
 } from "@/lib/api";
-import { Plus, Trash2, ArrowRight, FileText, GitCompare, Clock, X, Copy } from "lucide-react";
+import { Plus, Trash2, ArrowRight, FileText, GitCompare, Clock, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -122,6 +125,7 @@ export default function TopicBriefs() {
 
   const [selectedFormatIds, setSelectedFormatIds] = useState<string[]>([]);
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
+  const [selectedAltIds, setSelectedAltIds] = useState<string[]>([]);
   const [showFormatAdd, setShowFormatAdd] = useState(false);
   const [showTopicAdd, setShowTopicAdd] = useState(false);
 
@@ -137,6 +141,10 @@ export default function TopicBriefs() {
     queryKey: ["topic-transcripts"],
     queryFn: getBriefTopicTranscripts,
   });
+  const { data: alternativeSources = [] } = useQuery({
+    queryKey: ["alternative-sources"],
+    queryFn: getAlternativeSources,
+  });
 
   const updateForm = (key: keyof CreateBriefInput, value: any) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -145,6 +153,7 @@ export default function TopicBriefs() {
     setForm(blankForm());
     setSelectedFormatIds([]);
     setSelectedTopicIds([]);
+    setSelectedAltIds([]);
     setShowFormatAdd(false);
     setShowTopicAdd(false);
   };
@@ -162,6 +171,10 @@ export default function TopicBriefs() {
       toast.error("At least one format reference video is required");
       return;
     }
+    if (selectedFormatIds.length > 2) {
+      toast.error("Maximum 2 format reference videos");
+      return;
+    }
     setCreating(true);
     try {
       const created = await createTopicBrief({
@@ -171,6 +184,7 @@ export default function TopicBriefs() {
       });
       await linkFormatReferencesToBrief(created.id, selectedFormatIds);
       await linkTopicTranscriptsToBrief(created.id, selectedTopicIds);
+      await linkAlternativeSourcesToBrief(created.id, selectedAltIds);
       toast.success("Brief created");
       resetForm();
       setShowForm(false);
@@ -204,15 +218,21 @@ export default function TopicBriefs() {
     }
   };
 
-  const availableFormatRefs = formatRefs.filter((r: any) => !selectedFormatIds.includes(r.id));
-  const availableTopicTranscripts = topicTranscripts.filter((r: any) => !selectedTopicIds.includes(r.id));
-
-  const selectedFormatItems = selectedFormatIds
-    .map((id) => formatRefs.find((r: any) => r.id === id))
-    .filter(Boolean) as any[];
-  const selectedTopicItems = selectedTopicIds
-    .map((id) => topicTranscripts.find((r: any) => r.id === id))
-    .filter(Boolean) as any[];
+  const formatOptions: MultiSelectOption[] = formatRefs.map((r: any) => ({
+    value: r.id,
+    label: r.video_title,
+    sublabel: r.channel_name,
+  }));
+  const topicOptions: MultiSelectOption[] = topicTranscripts.map((r: any) => ({
+    value: r.id,
+    label: r.video_title,
+    sublabel: r.channel_name,
+  }));
+  const altOptions: MultiSelectOption[] = (alternativeSources as any[]).map((r: any) => ({
+    value: r.id,
+    label: r.title,
+    sublabel: r.source_type || r.source_author || undefined,
+  }));
 
   return (
     <Layout>
@@ -313,56 +333,33 @@ export default function TopicBriefs() {
                 <p className="text-[11px] text-muted-foreground/70 mb-2">
                   Non-HP format reference videos. Used for argument structure and positioning only — never for Harry Potter content. Min 1, max 2.
                 </p>
-                {selectedFormatItems.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {selectedFormatItems.map((item) => (
-                      <Badge
-                        key={item.id}
-                        variant="outline"
-                        className="gap-1.5 py-1 pl-2 pr-1 text-xs"
-                      >
-                        <span>{item.channel_name} — {item.video_title}</span>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedFormatIds((prev) => prev.filter((id) => id !== item.id))}
-                          className="hover:bg-secondary rounded p-0.5"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-                {selectedFormatIds.length >= 2 ? (
-                  <p className="text-xs text-muted-foreground">Maximum 2 format references selected.</p>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Select
-                      value=""
-                      onValueChange={(v) => {
-                        if (v) setSelectedFormatIds((prev) => [...prev, v]);
+                <div className="flex items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    <MultiSelectChips
+                      options={formatOptions}
+                      selected={selectedFormatIds}
+                      onChange={(vals) => {
+                        if (vals.length > 2) {
+                          toast.error("Maximum 2 format references");
+                          return;
+                        }
+                        setSelectedFormatIds(vals);
                       }}
-                    >
-                      <SelectTrigger className="bg-secondary border-border flex-1">
-                        <SelectValue placeholder={availableFormatRefs.length === 0 ? "No format references available" : "Select a format reference..."} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableFormatRefs.map((r: any) => (
-                          <SelectItem key={r.id} value={r.id}>
-                            {r.channel_name} — {r.video_title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowFormatAdd((v) => !v)}
-                    >
-                      Add New
-                    </Button>
+                      placeholder={formatOptions.length === 0 ? "No format references available" : "Select format references…"}
+                      emptyText="No format references available."
+                    />
                   </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowFormatAdd((v) => !v)}
+                  >
+                    Add New
+                  </Button>
+                </div>
+                {selectedFormatIds.length >= 2 && (
+                  <p className="text-xs text-muted-foreground mt-1">Maximum 2 format references selected.</p>
                 )}
                 {showFormatAdd && (
                   <InlineTranscriptForm
@@ -385,44 +382,16 @@ export default function TopicBriefs() {
                 <p className="text-[11px] text-muted-foreground/70 mb-2">
                   HP videos covering a similar topic to this video. Used as research leads. Optional, no maximum.
                 </p>
-                {selectedTopicItems.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {selectedTopicItems.map((item) => (
-                      <Badge
-                        key={item.id}
-                        variant="outline"
-                        className="gap-1.5 py-1 pl-2 pr-1 text-xs"
-                      >
-                        <span>{item.channel_name} — {item.video_title}</span>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedTopicIds((prev) => prev.filter((id) => id !== item.id))}
-                          className="hover:bg-secondary rounded p-0.5"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </Badge>
-                    ))}
+                <div className="flex items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    <MultiSelectChips
+                      options={topicOptions}
+                      selected={selectedTopicIds}
+                      onChange={setSelectedTopicIds}
+                      placeholder={topicOptions.length === 0 ? "No HP topic transcripts available" : "Select HP topic transcripts…"}
+                      emptyText="No HP topic transcripts available."
+                    />
                   </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <Select
-                    value=""
-                    onValueChange={(v) => {
-                      if (v) setSelectedTopicIds((prev) => [...prev, v]);
-                    }}
-                  >
-                    <SelectTrigger className="bg-secondary border-border flex-1">
-                      <SelectValue placeholder={availableTopicTranscripts.length === 0 ? "No HP topic transcripts available" : "Select an HP topic transcript..."} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableTopicTranscripts.map((r: any) => (
-                        <SelectItem key={r.id} value={r.id}>
-                          {r.channel_name} — {r.video_title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                   <Button
                     type="button"
                     size="sm"
@@ -445,6 +414,21 @@ export default function TopicBriefs() {
                     }}
                   />
                 )}
+              </div>
+
+              {/* Alternative Sources */}
+              <div className="pt-2 border-t border-border">
+                <Label className="text-xs text-muted-foreground">Alternative Sources (optional)</Label>
+                <p className="text-[11px] text-muted-foreground/70 mb-2">
+                  Optional pasted sources such as Reddit threads, fan comments, wiki extracts, blog posts, websites, or research notes. Used as secondary context and angle support. Not canon unless explicitly primary source material.
+                </p>
+                <MultiSelectChips
+                  options={altOptions}
+                  selected={selectedAltIds}
+                  onChange={setSelectedAltIds}
+                  placeholder={altOptions.length === 0 ? "No alternative sources available" : "Select alternative sources…"}
+                  emptyText="No alternative sources yet. Add some in the Secondary Source Library."
+                />
               </div>
 
               <div className="flex gap-2 justify-end pt-2">

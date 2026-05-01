@@ -83,6 +83,21 @@ export type Database = {
         }
         Relationships: []
       }
+      brief_alternative_source_links: {
+        Row: {
+          alternative_source_id: string
+          brief_id: string
+        }
+        Insert: {
+          alternative_source_id: string
+          brief_id: string
+        }
+        Update: {
+          alternative_source_id?: string
+          brief_id?: string
+        }
+        Relationships: []
+      }
       brief_format_reference_links: {
         Row: {
           brief_id: string
