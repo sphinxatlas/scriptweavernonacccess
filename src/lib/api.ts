@@ -206,13 +206,15 @@ export async function duplicateTopicBrief(briefId: string) {
   if (insertErr) throw insertErr;
 
   // Copy linked transcripts
-  const [{ data: formatLinks }, { data: topicLinks }] = await Promise.all([
+  const [{ data: formatLinks }, { data: topicLinks }, { data: altLinks }] = await Promise.all([
     supabase.from("brief_format_reference_links").select("transcript_id").eq("brief_id", briefId),
     supabase.from("brief_topic_transcript_links").select("transcript_id").eq("brief_id", briefId),
+    supabase.from("brief_alternative_source_links" as any).select("alternative_source_id").eq("brief_id", briefId),
   ]);
 
   const formatIds = (formatLinks || []).map((r: any) => r.transcript_id);
   const topicIds = (topicLinks || []).map((r: any) => r.transcript_id);
+  const altIds = ((altLinks as any[]) || []).map((r: any) => r.alternative_source_id);
 
   if (formatIds.length > 0) {
     await supabase.from("brief_format_reference_links").insert(
@@ -222,6 +224,11 @@ export async function duplicateTopicBrief(briefId: string) {
   if (topicIds.length > 0) {
     await supabase.from("brief_topic_transcript_links").insert(
       topicIds.map((id) => ({ brief_id: created.id, transcript_id: id })),
+    );
+  }
+  if (altIds.length > 0) {
+    await supabase.from("brief_alternative_source_links" as any).insert(
+      altIds.map((id) => ({ brief_id: created.id, alternative_source_id: id })),
     );
   }
 
