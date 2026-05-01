@@ -174,7 +174,16 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { workingIdea, directions, notes, nicheTranscript, nicheContext } = await req.json();
+    const {
+      workingIdea,
+      directions,
+      notes,
+      nicheTranscript,
+      nicheContext,
+      formatReferenceIds,
+      topicTranscriptIds,
+      alternativeSourceIds,
+    } = await req.json();
     const isNicheTransfer = !!(nicheTranscript && typeof nicheTranscript === "string" && nicheTranscript.trim());
     if (!isNicheTransfer && (!workingIdea || typeof workingIdea !== "string" || !workingIdea.trim())) {
       return new Response(JSON.stringify({ error: "workingIdea is required" }), {
@@ -227,19 +236,34 @@ serve(async (req) => {
       fetchChunksByType(supabase, "script_strategy", baseQueries, 3),
     ]);
 
-    // FULL Transcript Library — Angle Lab does NOT require manual selection.
-    // (Creative Brief still uses only its own brief-linked transcripts; that logic is untouched.)
-    const [{ data: allTopicTranscripts }, { data: allFormatTranscripts }] = await Promise.all([
-      supabase
-        .from("brief_topic_transcripts")
-        .select("channel_name, video_title, transcript")
-        .order("created_at", { ascending: false })
-        .limit(20),
-      supabase
-        .from("format_reference_transcripts")
-        .select("channel_name, video_title, transcript")
-        .order("created_at", { ascending: false })
-        .limit(20),
+    // Secondary source selections — only fetch what the user explicitly picked.
+    const formatIds: string[] = Array.isArray(formatReferenceIds) ? formatReferenceIds : [];
+    const topicIds: string[] = Array.isArray(topicTranscriptIds) ? topicTranscriptIds : [];
+    const altIds: string[] = Array.isArray(alternativeSourceIds) ? alternativeSourceIds : [];
+
+    const [
+      { data: allTopicTranscripts },
+      { data: allFormatTranscripts },
+      { data: allAltSources },
+    ] = await Promise.all([
+      topicIds.length
+        ? supabase
+            .from("brief_topic_transcripts")
+            .select("channel_name, video_title, transcript")
+            .in("id", topicIds)
+        : Promise.resolve({ data: [] as any[] }),
+      formatIds.length
+        ? supabase
+            .from("format_reference_transcripts")
+            .select("channel_name, video_title, transcript")
+            .in("id", formatIds)
+        : Promise.resolve({ data: [] as any[] }),
+      altIds.length
+        ? supabase
+            .from("alternative_sources")
+            .select("title, source_type, source_author, url, content, notes")
+            .in("id", altIds)
+        : Promise.resolve({ data: [] as any[] }),
     ]);
     const topicTranscripts = allTopicTranscripts;
 
@@ -267,7 +291,7 @@ serve(async (req) => {
               `### HP Topic Transcript: "${t.video_title}" by ${t.channel_name}\n${clipText(t.transcript, 3500)}`,
           )
           .join("\n\n---\n\n")
-      : "(No HP topic transcripts in library.)";
+      : "(No HP topic transcripts selected.)";
 
     const formatBlock = (allFormatTranscripts || []).length
       ? (allFormatTranscripts as any[])
@@ -276,7 +300,21 @@ serve(async (req) => {
               `### Format Reference Transcript: "${t.video_title}" by ${t.channel_name}\n${clipText(t.transcript, 3500)}`,
           )
           .join("\n\n---\n\n")
-      : "(No format reference transcripts in library.)";
+      : "(No format reference transcripts selected.)";
+
+    const altBlock = (allAltSources || []).length
+      ? (allAltSources as any[])
+          .map((s) => {
+            const meta = [s.source_type, s.source_author, s.url].filter(Boolean).join(" · ");
+            const useCase = s.notes ? `\nUse case: ${s.notes}` : "";
+            return `### Alternative Source: "${s.title}"${meta ? `\n(${meta})` : ""}${useCase}\n${clipText(s.content, 4000)}`;
+          })
+          .join("\n\n---\n\n")
+      : "";
+
+    const altSection = altBlock
+      ? `\n\n## Alternative Sources: secondary audience/context material. Use for fandom signals, humor, memes, audience language, cultural context, and angle inspiration. Do not treat as canon. Do not use to override books or movie transcripts.\n${altBlock}\n`
+      : "";
 
     const nicheTranscriptClipped = isNicheTransfer ? clipText(nicheTranscript.trim(), 16000) : "";
     const nicheContextClean = (nicheContext || "").toString().trim();
@@ -314,7 +352,7 @@ ${lexiconBlock}
 
 ## PRIORITY 5 — Script Writing Guidance (viability lens — structure, retention, hooks)
 ${scriptGuidanceBlock}
-
+${altSection}
 ---
 
 Now run the Angle Lab analysis using the structure defined in the system prompt. Mine PRIORITY 1 hardest for proven angles, then layer in the rest. Remember: no titles, no script, no outline longer than 5–7 bullets.`;
@@ -362,7 +400,7 @@ ${scriptGuidanceBlock}
 
 ## Lexicon Snippets (secondary clarification only)
 ${lexiconBlock}
-
+${altSection}
 ---
 
 Now run NICHE TRANSFER ANALYSIS using the EXACT output structure from the system prompt. Extract the mechanic from the outside niche transcript first, then propose 3–5 HP angle options that replicate the mechanic — never the topic. Prioritize HP angles with proven competitor/commentary signal. Be honest if the transfer is weak.`;
