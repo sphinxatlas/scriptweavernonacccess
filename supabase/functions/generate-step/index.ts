@@ -1047,6 +1047,36 @@ serve(async (req) => {
       .map((r: any) => r.brief_topic_transcripts)
       .filter(Boolean);
 
+    // Fetch alternative sources (secondary, non-canon) linked to this brief
+    const { data: altSourceLinks } = await supabase
+      .from("brief_alternative_source_links")
+      .select("alternative_source_id, alternative_sources(title, source_type, source_author, url, content)")
+      .eq("brief_id", briefId);
+    const alternativeSources = (altSourceLinks || [])
+      .map((r: any) => r.alternative_sources)
+      .filter(Boolean);
+
+    // Token-budget guard for alternative sources too.
+    const MAX_PER_ALT_CHARS = 8000;
+    const MAX_TOTAL_ALT_CHARS = 40000;
+    const formatAlternativeSourcesBlock = (label: string): string => {
+      if (alternativeSources.length === 0) return "";
+      let total = 0;
+      const parts: string[] = [];
+      for (const s of alternativeSources) {
+        const raw = (s.content || "").toString();
+        const capped = raw.length > MAX_PER_ALT_CHARS
+          ? raw.slice(0, MAX_PER_ALT_CHARS) + "\n\n[...source truncated for token budget...]"
+          : raw;
+        if (total + capped.length > MAX_TOTAL_ALT_CHARS) break;
+        const meta = [s.source_type, s.source_author, s.url].filter(Boolean).join(" • ");
+        parts.push(`### "${s.title}"${meta ? ` (${meta})` : ""}\n${capped}`);
+        total += capped.length;
+      }
+      if (parts.length === 0) return "";
+      return `\n\n## ${label} (SECONDARY, NON-CANON)\nThese are pasted secondary sources such as Reddit threads, fan comments, wiki extracts, blog posts, or research notes. Use ONLY for fan debate signals, audience language, jokes, cultural references, angle inspiration, and supporting interpretation. NEVER treat as Tier 1 canon. Do NOT cite as primary evidence. All factual canon claims must still be supported by book/movie sources.\n\n${parts.join("\n\n---\n\n")}`;
+    };
+
     // Token-budget guard: HP topic transcripts can be 60k+ chars each. Inlining
     // many of them alongside source excerpts and previous pipeline outputs blows
     // past the AI gateway's 272k token input limit. Cap each transcript and the
