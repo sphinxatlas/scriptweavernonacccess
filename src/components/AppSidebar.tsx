@@ -6,7 +6,7 @@ const navItems = [
   { to: "/", label: "Source Library", icon: Upload },
   { to: "/angle-lab", label: "Angle Lab", icon: Lightbulb },
   { to: "/briefs", label: "Topic Briefs", icon: FileText },
-  { to: "/transcripts", label: "Transcript Library", icon: BookOpen },
+  { to: "/transcripts", label: "Secondary Sources", icon: BookOpen },
   { to: "/improve", label: "Script Improver", icon: Wand2 },
 ];
 
