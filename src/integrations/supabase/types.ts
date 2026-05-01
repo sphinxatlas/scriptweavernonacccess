@@ -530,6 +530,7 @@ export type Database = {
         | "competitor_format_analysis"
         | "creative_brief"
         | "six_category_extraction"
+        | "selected_source_analysis"
       source_file_type:
         | "book"
         | "transcript"
@@ -676,6 +677,7 @@ export const Constants = {
         "competitor_format_analysis",
         "creative_brief",
         "six_category_extraction",
+        "selected_source_analysis",
       ],
       source_file_type: [
         "book",
