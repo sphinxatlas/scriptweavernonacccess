@@ -381,6 +381,9 @@ export async function streamAngleLab(
     notes?: string;
     nicheTranscript?: string;
     nicheContext?: string;
+    formatReferenceIds?: string[];
+    topicTranscriptIds?: string[];
+    alternativeSourceIds?: string[];
   },
   onDelta: (text: string) => void,
   onDone: () => void,
@@ -599,6 +602,60 @@ export async function saveBriefTopicTranscript(input: {
 export async function deleteBriefTopicTranscript(id: string) {
   const { error } = await supabase
     .from('brief_topic_transcripts')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+}
+
+// ── Alternative Sources (secondary, non-canon) ──
+export interface AlternativeSource {
+  id: string;
+  title: string;
+  source_type: string | null;
+  source_author: string | null;
+  url: string | null;
+  content: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getAlternativeSources(): Promise<AlternativeSource[]> {
+  const { data, error } = await supabase
+    .from('alternative_sources')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as AlternativeSource[];
+}
+
+export async function saveAlternativeSource(input: {
+  title: string;
+  content: string;
+  source_type?: string | null;
+  source_author?: string | null;
+  url?: string | null;
+  notes?: string | null;
+}): Promise<AlternativeSource> {
+  const { data, error } = await supabase
+    .from('alternative_sources')
+    .insert({
+      title: input.title,
+      content: input.content,
+      source_type: input.source_type ?? null,
+      source_author: input.source_author ?? null,
+      url: input.url ?? null,
+      notes: input.notes ?? null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as AlternativeSource;
+}
+
+export async function deleteAlternativeSource(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('alternative_sources')
     .delete()
     .eq('id', id);
   if (error) throw error;
