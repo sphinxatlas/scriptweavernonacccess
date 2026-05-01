@@ -387,6 +387,46 @@ export default function AngleLab() {
               />
             </div>
 
+            {/* Secondary source selectors */}
+            <div className="pt-3 border-t border-border space-y-3">
+              <h3 className="font-mono text-xs font-semibold text-foreground">
+                Secondary sources (optional)
+              </h3>
+              <div>
+                <Label className="text-xs text-muted-foreground">Format References</Label>
+                <MultiSelectChips
+                  options={formatOptions}
+                  selected={selectedFormatIds}
+                  onChange={setSelectedFormatIds}
+                  placeholder="Select format references…"
+                  emptyText="No format references yet."
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">HP Topic Transcripts</Label>
+                <MultiSelectChips
+                  options={topicOptions}
+                  selected={selectedTopicIds}
+                  onChange={setSelectedTopicIds}
+                  placeholder="Select HP topic transcripts…"
+                  emptyText="No HP topic transcripts yet."
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Alternative Sources</Label>
+                <MultiSelectChips
+                  options={altOptions}
+                  selected={selectedAltIds}
+                  onChange={setSelectedAltIds}
+                  placeholder="Select alternative sources…"
+                  emptyText="No alternative sources yet."
+                />
+                <p className="text-[11px] text-muted-foreground/70 mt-1">
+                  Non-canon. Used for fandom signals, humor, audience language, and angle inspiration only.
+                </p>
+              </div>
+            </div>
+
             {/* Niche Transfer mode */}
             <div className="pt-3 border-t border-border space-y-3">
               <div className="flex items-center justify-between gap-2">
