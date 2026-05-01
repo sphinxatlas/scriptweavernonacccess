@@ -11,6 +11,7 @@ function getModelForStep(stepType: string) {
     [
       "creative_brief",
       "six_category_extraction",
+      "selected_source_analysis",
       "analysis_memo",
       "outline",
       "full_script",
@@ -749,9 +750,65 @@ For each angle:
 - What should the creator know is unverified?
 `;
 
+STEP_PROMPTS["selected_source_analysis"] = `You are a senior research strategist for a Harry Potter YouTube channel.
+
+Your job is to analyze ONLY the secondary sources that the creator specifically selected for this Topic Brief — selected HP topic transcripts (other creators' videos on this topic) and selected Alternative Sources (Reddit threads, comments, forum posts, blog posts, wiki pages, articles, notes). You are the SECONDARY interpretive layer that runs AFTER the canon-first Insights & Research step.
+
+ABSOLUTE RULES — READ CAREFULLY:
+
+1. You are NOT the canon evidence layer. The Insights & Research step already mined the books, movie transcripts, and lexicon. Do not re-do that work. Do not invent canon. Do not promote a transcript's claim as confirmed fact.
+
+2. SECONDARY SOURCES ARE NOT PROOF. Selected HP topic transcripts and Alternative Sources are AUDIENCE INTELLIGENCE and INTERPRETIVE INPUT only. They reveal what the fandom is debating, what's been overdone, what objections exist, and what framings are unexplored. They do NOT confirm canon facts. Any factual claim sourced from them must be flagged "needs canon validation".
+
+3. ORIGINALITY IS THE POINT. Do not summarize the selected transcripts. Do not paraphrase their arguments closely. Do not copy creator phrasings, jokes, transitions, examples, structures, or conclusions. Your job is to help Melty AVOID sounding like a remix of these creators.
+
+4. FORMAT REFERENCE VIDEOS (if any appear in context) are STRUCTURE-ONLY references. Never treat their Harry Potter content as factual evidence and never extract HP claims from them.
+
+5. If NO selected HP topic transcripts and NO selected Alternative Sources are attached, complete gracefully: state plainly that no selected secondary sources were provided, and produce a minimal analysis based on the Creative Brief and Insights & Research only. Do not block the pipeline. Do not invent fan signals.
+
+OUTPUT FORMAT — produce this exact structure in markdown:
+
+# Selected Source Analysis
+
+## 1. Recurring Signals
+The strongest recurring ideas, framings, or claims that show up across multiple selected sources. Bullet list. For each signal, briefly note which sources surfaced it (by title/channel/source name).
+
+## 2. Overused Angles to Avoid
+Specific claims, jokes, framings, or conclusions that feel too common, too obvious, or already done by these creators. Bullet list. Be specific — name the angle, do not just say "it's been done".
+
+## 3. Underdeveloped Opportunities
+Ideas the selected sources touch on but never fully exploit, escalate, or land. Bullet list with a one-sentence note on what the opportunity actually is.
+
+## 4. Audience Objections
+Objections, counterarguments, "well actually" pushback, or fan disagreements the final script should anticipate. Bullet list. Pull from comment-style alternative sources where available.
+
+## 5. Canon Validation Needed
+Claims surfaced by selected sources that sound interesting but MUST be checked against books or movie transcripts before use. Bullet list. Tag each as: [book check] / [movie transcript check] / [either].
+
+## 6. Original Synthesis Opportunities
+New conclusions or angles that emerge ONLY when the selected source signals are pressure-tested against the Insights & Research output (canon extraction). Bullet list. Each item must combine a fan/audience signal with a specific canon detail from Insights & Research and produce a non-obvious reading.
+
+## 7. Recommended Use in Evidence Table
+Candidate claims or evidence routes for the Evidence Table to consider. Bullet list. Each item MUST be labeled with one of:
+- [Canon-supported] — already confirmed by Insights & Research / canon
+- [Needs validation] — interesting but unverified against primary canon
+- [Theory / interpretation] — defensible reading, not provable
+- [Audience signal only] — useful framing or objection, not a factual claim
+
+## 8. Recommended Use in Outline and Full Script
+Concrete guidance on how this should shape: structure, pacing, re-hooks, escalation, emotional arc, audience objection handling, and final payoff. Bullet list. Be specific to this brief, not generic.
+
+## 9. Do-Not-Copy Notes
+Specific phrases, jokes, transitions, structures, conclusions, or examples from the selected sources that the script should NOT imitate. Bullet list. Quote the imitable element briefly so downstream steps can recognize and avoid it.
+
+SOURCE HIERARCHY REMINDER:
+Books and movie transcripts are Tier 1 canon. Lexicon is secondary reference. Permanent commentary transcripts and the selected secondary sources are interpretive only. Your output flows into the Evidence Table, Outline, and Full Script — those steps will treat your candidate claims as leads to validate, NOT as final proof.
+`;
+
 const STEP_ORDER = [
   "creative_brief",
   "six_category_extraction",
+  "selected_source_analysis",
   "evidence_table",
   "analysis_memo",
   "outline",
@@ -1634,6 +1691,29 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
       systemPrompt += `\n\nANTI AI LANGUAGE GUIDE (MANDATORY — apply these rules strictly):\n- Avoid common AI phrases, templated intros, and AI word clusters described below\n- Avoid over-tidy signposting, repetitive triads, and generic CTAs\n- Do not use em dashes heavily\n- Keep wording natural and voiceover-friendly\n- The final script must sound human, original, and not trigger obvious AI detection signals\n\nAnti AI Language Guide content:\n${antiAiContext}`;
     }
 
+    // Originality safeguard — when the Selected Source Analysis output is in the
+    // upstream context for outline / full_script / evidence_table, the model must
+    // treat secondary-source signals as audience intelligence, NOT as canon proof,
+    // and must silently self-check for over-reliance on selected transcripts.
+    if (["evidence_table", "outline", "full_script"].includes(stepType)) {
+      systemPrompt += `\n\nORIGINALITY SAFEGUARD (MANDATORY):
+If a Selected Source Analysis output appears in the previous pipeline context, treat it as AUDIENCE INTELLIGENCE only — recurring fan signals, overused angles to avoid, audience objections to address, candidate claims to validate, and original synthesis opportunities.
+
+Rules:
+- Do NOT copy or closely paraphrase claims, jokes, transitions, structures, or conclusions from the selected HP topic transcripts or Alternative Sources.
+- Do NOT promote any "candidate claim" or "needs validation" item from the Selected Source Analysis to a confirmed factual claim unless it is independently supported by Tier 1 canon (books / movie transcripts) in the retrieved Source Material Excerpts.
+- DO use the Selected Source Analysis to: avoid overdone angles, address likely audience objections, sharpen escalation, strengthen re-hooks, and produce a more original Melty-driven final argument.
+- Honour the "Do-Not-Copy Notes" section of the Selected Source Analysis if present.
+
+Before finalizing your output, silently self-check:
+1. Am I repeating a secondary source's exact argument too closely?
+2. Am I reusing their joke, phrase, structure, or conclusion?
+3. Is my conclusion an original synthesis grounded in the canon extraction (Insights & Research / Evidence Table)?
+4. Does this feel like Melty's original take, not a remix of other creators?
+5. Are selected sources being used as audience intelligence rather than as substituted substance?
+If any answer reveals overreliance, revise toward a more original, canon-grounded argument before producing the final output. Do not mention this self-check in the output.`;
+    }
+
     // Add comparison mode instruction if enabled
     if (brief.comparison_mode) {
       systemPrompt = COMPARISON_MODE_INSTRUCTION + "\n\n" + systemPrompt;
@@ -1727,7 +1807,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     // evidence_table, outline, and full_script (creative_brief and
     // six_category_extraction handle them on their own branches).
     const topicTranscriptUserBlock =
-      ["evidence_table", "outline", "full_script"].includes(stepType) && topicTranscripts.length > 0
+      ["evidence_table", "outline", "full_script", "selected_source_analysis"].includes(stepType) && topicTranscripts.length > 0
         ? `\n\n## Brief-Specific HP Topic Transcripts (THEORY, ANGLE, AND RESEARCH LEADS — not Tier 1 canon)\nTreat these as theory/angle/interpretation input. Factual canon claims still require Tier 1 book or movie transcript support. Theories may be used if plausible, coherent, and not obviously contradicted by canon. Frame theories honestly as theories.\n\n` +
           truncateTopicTranscripts(topicTranscripts)
             .map((r: any) => `### "${r.video_title}" by ${r.channel_name}\n${r.transcript}`)
@@ -1735,11 +1815,53 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
         : "";
 
     const altSourceUserBlock =
-      ["evidence_table", "outline", "full_script", "six_category_extraction"].includes(stepType)
+      ["evidence_table", "outline", "full_script", "six_category_extraction", "selected_source_analysis"].includes(stepType)
         ? formatAlternativeSourcesBlock("Alternative Sources")
         : "";
 
-    if (stepType === "six_category_extraction") {
+    if (stepType === "selected_source_analysis") {
+      // Pull the Creative Brief and Insights & Research outputs as upstream context.
+      const { data: cbOut } = await supabase
+        .from("pipeline_outputs")
+        .select("content")
+        .eq("brief_id", briefId)
+        .eq("step_type", "creative_brief")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const { data: insightsOut } = await supabase
+        .from("pipeline_outputs")
+        .select("content")
+        .eq("brief_id", briefId)
+        .eq("step_type", "six_category_extraction")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const creativeBriefContent = cbOut?.content || "";
+      const insightsContent = insightsOut?.content || "";
+      const hasSelectedSecondary = topicTranscripts.length > 0 || alternativeSources.length > 0;
+
+      systemPromptFinal = STEP_PROMPTS["selected_source_analysis"];
+
+      userMessage = `## Topic Brief
+Title: ${brief.title}
+Description: ${brief.description || ""}
+Angle: ${brief.angle_note || ""}
+Tone: ${brief.tone || ""}
+Thesis: ${brief.thesis || ""}
+
+## Creative Brief Output
+${creativeBriefContent || "(Creative Brief not yet generated — proceed using Topic Brief only.)"}
+
+## Insights & Research Output (canon-first extraction — your primary upstream context)
+${insightsContent || "(Insights & Research not yet generated — proceed cautiously and flag canon gaps.)"}
+
+${hasSelectedSecondary ? "## Selected Secondary Sources (analyze ONLY these)" : "## Selected Secondary Sources\n(None attached. Produce a minimal graceful analysis based on the Creative Brief and Insights & Research only — do not invent fan signals.)"}
+${topicTranscriptUserBlock}${altSourceUserBlock}
+
+Now produce the Selected Source Analysis in the exact format specified. Be honest about source weight — never promote a secondary-source claim to canon. Surface what's overused, what's underdeveloped, what objections exist, and where original synthesis is possible against the canon extraction above.`;
+    } else if (stepType === "six_category_extraction") {
       // Get creative brief output
       const { data: creativeBriefOutput } = await supabase
         .from("pipeline_outputs")
