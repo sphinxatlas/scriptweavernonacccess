@@ -1188,7 +1188,7 @@ ${brief.angle_note || brief.description || "(No angle note provided)"}
 ${formatRefBlock}
 
 ## Brief-Specific HP Topic Transcripts (research leads — confirm all claims in primary canon)
-${topicTranscriptBlock}
+${topicTranscriptBlock}${formatAlternativeSourcesBlock("Alternative Sources")}
 
 Generate the Creative Brief now.`;
 
