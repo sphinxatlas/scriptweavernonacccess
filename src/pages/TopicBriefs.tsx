@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { MultiSelectChips, type MultiSelectOption } from "@/components/MultiSelectChips";
 import {
   getTopicBriefs,
   createTopicBrief,
@@ -20,10 +21,12 @@ import {
   saveFormatReferenceTranscript,
   getBriefTopicTranscripts,
   saveBriefTopicTranscript,
+  getAlternativeSources,
   linkFormatReferencesToBrief,
   linkTopicTranscriptsToBrief,
+  linkAlternativeSourcesToBrief,
 } from "@/lib/api";
-import { Plus, Trash2, ArrowRight, FileText, GitCompare, Clock, X, Copy } from "lucide-react";
+import { Plus, Trash2, ArrowRight, FileText, GitCompare, Clock, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -122,6 +125,7 @@ export default function TopicBriefs() {
 
   const [selectedFormatIds, setSelectedFormatIds] = useState<string[]>([]);
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
+  const [selectedAltIds, setSelectedAltIds] = useState<string[]>([]);
   const [showFormatAdd, setShowFormatAdd] = useState(false);
   const [showTopicAdd, setShowTopicAdd] = useState(false);
 
@@ -137,6 +141,10 @@ export default function TopicBriefs() {
     queryKey: ["topic-transcripts"],
     queryFn: getBriefTopicTranscripts,
   });
+  const { data: alternativeSources = [] } = useQuery({
+    queryKey: ["alternative-sources"],
+    queryFn: getAlternativeSources,
+  });
 
   const updateForm = (key: keyof CreateBriefInput, value: any) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -145,6 +153,7 @@ export default function TopicBriefs() {
     setForm(blankForm());
     setSelectedFormatIds([]);
     setSelectedTopicIds([]);
+    setSelectedAltIds([]);
     setShowFormatAdd(false);
     setShowTopicAdd(false);
   };
@@ -162,6 +171,10 @@ export default function TopicBriefs() {
       toast.error("At least one format reference video is required");
       return;
     }
+    if (selectedFormatIds.length > 2) {
+      toast.error("Maximum 2 format reference videos");
+      return;
+    }
     setCreating(true);
     try {
       const created = await createTopicBrief({
@@ -171,6 +184,7 @@ export default function TopicBriefs() {
       });
       await linkFormatReferencesToBrief(created.id, selectedFormatIds);
       await linkTopicTranscriptsToBrief(created.id, selectedTopicIds);
+      await linkAlternativeSourcesToBrief(created.id, selectedAltIds);
       toast.success("Brief created");
       resetForm();
       setShowForm(false);
