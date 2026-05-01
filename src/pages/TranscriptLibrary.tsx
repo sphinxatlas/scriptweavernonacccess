@@ -14,6 +14,9 @@ import {
   getBriefTopicTranscripts,
   saveBriefTopicTranscript,
   deleteBriefTopicTranscript,
+  getAlternativeSources,
+  saveAlternativeSource,
+  deleteAlternativeSource,
 } from "@/lib/api";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -196,9 +199,10 @@ export default function TranscriptLibrary() {
     <Layout>
       <div className="p-8 max-w-5xl">
         <div className="mb-6">
-          <h1 className="text-2xl font-mono font-bold text-foreground mb-2">Transcript Library</h1>
+          <h1 className="text-2xl font-mono font-bold text-foreground mb-2">Secondary Source Library</h1>
           <p className="text-sm text-muted-foreground">
-            Reusable transcripts for briefs. Format references shape structure; HP topic transcripts feed research.
+            Reusable secondary sources for angle research, creative transfer, and topic briefs.
+            Canon still comes from the main Source Library.
           </p>
         </div>
 
@@ -206,12 +210,16 @@ export default function TranscriptLibrary() {
           <TabsList>
             <TabsTrigger value="format">Format References</TabsTrigger>
             <TabsTrigger value="topic">HP Topic Transcripts</TabsTrigger>
+            <TabsTrigger value="alternative">Alternative Sources</TabsTrigger>
           </TabsList>
           <TabsContent value="format" className="mt-6">
             <TranscriptSection section="format" />
           </TabsContent>
           <TabsContent value="topic" className="mt-6">
             <TranscriptSection section="topic" />
+          </TabsContent>
+          <TabsContent value="alternative" className="mt-6">
+            <AlternativeSourcesSection />
           </TabsContent>
         </Tabs>
       </div>
