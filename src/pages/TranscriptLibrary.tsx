@@ -194,13 +194,227 @@ function TranscriptSection({ section }: { section: Section }) {
   );
 }
 
-export default function TranscriptLibrary() {
+function AlternativeSourcesSection() {
+  const [showForm, setShowForm] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [title, setTitle] = useState("");
+  const [sourceType, setSourceType] = useState("");
+  const [sourceAuthor, setSourceAuthor] = useState("");
+  const [url, setUrl] = useState("");
+  const [content, setContent] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const { data: items = [], refetch } = useQuery({
+    queryKey: ["alternative-sources"],
+    queryFn: getAlternativeSources,
+  });
+
+  const reset = () => {
+    setTitle("");
+    setSourceType("");
+    setSourceAuthor("");
+    setUrl("");
+    setContent("");
+    setNotes("");
+  };
+
+  const handleSave = async () => {
+    if (!title.trim() || !content.trim()) {
+      toast.error("Title and pasted text are required");
+      return;
+    }
+    setBusy(true);
+    try {
+      await saveAlternativeSource({
+        title: title.trim(),
+        content: content.trim(),
+        source_type: sourceType.trim() || null,
+        source_author: sourceAuthor.trim() || null,
+        url: url.trim() || null,
+        notes: notes.trim() || null,
+      });
+      toast.success("Alternative source saved");
+      reset();
+      setShowForm(false);
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteAlternativeSource(id);
+      toast.success("Deleted");
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete");
+    }
+  };
+
   return (
-    <TranscriptLibraryInner />
+    <div>
+      <p className="text-xs text-muted-foreground mb-4">
+        Paste any non-canon source text here, such as Reddit threads, YouTube comments, blogs,
+        forums, websites, meme research, or fan discussions. These sources help with audience
+        insight, humor, fandom language, and angle inspiration. They are not treated as canon.
+      </p>
+
+      {!showForm && (
+        <Button onClick={() => setShowForm(true)} size="sm" className="gap-1.5 mb-4">
+          <Plus className="w-3.5 h-3.5" />
+          Add Alternative Source
+        </Button>
+      )}
+
+      {showForm && (
+        <div className="border border-primary/30 rounded-lg p-4 mb-4 bg-card space-y-3">
+          <div>
+            <Label className="text-xs text-muted-foreground">
+              Source title <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder='e.g., "r/HarryPotter — Snape redemption mega thread"'
+              className="bg-secondary border-border mt-1"
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">Source type (optional)</Label>
+              <Input
+                value={sourceType}
+                onChange={(e) => setSourceType(e.target.value)}
+                placeholder="Reddit thread, YouTube comments, Blog post, Forum, Fan notes…"
+                className="bg-secondary border-border mt-1"
+                list="alt-source-types"
+              />
+              <datalist id="alt-source-types">
+                <option value="Reddit thread" />
+                <option value="YouTube comments" />
+                <option value="Blog post" />
+                <option value="Website" />
+                <option value="Forum" />
+                <option value="Fan notes" />
+                <option value="Meme research" />
+                <option value="Other" />
+              </datalist>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">
+                Source / author / platform (optional)
+              </Label>
+              <Input
+                value={sourceAuthor}
+                onChange={(e) => setSourceAuthor(e.target.value)}
+                placeholder="Reddit, MuggleNet, Tumblr, personal notes…"
+                className="bg-secondary border-border mt-1"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">URL (optional)</Label>
+            <Input
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://…"
+              className="bg-secondary border-border mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">
+              Pasted text content <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Paste the thread, comments, post, or notes here…"
+              rows={10}
+              className="bg-secondary border-border resize-none mt-1 text-xs font-mono"
+            />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Notes / use case (optional)</Label>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder='e.g., "Use for fandom humor and inside jokes, not canon evidence."'
+              rows={2}
+              className="bg-secondary border-border resize-none mt-1 text-xs"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                reset();
+                setShowForm(false);
+              }}
+              disabled={busy}
+            >
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={busy}>
+              {busy ? "Saving..." : "Save Alternative Source"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {items.length === 0 ? (
+        <div className="border border-dashed border-border rounded-lg p-8 text-center text-sm text-muted-foreground">
+          No alternative sources saved yet.
+        </div>
+      ) : (
+        <div className="border border-border rounded-lg overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Source</TableHead>
+                <TableHead>Date Added</TableHead>
+                <TableHead className="w-16"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">{item.title}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {item.source_type || "—"}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {item.source_author || "—"}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {new Date(item.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-destructive"
+                      onClick={() => handleDelete(item.id)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
   );
 }
 
-function TranscriptLibraryInner() {
+export default function TranscriptLibrary() {
   return (
     <Layout>
       <div className="p-8 max-w-5xl">
