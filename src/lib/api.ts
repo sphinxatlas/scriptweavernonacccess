@@ -381,6 +381,9 @@ export async function streamAngleLab(
     notes?: string;
     nicheTranscript?: string;
     nicheContext?: string;
+    formatReferenceIds?: string[];
+    topicTranscriptIds?: string[];
+    alternativeSourceIds?: string[];
   },
   onDelta: (text: string) => void,
   onDone: () => void,
