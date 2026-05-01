@@ -11,6 +11,7 @@ function getModelForStep(stepType: string) {
     [
       "creative_brief",
       "six_category_extraction",
+      "selected_source_analysis",
       "analysis_memo",
       "outline",
       "full_script",
@@ -752,6 +753,7 @@ For each angle:
 const STEP_ORDER = [
   "creative_brief",
   "six_category_extraction",
+  "selected_source_analysis",
   "evidence_table",
   "analysis_memo",
   "outline",
