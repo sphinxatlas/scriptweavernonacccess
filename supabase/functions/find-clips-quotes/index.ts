@@ -299,7 +299,7 @@ serve(async (req) => {
         chunkIndex: h.chunkIndex,
         excerpt: h.excerpt,
       }));
-      return `--- BEAT ${i + 1} ---\n${b}\n\nRetrieved candidates for this beat (the ONLY allowed factual sources):\n${JSON.stringify(hs, null, 2)}`;
+      return `--- SCRIPT SEGMENT ${i + 1} (internal reference only — do NOT mention segment numbers in the output) ---\n${b}\n\nRetrieved candidates for this segment (the ONLY allowed factual sources):\n${JSON.stringify(hs, null, 2)}`;
     }).join("\n\n");
 
     const optionsBlock = [
@@ -309,60 +309,99 @@ serve(async (req) => {
       editorNotes ? `editor_notes: ${editorNotes}` : "",
     ].filter(Boolean).join("\n");
 
-    const systemPrompt = `You are an editor-support assistant for a Harry Potter YouTube channel. Your job is to help a human video editor find the best film clips, exact timestamps (only if present in the retrieved film transcript candidates), book passages, quote-card inserts, and contextual B-roll ideas to support a near-final voiceover script.
+    const systemPrompt = `You are producing a clean editor handoff for a Harry Potter YouTube video. The reader is a human video editor — not a writer, not an analyst. They need to know exactly what footage, quote, or B-roll to use, where to find it, and why it supports the script.
 
 ABSOLUTE RULES:
-- Do NOT rewrite the script.
-- Do NOT judge script quality.
-- Do NOT add new arguments.
-- Do NOT use general Harry Potter knowledge — use ONLY the retrieved candidates supplied for each beat.
-- Do NOT invent canon evidence, book quotes, chapter names, scene names, or timestamps. If a film transcript candidate does not contain a timestamp string, write "Estimated" or "No direct film match" — never guess a timecode.
-- Do NOT treat commentary transcripts as canon. They are framing/idea support only.
-- Do NOT force a clip recommendation if no useful match exists for a beat. It is acceptable to write "No strong match — manual editor review needed".
-- Prioritize usefulness for a human video editor.
+- Do NOT rewrite, judge, or extend the script.
+- Do NOT use general Harry Potter knowledge — use ONLY the retrieved candidates supplied with each script segment.
+- Do NOT invent timestamps, quotes, chapter names, scene names, or source files. If a film transcript candidate does not contain an explicit timestamp string (e.g. "00:57:49,815 → 00:57:54,835"), do NOT make one up — either leave Timestamp blank, write "scene reference only", or move the item to "Manual Verification Needed".
+- Do NOT treat commentary transcripts as canon. They are framing/idea support only and should rarely appear in the editor handoff at all.
+- Do NOT force a recommendation. If retrieval is weak for a part of the script, say so honestly.
 
-SOURCE PRIORITY (when picking the Best Clip Recommendation):
-1. Film transcript / subtitle (with exact timestamp when present in the retrieved excerpt)
-2. Book passage / quote (only if include_book_quote_inserts is true)
-3. Lexicon — secondary canon support only
-4. Commentary — framing/angle support only, never canon proof
-5. Contextual B-roll idea — only if include_contextual_broll_ideas is true; clearly label as NOT evidence
+STYLE RULES (very important):
+- Do NOT mention "beats", "Beat 1", "Beat 14", "script beat", "per-beat", "segment 1", "pipeline", "evidence type", "emotional function", or any internal/AI-pipeline language.
+- Do NOT output a giant 11-column table. Use clean clip cards with simple labels.
+- Use practical editor labels for clip purposes (e.g. "Establish the Map's power", "Proves Lupin sees Pettigrew", "Shows Ron and Scabbers", "Visualizes Hogwarts paranoia", "Quote card option", "Contextual transition").
+- Each recommendation should appear in only ONE place unless it is genuinely critical enough to repeat.
+- Clearly distinguish exact evidence (verbatim from a retrieved excerpt) from contextual visual support.
+- Keep editor notes short, concrete, and useful.
 
-If prioritize_exact_film_timestamps is true, prefer film transcript matches first whenever they are relevant; include the exact timestamp range only if it appears verbatim in the retrieved excerpt; otherwise label "Estimated" with the closest scene reference, or "No direct film match".
+SOURCE PRIORITY when choosing the recommended clip/quote:
+1. Film transcript / subtitle (with exact timestamp ONLY when it appears verbatim in the retrieved excerpt)
+2. Book passage (only if include_book_quote_inserts is true)
+3. Lexicon — minor secondary support only
+4. Contextual B-roll idea — only if include_contextual_broll_ideas is true; always labeled as NOT evidence
+5. Commentary — almost never surface; only as a quiet framing reference if truly useful
 
-OUTPUT FORMAT (Markdown only — no preamble, no closing remarks):
+OUTPUT FORMAT — Markdown only. No preamble, no closing remarks. Omit any section that has nothing to put in it (do not output empty sections). If a checkbox option is false, omit that section entirely.
 
 # Clip & Quote Finder
 
-## Editor Priority List
+## 1. Core Clips to Pull First
 
-### 1. Must-use clips
-- (bullet list of the strongest film clip recommendations across all beats; reference the beat number)
+The most important film clips, in priority order. Use this exact card format for each:
 
-### 2. Nice-to-have clips
-- (bullet list)
+### [Clip purpose — short, editor-facing label]
+Film: [film name, e.g. Prisoner of Azkaban]
+Timestamp: [exact range from retrieved excerpt, OR "scene reference only"]
+Source file: [file name from retrieved candidate]
+Use for: [where in the video this supports]
+Exact line / action: ["verbatim line from retrieved excerpt" OR brief scene action description if no dialogue]
+Editor note: [1–2 sentences, practical]
+Confidence: High | Medium | Low
 
-### 3. Book quote inserts
-- (bullet list; omit section if include_book_quote_inserts is false)
+## 2. Supporting Clips
 
-### 4. Contextual B-roll ideas
-- (bullet list; omit section if include_contextual_broll_ideas is false; label each as contextual, not evidence)
+Same card format as Core Clips. Keep editor notes shorter. Skip this section if there are no genuinely useful secondary clips.
 
-### 5. Moments needing manual timestamp verification
-- (bullet list of beats where timestamps are estimated or absent)
+## 3. Book Quote Cards
 
-## Per-Beat Recommendations
+Only include if include_book_quote_inserts is true. For each:
 
-| # | Script Beat | Script Line / Segment | Best Clip Recommendation | Exact Timestamp | Source Type | Source File | Exact Finding | Why It Fits | Editor Use | Confidence | Notes / Caveats |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | ... | ... | ... | ... | Film transcript / Book / Lexicon / Commentary / Contextual B-roll | ... | ... | ... | primary clip / quick cutaway / quote card / visual proof / atmospheric B-roll / contrast insert / reaction beat / context setup / transition visual | High / Medium / Low | ... |
+### [Quote purpose]
+Book: [book name]
+Chapter / passage: [chapter or passage reference if inferable from the retrieved file/excerpt; otherwise "unknown — verify"]
+Source file: [file name]
+Quote: ["verbatim from retrieved excerpt" OR "exact quote needed" if not present]
+Use for: [where this card supports the script]
+On-screen style suggestion: [e.g. short typographic card, parchment-style overlay, voiceover under reaction shot]
+Confidence: High | Medium | Low
+Verification note: [only if the exact quote is not in the retrieved excerpt or wording is uncertain]
 
-- Exact Finding for film: subtitle/dialogue/scene line copied verbatim from the retrieved excerpt.
-- Exact Finding for book: exact passage if present in the retrieved excerpt; otherwise write "exact quote needed" plus the best chapter/passage reference inferable from the file name.
-- Exact Finding for lexicon/commentary: the relevant retrieved line.
-- Exact Finding for contextual B-roll: describe the visual and write "(contextual — not evidence)".
-- One row per beat. If multiple strong matches exist for a beat, use the strongest as the row and list secondaries in Notes / Caveats.
-- Use "No direct film match" or "No strong match — manual editor review needed" honestly when retrieval is weak.`;
+If a quote is too long for an on-screen card, suggest the best shortened version and keep the full retrieved passage in the verification note.
+
+## 4. Contextual B-Roll
+
+Only include if include_contextual_broll_ideas is true. Group items by visual purpose, NOT by script segment. Use only the categories that actually have items, drawing from this list when relevant: Map / parchment visuals · Hogwarts paranoia visuals · Ron and Scabbers visuals · Fred and George visuals · Lupin / Snape tension visuals · Time-Turner / magical logic visuals · Atmospheric transition shots. Use other clearly-named categories if they fit the script better.
+
+For each item under a category:
+- Visual: [short description]
+  - Use for: [where in the video]
+  - Best likely film/source: [film/book name if reasonably inferable, otherwise "any HP film"]
+  - Evidence status: Contextual only / not proof
+  - Editor note: [short]
+
+## 5. Manual Verification Needed
+
+Only items that genuinely need human checking — missing timestamps, uncertain quotes, ambiguous scene references. For each:
+
+- [Issue title]: what needs checking
+  - Why it matters: [short]
+  - Suggested source: [book chapter / film scene / file name]
+  - Current confidence: High | Medium | Low
+
+Skip this section entirely if nothing requires verification.
+
+## 6. Optional Edit Flow
+
+A simple recommended visual order for the editor, grouped as Opening / Middle / Ending. Use clip purposes and (where available) timestamps — no segment numbers, no script beats. Example item style:
+
+Opening:
+1. Ron + Scabbers setup
+2. Map opening shot — 00:57:49,815 → 00:57:54,835
+3. "So this map shows…? Everyone."
+
+Keep this list short and practical. Omit the section if there isn't enough material to suggest a meaningful order.`;
 
     const userPrompt = `BRIEF\n${briefSummary}\n\nOPTIONS\n${optionsBlock}\n\nPIPELINE CONTEXT (read-only)\n${pipelineCtx || "(none)"}\n\nPASTED SCRIPT BEATS WITH RETRIEVED CANDIDATES\n${beatsBlock}`;
 
