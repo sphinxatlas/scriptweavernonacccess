@@ -1896,6 +1896,10 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
       const hasSelectedSecondary = topicTranscripts.length > 0 || alternativeSources.length > 0;
 
       systemPromptFinal = STEP_PROMPTS["selected_source_analysis"];
+      if (instructionContext) {
+        systemPromptFinal += `\n\n${MASTER_GUIDE_FRAMING_HEADER}${instructionContext}`;
+      }
+      systemPromptFinal += PRECEDENCE_LADDER;
 
       userMessage = `## Topic Brief
 Title: ${brief.title}
@@ -1935,6 +1939,10 @@ Now produce the Selected Source Analysis in the exact format specified. Be hones
 
       systemPromptFinal = STEP_PROMPTS["six_category_extraction"]
         .replace("{{HOST_PERSONA}}", hostPersonaContext || "No host persona uploaded.");
+      if (instructionContext) {
+        systemPromptFinal += `\n\n${MASTER_GUIDE_FRAMING_HEADER}${instructionContext}`;
+      }
+      systemPromptFinal += PRECEDENCE_LADDER;
 
       userMessage = `## Creative Brief
 ${creativeBriefContent || `Title: ${brief.title}\nAngle: ${brief.angle_note || brief.description || ""}`}
@@ -1949,6 +1957,17 @@ ${sourceContext}
 
 Mine all six categories now. Rank everything by surprise value, specificity, and argument usefulness. Be precise about sources.`;
     } else {
+      // Generic generation step (e.g. evidence_table, analysis_memo, outline,
+      // full_script). Promote the Master Guide into the system prompt with the
+      // appropriate framing for non-script analytical steps. (Outline and
+      // Full Script already received the HIGHEST PRIORITY injection above as
+      // part of `isScriptStep`, so we only inject framing here for steps that
+      // didn't receive it yet.)
+      if (!isScriptStep && instructionContext) {
+        systemPromptFinal += `\n\n${MASTER_GUIDE_FRAMING_HEADER}${instructionContext}`;
+        systemPromptFinal += PRECEDENCE_LADDER;
+      }
+
       userMessage = `## Topic Brief
 ${briefContext}
 
