@@ -835,3 +835,51 @@ export async function streamImproveScript(
 
   onDone();
 }
+
+// ── Source intelligence (char/token metadata + strength label) ──
+export type ScriptStrength = 'strong' | 'useful' | 'limited';
+
+export type SourceStrengthTable =
+  | 'brief_topic_transcripts'
+  | 'alternative_sources'
+  | 'source_files';
+
+export function formatSourceMeta(
+  charCount: number | null | undefined,
+  estimatedTokens: number | null | undefined,
+  scriptStrength: ScriptStrength | null | undefined,
+): string {
+  const chars = typeof charCount === 'number' ? charCount : 0;
+  const tokens = typeof estimatedTokens === 'number'
+    ? estimatedTokens
+    : Math.max(1, Math.round(chars / 4));
+  const fmtChars = chars >= 1000
+    ? `${(chars / 1000).toFixed(chars >= 10000 ? 0 : 1)}k chars`
+    : `${chars} chars`;
+  const fmtTokens = tokens >= 1000
+    ? `~${(tokens / 1000).toFixed(tokens >= 10000 ? 0 : 1)}k tokens`
+    : `~${tokens} tokens`;
+  const strengthLabel = scriptStrength
+    ? scriptStrength === 'strong'
+      ? 'Strong'
+      : scriptStrength === 'useful'
+      ? 'Useful'
+      : 'Limited'
+    : 'Not analyzed';
+  return `${fmtChars} · ${fmtTokens} · Script strength: ${strengthLabel}`;
+}
+
+export async function analyzeSourceStrength(
+  table: SourceStrengthTable,
+  id: string,
+): Promise<ScriptStrength> {
+  const response = await supabase.functions.invoke('analyze-source-strength', {
+    body: { table, id },
+  });
+  if (response.error) throw response.error;
+  const label = (response.data as any)?.script_strength;
+  if (label !== 'strong' && label !== 'useful' && label !== 'limited') {
+    throw new Error('Invalid response from analyzer');
+  }
+  return label;
+}
