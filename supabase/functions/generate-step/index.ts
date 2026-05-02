@@ -1157,53 +1157,111 @@ serve(async (req) => {
       .map((r: any) => r.alternative_sources)
       .filter(Boolean);
 
-    // Token-budget guard for alternative sources too.
-    const MAX_PER_ALT_CHARS = 8000;
-    const MAX_TOTAL_ALT_CHARS = 40000;
-    const formatAlternativeSourcesBlock = (label: string): string => {
+    // ─────────────────────────────────────────────────────────────────────
+    // SECONDARY SOURCE TOKEN BUDGETS
+    //
+    // We have TWO budget profiles:
+    //   1. SSA_PROFILE — used ONLY by selected_source_analysis. This is the
+    //      "deep interpretation gateway" step. We allow much more raw text
+    //      through here so the model can read selected HP topic transcripts
+    //      and Alternative Sources thoroughly. If material is still too
+    //      large, we add a visible truncation marker rather than silently
+    //      dropping content.
+    //   2. CREATIVE_BRIEF_PROFILE — used ONLY by creative_brief. Selected
+    //      secondaries are still useful here for early angle setup, but we
+    //      keep the budget moderate to avoid prompt overload.
+    //
+    // No other step (evidence_table, outline, full_script, revision,
+    // final pass) receives raw selected HP topic transcripts or raw
+    // Alternative Sources. They consume the Selected Source Analysis
+    // OUTPUT instead, via previousContext.
+    // ─────────────────────────────────────────────────────────────────────
+    type BudgetProfile = "ssa" | "creative_brief";
+    const TRANSCRIPT_BUDGETS: Record<BudgetProfile, { perItem: number; total: number }> = {
+      ssa:            { perItem: 60000, total: 280000 },
+      creative_brief: { perItem: 12000, total: 80000 },
+    };
+    const ALT_BUDGETS: Record<BudgetProfile, { perItem: number; total: number }> = {
+      ssa:            { perItem: 40000, total: 160000 },
+      creative_brief: { perItem: 8000,  total: 40000 },
+    };
+
+    // Visible warnings collected per request for log/observability.
+    const truncationWarnings: string[] = [];
+
+    const formatAlternativeSourcesBlock = (label: string, profile: BudgetProfile): string => {
       if (alternativeSources.length === 0) return "";
+      const { perItem, total: maxTotal } = ALT_BUDGETS[profile];
       let total = 0;
       const parts: string[] = [];
+      let skipped = 0;
       for (const s of alternativeSources) {
         const raw = (s.content || "").toString();
-        const capped = raw.length > MAX_PER_ALT_CHARS
-          ? raw.slice(0, MAX_PER_ALT_CHARS) + "\n\n[...source truncated for token budget...]"
-          : raw;
-        if (total + capped.length > MAX_TOTAL_ALT_CHARS) break;
+        let capped = raw;
+        if (raw.length > perItem) {
+          capped = raw.slice(0, perItem) +
+            `\n\n[!! ALT SOURCE TRUNCATED — read ${perItem} of ${raw.length} chars (profile=${profile}). Important material after this point was not included.]`;
+          truncationWarnings.push(`alt_source_per_item_truncated:${s.title}:${raw.length}->${perItem}`);
+        }
+        if (total + capped.length > maxTotal) {
+          skipped += 1;
+          continue;
+        }
         const meta = [s.source_type, s.source_author, s.url].filter(Boolean).join(" • ");
         parts.push(`### "${s.title}"${meta ? ` (${meta})` : ""}\n${capped}`);
         total += capped.length;
       }
       if (parts.length === 0) return "";
-      return `\n\n## ${label} (SECONDARY, NON-CANON)\nThese are pasted secondary sources such as Reddit threads, fan comments, wiki extracts, blog posts, or research notes. Use ONLY for fan debate signals, audience language, jokes, cultural references, angle inspiration, and supporting interpretation. NEVER treat as Tier 1 canon. Do NOT cite as primary evidence. All factual canon claims must still be supported by book/movie sources.\n\n${parts.join("\n\n---\n\n")}`;
+      let footer = "";
+      if (skipped > 0) {
+        const msg = `[!! ${skipped} alternative source(s) were NOT included because the bundle exceeded the ${maxTotal}-char budget for profile=${profile}.]`;
+        footer = `\n\n${msg}`;
+        truncationWarnings.push(`alt_sources_dropped:${skipped}:profile=${profile}`);
+      }
+      return `\n\n## ${label} (SECONDARY, NON-CANON)\nThese are pasted secondary sources such as Reddit threads, fan comments, wiki extracts, blog posts, or research notes. Use ONLY for fan debate signals, audience language, jokes, cultural references, angle inspiration, and supporting interpretation. NEVER treat as Tier 1 canon. Do NOT cite as primary evidence. All factual canon claims must still be supported by book/movie sources.\n\n${parts.join("\n\n---\n\n")}${footer}`;
     };
 
-    // Token-budget guard: HP topic transcripts can be 60k+ chars each. Inlining
-    // many of them alongside source excerpts and previous pipeline outputs blows
-    // past the AI gateway's 272k token input limit. Cap each transcript and the
-    // total combined size used in any single prompt.
-    const MAX_PER_TRANSCRIPT_CHARS = 12000;
-    const MAX_TOTAL_TRANSCRIPT_CHARS = 80000;
-    const truncateTopicTranscripts = (items: any[]): any[] => {
+    const truncateTopicTranscripts = (items: any[], profile: BudgetProfile): any[] => {
+      const { perItem, total: maxTotal } = TRANSCRIPT_BUDGETS[profile];
       let total = 0;
       const out: any[] = [];
+      let skipped = 0;
       for (const r of items) {
         const raw = (r.transcript || "").toString();
-        const perCap = raw.length > MAX_PER_TRANSCRIPT_CHARS
-          ? raw.slice(0, MAX_PER_TRANSCRIPT_CHARS) + "\n\n[...transcript truncated for token budget...]"
-          : raw;
-        if (total + perCap.length > MAX_TOTAL_TRANSCRIPT_CHARS) {
-          const remaining = Math.max(0, MAX_TOTAL_TRANSCRIPT_CHARS - total);
-          if (remaining > 500) {
-            out.push({ ...r, transcript: perCap.slice(0, remaining) + "\n\n[...transcript truncated for token budget...]" });
+        let perCap = raw;
+        if (raw.length > perItem) {
+          perCap = raw.slice(0, perItem) +
+            `\n\n[!! HP TOPIC TRANSCRIPT TRUNCATED — read ${perItem} of ${raw.length} chars (profile=${profile}). Material beyond this point was not included.]`;
+          truncationWarnings.push(`topic_transcript_per_item_truncated:${r.video_title}:${raw.length}->${perItem}`);
+        }
+        if (total + perCap.length > maxTotal) {
+          const remaining = Math.max(0, maxTotal - total);
+          if (remaining > 1000) {
+            const tail = perCap.slice(0, remaining) +
+              `\n\n[!! HP TOPIC TRANSCRIPT TRUNCATED at total budget — added ${remaining} of ${perCap.length} chars from this item (profile=${profile}).]`;
+            out.push({ ...r, transcript: tail });
             total += remaining;
+            truncationWarnings.push(`topic_transcript_total_budget_clip:${r.video_title}:profile=${profile}`);
+          } else {
+            skipped += 1;
           }
+          // Mark anything left as skipped
+          const idx = items.indexOf(r);
+          skipped += Math.max(0, items.length - idx - 1);
           break;
         }
         out.push({ ...r, transcript: perCap });
         total += perCap.length;
       }
+      if (skipped > 0) {
+        truncationWarnings.push(`topic_transcripts_dropped:${skipped}:profile=${profile}`);
+      }
       return out;
+    };
+
+    const buildSecondarySkippedNotice = (): string => {
+      if (truncationWarnings.length === 0) return "";
+      return `\n\n[CONTEXT TRUNCATION NOTICE]\n${truncationWarnings.map((w) => `- ${w}`).join("\n")}\n`;
     };
 
     // Special handling for competitor_format_analysis — uses pasted scripts only, no retrieval
@@ -1271,7 +1329,7 @@ serve(async (req) => {
         .join("\n\n---\n\n");
 
       const topicTranscriptBlock = topicTranscripts.length > 0
-        ? truncateTopicTranscripts(topicTranscripts)
+        ? truncateTopicTranscripts(topicTranscripts, "creative_brief")
             .map((r: any) => `### HP Topic Transcript: "${r.video_title}" by ${r.channel_name}\nUse for research leads and angle awareness. All claims must be confirmed in primary canon.\n\n${r.transcript}`)
             .join("\n\n---\n\n")
         : "No brief-specific HP topic transcripts provided for this brief.";
@@ -1299,7 +1357,7 @@ ${brief.angle_note || brief.description || "(No angle note provided)"}
 ${formatRefBlock}
 
 ## Brief-Specific HP Topic Transcripts (research leads — confirm all claims in primary canon)
-${topicTranscriptBlock}${formatAlternativeSourcesBlock("Alternative Sources")}
+${topicTranscriptBlock}${formatAlternativeSourcesBlock("Alternative Sources", "creative_brief")}${buildSecondarySkippedNotice()}
 
 Generate the Creative Brief now.`;
 
@@ -1327,6 +1385,112 @@ Generate the Creative Brief now.`;
       }
 
       return new Response(response.body, {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // FINAL VOICE PASS — EARLY EXIT (skip all retrieval and large source loading)
+    //
+    // Final Pass is a lightweight voice/pacing/rhythm polish on an existing
+    // full script. It must NOT trigger canon retrieval, query packs, source
+    // excerpt assembly, secondary source bundling, or previous-output
+    // concatenation. It only needs:
+    //   - the previous full script
+    //   - Topic Brief minimal fields
+    //   - Master Guide (writing constitution)
+    //   - Anti AI Guide
+    //   - Host Persona
+    //   - the FINAL VOICE PASS instructions
+    // ─────────────────────────────────────────────────────────────────────
+    if (stepType === "full_script" && finalVoicePass && !(typeof revisionFeedback === "string" && revisionFeedback.trim().length > 0)) {
+      // Load only the lean writing-guidance layers.
+      const masterGuideText = await loadMasterGuideContext();
+
+      const { data: antiAiFilesFP } = await supabase
+        .from("source_files")
+        .select("id")
+        .eq("file_type", "anti_ai_guide");
+      let antiAiTextFP = "";
+      if (antiAiFilesFP && antiAiFilesFP.length > 0) {
+        const { data } = await supabase
+          .from("file_chunks")
+          .select("content")
+          .in("file_id", antiAiFilesFP.map((f: any) => f.id))
+          .order("chunk_index")
+          .limit(20);
+        antiAiTextFP = (data || []).map((c: any) => c.content).join("\n\n");
+      }
+
+      // Pull previous Full Script if not provided by client.
+      let prevScriptFP = (previousFullScript || "").toString();
+      if (!prevScriptFP) {
+        const { data: prevOut } = await supabase
+          .from("pipeline_outputs")
+          .select("content")
+          .eq("brief_id", briefId)
+          .eq("step_type", "full_script")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        prevScriptFP = prevOut?.content || "";
+      }
+
+      let fpSystem = STEP_PROMPTS["full_script"]
+        .replace("{{HOST_PERSONA}}", hostPersonaContext || "No host persona uploaded.")
+        .replace("{{FULL_SCRIPT_LENGTH_INSTRUCTION}}",
+          `Preserve the original word count of the script you are polishing within ±10%.`);
+
+      if (masterGuideText) {
+        fpSystem += `\n\n${MASTER_GUIDE_HIGHEST_PRIORITY_HEADER}${masterGuideText}`;
+      }
+      fpSystem += PRECEDENCE_LADDER;
+      if (antiAiTextFP) {
+        fpSystem += `\n\nANTI AI LANGUAGE GUIDE (MANDATORY — apply these rules strictly):\n${antiAiTextFP}`;
+      }
+      fpSystem +=
+        `\n\nFINAL VOICE PASS MODE (BINDING):\n` +
+        `You are performing a FINAL VOICE PASS on an existing full script.\n` +
+        `This is not a full rewrite, not a research step, and not a new generation.\n` +
+        `- Preserve the existing argument, structure, section order, evidence, source tags, editor tags, and core canon claims.\n` +
+        `- Do NOT introduce new factual or canon claims. Do NOT re-research.\n` +
+        `- Reapply the Master Guide and Host Persona more strongly without making the voice feel forced.\n` +
+        `- Improve pacing, rhythm, transitions, re-hooks, clarity, and human delivery.\n` +
+        `- Remove generic AI phrasing, repetitive triads, flat transitions, and overly academic wording.\n` +
+        `- Keep the Lexicon mention ban and editor tag discipline intact.\n` +
+        `- Do NOT change the title promise or core thesis.\n` +
+        `- Output ONLY the revised full script. No preamble, no changelog, no diff.\n`;
+
+      const fpUser =
+        `## Topic Brief\nTitle: ${brief.title}\nAngle: ${brief.angle_note || brief.description || ""}\n\n` +
+        `## Current Full Script (this is what you are polishing — do not regenerate from sources)\n${prevScriptFP || "(No previous Full Script available.)"}\n\n` +
+        `## Final Voice Pass Task\nApply a light voice-and-pacing polish following the FINAL VOICE PASS MODE rules. Do not reload sources, evidence, or transcripts. Output ONLY the revised full script.`;
+
+      console.log("FINAL_PASS_LEAN_MODE: skipping retrieval, secondary sources, and previous pipeline outputs.");
+
+      const fpResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: getModelForStep("full_script"),
+          messages: [
+            { role: "system", content: fpSystem },
+            { role: "user", content: fpUser },
+          ],
+          stream: true,
+        }),
+      });
+
+      if (!fpResponse.ok) {
+        if (fpResponse.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (fpResponse.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        const t = await fpResponse.text();
+        throw new Error(`AI gateway error: ${fpResponse.status} ${t}`);
+      }
+      return new Response(fpResponse.body, {
         headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
       });
     }
@@ -1701,8 +1865,26 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
       ? antiAiChunks.map(c => c.content).join("\n\n")
       : "";
 
+    // Per-entry cap on previous pipeline outputs to prevent cumulative bloat
+    // in late steps (Outline, Full Script, Revision). The SSA output is the
+    // distilled gateway for selected secondary sources, so we let it through
+    // at full size. Other earlier outputs are capped with a visible marker.
+    const PREV_OUTPUT_CAP_DEFAULT = 8000;
+    const PREV_OUTPUT_CAP_LARGE = 20000; // SSA & Evidence Table can be longer
+    const capPreviousOutput = (stepName: string, content: string): string => {
+      const cap =
+        stepName === "selected_source_analysis" || stepName === "evidence_table"
+          ? PREV_OUTPUT_CAP_LARGE
+          : PREV_OUTPUT_CAP_DEFAULT;
+      if (content.length <= cap) return content;
+      truncationWarnings.push(`previous_output_capped:${stepName}:${content.length}->${cap}`);
+      return content.slice(0, cap) +
+        `\n\n[!! PREVIOUS OUTPUT TRUNCATED — kept ${cap} of ${content.length} chars from ${stepName} to control prompt size. Earlier sections preserved; tail dropped.]`;
+    };
     const previousContext = previousOutputs && previousOutputs.length > 0
-      ? previousOutputs.map((o: any) => `### ${o.step_type.replace(/_/g, " ").toUpperCase()}\n${o.content}`).join("\n\n")
+      ? previousOutputs
+          .map((o: any) => `### ${o.step_type.replace(/_/g, " ").toUpperCase()}\n${capPreviousOutput(o.step_type, o.content || "")}`)
+          .join("\n\n")
       : "";
 
     let systemPrompt = STEP_PROMPTS[stepType] || "You are a helpful writing assistant.";
@@ -1862,20 +2044,26 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
         `Output ONLY the revised full script.\n`;
     }
 
-    // Brief-specific HP topic transcripts — pass as a distinct context block to
-    // evidence_table, outline, and full_script (creative_brief and
-    // six_category_extraction handle them on their own branches).
+    // ─────────────────────────────────────────────────────────────────────
+    // RAW SELECTED SECONDARY SOURCES — GATED TO SSA ONLY
+    //
+    // Raw selected HP topic transcripts and raw Alternative Sources are
+    // ONLY injected into selected_source_analysis (the deep-interpretation
+    // gateway). Downstream steps (evidence_table, outline, full_script,
+    // revision, final pass, six_category_extraction) consume the SSA OUTPUT
+    // via previousContext instead of the raw text.
+    // ─────────────────────────────────────────────────────────────────────
     const topicTranscriptUserBlock =
-      ["evidence_table", "outline", "full_script", "selected_source_analysis"].includes(stepType) && topicTranscripts.length > 0
+      stepType === "selected_source_analysis" && topicTranscripts.length > 0
         ? `\n\n## Brief-Specific HP Topic Transcripts (THEORY, ANGLE, AND RESEARCH LEADS — not Tier 1 canon)\nTreat these as theory/angle/interpretation input. Factual canon claims still require Tier 1 book or movie transcript support. Theories may be used if plausible, coherent, and not obviously contradicted by canon. Frame theories honestly as theories.\n\n` +
-          truncateTopicTranscripts(topicTranscripts)
+          truncateTopicTranscripts(topicTranscripts, "ssa")
             .map((r: any) => `### "${r.video_title}" by ${r.channel_name}\n${r.transcript}`)
             .join("\n\n---\n\n")
         : "";
 
     const altSourceUserBlock =
-      ["evidence_table", "outline", "full_script", "six_category_extraction", "selected_source_analysis"].includes(stepType)
-        ? formatAlternativeSourcesBlock("Alternative Sources")
+      stepType === "selected_source_analysis"
+        ? formatAlternativeSourcesBlock("Alternative Sources", "ssa")
         : "";
 
     if (stepType === "selected_source_analysis") {
@@ -1921,7 +2109,7 @@ ${creativeBriefContent || "(Creative Brief not yet generated — proceed using T
 ${insightsContent || "(Insights & Research not yet generated — proceed cautiously and flag canon gaps.)"}
 
 ${hasSelectedSecondary ? "## Selected Secondary Sources (analyze ONLY these)" : "## Selected Secondary Sources\n(None attached. Produce a minimal graceful analysis based on the Creative Brief and Insights & Research only — do not invent fan signals.)"}
-${topicTranscriptUserBlock}${altSourceUserBlock}
+${topicTranscriptUserBlock}${altSourceUserBlock}${buildSecondarySkippedNotice()}
 
 Now produce the Selected Source Analysis in the exact format specified. Be honest about source weight — never promote a secondary-source claim to canon. Surface what's overused, what's underdeveloped, what objections exist, and where original synthesis is possible against the canon extraction above.`;
     } else if (stepType === "six_category_extraction") {
@@ -1936,13 +2124,6 @@ Now produce the Selected Source Analysis in the exact format specified. Be hones
         .maybeSingle();
       const creativeBriefContent = creativeBriefOutput?.content || "";
 
-      const topicTranscriptBlock = topicTranscripts.length > 0
-        ? "\n## Brief-Specific HP Topic Transcripts (research leads — confirm all claims in primary canon before use)\n" +
-          truncateTopicTranscripts(topicTranscripts)
-            .map((r: any) => `### "${r.video_title}" by ${r.channel_name}\n${r.transcript}`)
-            .join("\n\n---\n\n")
-        : "";
-
       systemPromptFinal = STEP_PROMPTS["six_category_extraction"]
         .replace("{{HOST_PERSONA}}", hostPersonaContext || "No host persona uploaded.");
       if (instructionContext) {
@@ -1953,7 +2134,7 @@ Now produce the Selected Source Analysis in the exact format specified. Be hones
       userMessage = `## Creative Brief
 ${creativeBriefContent || `Title: ${brief.title}\nAngle: ${brief.angle_note || brief.description || ""}`}
 
-${topicTranscriptBlock}${altSourceUserBlock}
+(Note: Raw selected HP topic transcripts and Alternative Sources are NOT included here. They are deeply interpreted in the Selected Source Analysis step. This step focuses on canon-first extraction from the indexed primary corpus.)
 
 ## Creator Feedback on Brief
 ${brief.creative_brief_feedback || "None provided."}
@@ -1982,7 +2163,7 @@ ${queryPackContext}
 
 ${guidanceBlock}${previousContext ? `## Previous Pipeline Steps\n${previousContext}\n\n` : ""}${starredEvidence ? `${starredEvidence}\n\n` : ""}## Source Material Excerpts
 ${sourceContext}
-${topicTranscriptUserBlock}${altSourceUserBlock}
+${topicTranscriptUserBlock}${altSourceUserBlock}${buildSecondarySkippedNotice()}
 
 Please generate the ${stepType.replace(/_/g, " ")} based on the above information.`;
     }
