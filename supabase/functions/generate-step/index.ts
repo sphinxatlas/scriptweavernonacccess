@@ -1759,8 +1759,26 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
       ? antiAiChunks.map(c => c.content).join("\n\n")
       : "";
 
+    // Per-entry cap on previous pipeline outputs to prevent cumulative bloat
+    // in late steps (Outline, Full Script, Revision). The SSA output is the
+    // distilled gateway for selected secondary sources, so we let it through
+    // at full size. Other earlier outputs are capped with a visible marker.
+    const PREV_OUTPUT_CAP_DEFAULT = 8000;
+    const PREV_OUTPUT_CAP_LARGE = 20000; // SSA & Evidence Table can be longer
+    const capPreviousOutput = (stepName: string, content: string): string => {
+      const cap =
+        stepName === "selected_source_analysis" || stepName === "evidence_table"
+          ? PREV_OUTPUT_CAP_LARGE
+          : PREV_OUTPUT_CAP_DEFAULT;
+      if (content.length <= cap) return content;
+      truncationWarnings.push(`previous_output_capped:${stepName}:${content.length}->${cap}`);
+      return content.slice(0, cap) +
+        `\n\n[!! PREVIOUS OUTPUT TRUNCATED — kept ${cap} of ${content.length} chars from ${stepName} to control prompt size. Earlier sections preserved; tail dropped.]`;
+    };
     const previousContext = previousOutputs && previousOutputs.length > 0
-      ? previousOutputs.map((o: any) => `### ${o.step_type.replace(/_/g, " ").toUpperCase()}\n${o.content}`).join("\n\n")
+      ? previousOutputs
+          .map((o: any) => `### ${o.step_type.replace(/_/g, " ").toUpperCase()}\n${capPreviousOutput(o.step_type, o.content || "")}`)
+          .join("\n\n")
       : "";
 
     let systemPrompt = STEP_PROMPTS[stepType] || "You are a helpful writing assistant.";
