@@ -1,9 +1,17 @@
 import { useCallback, useState } from "react";
-import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
+import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, Trash2, Eye, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { uploadSourceFile, processFile, deleteSourceFile, type SourceFile } from "@/lib/api";
+import {
+  uploadSourceFile,
+  processFile,
+  deleteSourceFile,
+  getSourceFileContent,
+  getSourceFileDownloadUrl,
+  type SourceFile,
+} from "@/lib/api";
 import { toast } from "sonner";
+import { SourceDetailModal } from "@/components/SourceDetailModal";
 
 interface FileUploadCardProps {
   fileType: "book" | "transcript" | "instructions" | "lexicon" | "competitor_analysis" | "host_persona" | "anti_ai_guide";
@@ -18,6 +26,8 @@ interface FileUploadCardProps {
 export function FileUploadCard({ fileType, title, description, accept = ".txt,.md,.pdf", files, onRefresh, badge }: FileUploadCardProps) {
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<SourceFile | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
@@ -63,6 +73,36 @@ export function FileUploadCard({ fileType, title, description, accept = ".txt,.m
       toast.error(err.message || "Processing failed");
     } finally {
       setProcessing(null);
+    }
+  };
+
+  const handleDownload = async (file: SourceFile) => {
+    setDownloadingId(file.id);
+    try {
+      if (file.storage_path) {
+        const url = await getSourceFileDownloadUrl(file.storage_path);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } else {
+        const text = await getSourceFileContent(file.id);
+        const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${file.name || "source"}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Download failed");
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -141,6 +181,29 @@ export function FileUploadCard({ fileType, title, description, accept = ".txt,.m
               <Button
                 size="icon"
                 variant="ghost"
+                className="h-6 w-6"
+                onClick={() => setViewing(file)}
+                title="View content"
+              >
+                <Eye className="w-3 h-3" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6"
+                onClick={() => handleDownload(file)}
+                disabled={downloadingId === file.id}
+                title="Download"
+              >
+                {downloadingId === file.id ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Download className="w-3 h-3" />
+                )}
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
                 className="h-6 w-6 text-destructive"
                 onClick={() => handleDelete(file)}
               >
@@ -149,6 +212,26 @@ export function FileUploadCard({ fileType, title, description, accept = ".txt,.m
             </div>
           ))}
         </div>
+      )}
+
+      {viewing && (
+        <SourceDetailModal
+          open={!!viewing}
+          onOpenChange={(o) => !o && setViewing(null)}
+          title={viewing.name}
+          subtitle={title}
+          meta={[
+            { label: "Filename", value: viewing.name },
+            { label: "Category", value: title },
+            { label: "File type", value: viewing.file_type },
+            { label: "Status", value: viewing.status },
+            { label: "Size", value: viewing.file_size ? `${(viewing.file_size / 1024).toFixed(1)} KB` : "—" },
+            { label: "Uploaded", value: new Date(viewing.created_at).toLocaleString() },
+          ]}
+          loadContent={() => getSourceFileContent(viewing.id)}
+          onDownload={() => handleDownload(viewing)}
+          fallbackDownloadName={`${viewing.name}.txt`}
+        />
       )}
     </div>
   );
