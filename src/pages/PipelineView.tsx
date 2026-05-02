@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PipelineSidebar } from "@/components/pipeline/PipelineSidebar";
+import { ClipQuoteFinderPanel } from "@/components/pipeline/ClipQuoteFinderPanel";
 import {
   PIPELINE_STEPS,
   getPipelineOutputs,
@@ -30,9 +31,11 @@ import {
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
+type ActiveStep = PipelineStepType | "clip_quote_finder";
+
 export default function PipelineView() {
   const { briefId } = useParams<{ briefId: string }>();
-  const [activeStep, setActiveStep] = useState<PipelineStepType>("creative_brief");
+  const [activeStep, setActiveStep] = useState<ActiveStep>("creative_brief");
   const [generating, setGenerating] = useState(false);
   const [streamContent, setStreamContent] = useState("");
   const [feedbackText, setFeedbackText] = useState("");
@@ -63,7 +66,8 @@ export default function PipelineView() {
   const getStepOutput = (step: PipelineStepType) =>
     outputs.find((o) => o.step_type === step);
 
-  const currentOutput = getStepOutput(activeStep);
+  const isClipFinder = activeStep === "clip_quote_finder";
+  const currentOutput = isClipFinder ? undefined : getStepOutput(activeStep as PipelineStepType);
   const displayContent = generating ? streamContent : currentOutput?.content || "";
 
   const handleGenerate = async (
@@ -71,7 +75,9 @@ export default function PipelineView() {
     revisionOpts?: { revisionFeedback?: string; previousFullScript?: string; finalVoicePass?: boolean },
   ) => {
     if (!briefId) return;
-    const step = overrideStep || activeStep;
+    const step: PipelineStepType =
+      overrideStep || (activeStep === "clip_quote_finder" ? "full_script" : (activeStep as PipelineStepType));
+    if (activeStep === "clip_quote_finder" && !overrideStep) return;
     setGenerating(true);
     setStreamContent("");
 
@@ -211,6 +217,9 @@ export default function PipelineView() {
   const showFullScriptRevision =
     activeStep === "full_script" && !!currentOutput && !generating;
 
+  const fullScriptContent =
+    (outputs.find((o) => o.step_type === "full_script")?.content as string | undefined) || "";
+
   return (
     <Layout>
       <div className="flex h-screen">
@@ -223,14 +232,34 @@ export default function PipelineView() {
         />
 
         <div className="flex-1 flex flex-col">
+          {isClipFinder ? (
+            <>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+                <div>
+                  <h2 className="font-mono text-sm font-bold text-foreground">Clip & Quote Finder</h2>
+                  <p className="text-xs text-muted-foreground">
+                    Editor-only utility — does not affect the pipeline.
+                  </p>
+                </div>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <ClipQuoteFinderPanel
+                  briefId={briefId}
+                  briefTitle={brief?.title}
+                  initialScript={fullScriptContent}
+                />
+              </div>
+            </>
+          ) : (
+            <>
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-border">
             <div>
               <h2 className="font-mono text-sm font-bold text-foreground">
-                {PIPELINE_STEPS.find((s) => s.type === activeStep)?.label}
+                {PIPELINE_STEPS.find((s) => s.type === (activeStep as PipelineStepType))?.label}
               </h2>
               <p className="text-xs text-muted-foreground">
-                {PIPELINE_STEPS.find((s) => s.type === activeStep)?.description}
+                {PIPELINE_STEPS.find((s) => s.type === (activeStep as PipelineStepType))?.description}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -415,6 +444,8 @@ export default function PipelineView() {
               </div>
             )}
           </div>
+            </>
+          )}
         </div>
       </div>
     </Layout>

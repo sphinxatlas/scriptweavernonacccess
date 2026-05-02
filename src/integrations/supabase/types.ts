@@ -200,6 +200,45 @@ export type Database = {
         }
         Relationships: []
       }
+      clip_quote_finder_runs: {
+        Row: {
+          brief_id: string
+          created_at: string
+          editor_notes: string | null
+          id: string
+          include_book_quote_inserts: boolean
+          include_contextual_broll_ideas: boolean
+          output_markdown: string
+          pasted_script: string
+          prioritize_exact_film_timestamps: boolean
+          updated_at: string
+        }
+        Insert: {
+          brief_id: string
+          created_at?: string
+          editor_notes?: string | null
+          id?: string
+          include_book_quote_inserts?: boolean
+          include_contextual_broll_ideas?: boolean
+          output_markdown?: string
+          pasted_script: string
+          prioritize_exact_film_timestamps?: boolean
+          updated_at?: string
+        }
+        Update: {
+          brief_id?: string
+          created_at?: string
+          editor_notes?: string | null
+          id?: string
+          include_book_quote_inserts?: boolean
+          include_contextual_broll_ideas?: boolean
+          output_markdown?: string
+          pasted_script?: string
+          prioritize_exact_film_timestamps?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       evidence_points: {
         Row: {
           book_evidence: string | null

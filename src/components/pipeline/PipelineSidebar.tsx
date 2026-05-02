@@ -1,13 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { PIPELINE_STEPS, type PipelineStepType } from "@/lib/api";
-import { ArrowLeft, CheckCircle2, Circle, GitCompare, Info, Clock } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, GitCompare, Info, Clock, Film } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BriefDetailsSheet } from "./BriefDetailsSheet";
 
 interface PipelineSidebarProps {
   brief: any;
-  activeStep: PipelineStepType;
-  setActiveStep: (step: PipelineStepType) => void;
+  activeStep: PipelineStepType | "clip_quote_finder";
+  setActiveStep: (step: PipelineStepType | "clip_quote_finder") => void;
   generating: boolean;
   getStepOutput: (step: PipelineStepType) => any;
 }
@@ -84,6 +84,29 @@ export function PipelineSidebar({ brief, activeStep, setActiveStep, generating, 
             </button>
           );
         })}
+
+        {/* Editor Tools — separate from main pipeline */}
+        <div className="pt-4 mt-2 border-t border-border">
+          <p className="px-3 pb-1.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+            Editor Tools
+          </p>
+          <button
+            onClick={() => !generating && setActiveStep("clip_quote_finder")}
+            className={cn(
+              "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-left transition-all",
+              activeStep === "clip_quote_finder"
+                ? "bg-secondary text-foreground shadow-[inset_2px_0_0_0_hsl(var(--gold)/0.7)]"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/50",
+              generating && "opacity-50 cursor-not-allowed",
+            )}
+          >
+            <Film className="w-3.5 h-3.5 flex-shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-mono font-medium truncate">Find Clips & Quotes</p>
+              <p className="text-[10px] text-muted-foreground/80 mt-0.5">Editor utility — optional</p>
+            </div>
+          </button>
+        </div>
       </div>
     </div>
   );
