@@ -248,6 +248,7 @@ function TranscriptSection({ section }: { section: Section }) {
 function AlternativeSourcesSection() {
   const [showForm, setShowForm] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [viewing, setViewing] = useState<any | null>(null);
   const [title, setTitle] = useState("");
   const [sourceType, setSourceType] = useState("");
   const [sourceAuthor, setSourceAuthor] = useState("");
@@ -303,6 +304,18 @@ function AlternativeSourcesSection() {
     } catch (err: any) {
       toast.error(err.message || "Failed to delete");
     }
+  };
+
+  const downloadText = (filename: string, text: string) => {
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -446,20 +459,55 @@ function AlternativeSourcesSection() {
                     {new Date(item.created_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 text-destructive"
-                      onClick={() => handleDelete(item.id)}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button size="icon" variant="ghost" className="h-7 w-7" title="View" onClick={() => setViewing(item)}>
+                        <Eye className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        title="Download"
+                        onClick={() => downloadText(`${item.title}.txt`, item.content || "")}
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-destructive"
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
+      )}
+
+      {viewing && (
+        <SourceDetailModal
+          open={!!viewing}
+          onOpenChange={(o) => !o && setViewing(null)}
+          title={viewing.title}
+          subtitle="Alternative Source"
+          meta={[
+            { label: "Title", value: viewing.title },
+            { label: "Type", value: viewing.source_type || "—" },
+            { label: "Source / author", value: viewing.source_author || "—" },
+            { label: "URL", value: viewing.url || "—" },
+            { label: "Date added", value: new Date(viewing.created_at).toLocaleString() },
+            { label: "Length", value: `${(viewing.content || "").length.toLocaleString()} chars` },
+            { label: "Notes", value: viewing.notes || "—" },
+            { label: "Category", value: "Alternative Source (non-canon)" },
+          ]}
+          content={viewing.content || ""}
+          fallbackDownloadName={`${viewing.title}.txt`}
+        />
       )}
     </div>
   );
