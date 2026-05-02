@@ -28,7 +28,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function PipelineView() {
@@ -334,22 +333,6 @@ export default function PipelineView() {
                   </div>
                 )}
               </div>
-            ) : showEvidenceTab && currentOutput ? (
-              <Tabs defaultValue="output" className="h-full flex flex-col">
-                <TabsList className="mx-6 mt-3 w-fit">
-                  <TabsTrigger value="output" className="text-xs">Generated Output</TabsTrigger>
-                  <TabsTrigger value="evidence" className="text-xs gap-1">
-                    <Star className="w-3 h-3" />
-                    Evidence Points
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="output" className="flex-1 overflow-auto p-6">
-                  <MarkdownContent content={displayContent} />
-                </TabsContent>
-                <TabsContent value="evidence" className="flex-1 overflow-auto p-6">
-                  <EvidencePanel briefId={briefId} />
-                </TabsContent>
-              </Tabs>
             ) : (
               <div ref={contentRef} className="h-full overflow-auto p-6">
                 {displayContent ? (

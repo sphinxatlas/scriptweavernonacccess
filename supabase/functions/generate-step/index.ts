@@ -1053,7 +1053,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { briefId, stepType, starredOnly, revisionFeedback, previousFullScript, finalVoicePass } = await req.json();
+    const { briefId, stepType, revisionFeedback, previousFullScript, finalVoicePass } = await req.json();
     if (!briefId || !stepType) throw new Error("briefId and stepType are required");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -1718,22 +1718,6 @@ Generate the Creative Brief now.`;
       competitorChunks = data || [];
     }
 
-    // Get starred evidence points if starredOnly mode
-    let starredEvidence = "";
-    if (starredOnly && (stepType === "outline" || stepType === "full_script")) {
-      const { data: starred } = await supabase
-        .from("evidence_points")
-        .select("*")
-        .eq("brief_id", briefId)
-        .eq("starred", true);
-      if (starred && starred.length > 0) {
-        starredEvidence = "\n## ⭐ APPROVED/STARRED EVIDENCE (Use these preferentially)\n" +
-          starred.map((e: any, i: number) =>
-            `### Starred Evidence ${i + 1}\n- **Claim**: ${e.claim}\n- **Source**: ${e.source_type} — ${e.source_file || 'unknown'}\n- **Evidence Type**: ${e.evidence_type}\n- **Quote**: ${e.exact_quote || 'N/A'}\n- **Paraphrase**: ${e.paraphrase || 'N/A'}\n- **Confidence**: ${e.confidence}`
-          ).join("\n\n");
-      }
-    }
-
     // Get previous pipeline outputs for this brief
     const stepIndex = STEP_ORDER.indexOf(stepType);
     const previousSteps = STEP_ORDER.slice(0, stepIndex);
@@ -2161,7 +2145,7 @@ ${briefContext}
 ## Retrieval Query Pack (Derived)
 ${queryPackContext}
 
-${guidanceBlock}${previousContext ? `## Previous Pipeline Steps\n${previousContext}\n\n` : ""}${starredEvidence ? `${starredEvidence}\n\n` : ""}## Source Material Excerpts
+${guidanceBlock}${previousContext ? `## Previous Pipeline Steps\n${previousContext}\n\n` : ""}## Source Material Excerpts
 ${sourceContext}
 ${topicTranscriptUserBlock}${altSourceUserBlock}${buildSecondarySkippedNotice()}
 
