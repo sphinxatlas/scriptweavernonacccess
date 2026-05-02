@@ -12,6 +12,7 @@ import {
 } from "@/lib/api";
 import { toast } from "sonner";
 import { SourceDetailModal } from "@/components/SourceDetailModal";
+import { SourceIntelligenceLine } from "@/components/SourceIntelligenceLine";
 
 interface FileUploadCardProps {
   fileType: "book" | "transcript" | "instructions" | "lexicon" | "competitor_analysis" | "host_persona" | "anti_ai_guide";
@@ -155,19 +156,35 @@ export function FileUploadCard({ fileType, title, description, accept = ".txt,.m
             <div
               key={file.id}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm",
+                "flex items-start gap-3 px-3 py-2 rounded-md text-sm",
                 "bg-secondary/50 border border-border"
               )}
             >
-              {processing === file.id ? (
-                <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
-              ) : (
-                statusIcon(file.status)
-              )}
-              <span className="flex-1 truncate text-foreground text-xs font-mono">{file.name}</span>
-              <span className="text-xs text-muted-foreground">
-                {file.file_size ? `${(file.file_size / 1024).toFixed(0)}KB` : ""}
-              </span>
+              <div className="mt-0.5">
+                {processing === file.id ? (
+                  <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
+                ) : (
+                  statusIcon(file.status)
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="flex-1 truncate text-foreground text-xs font-mono">{file.name}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {file.file_size ? `${(file.file_size / 1024).toFixed(0)}KB` : ""}
+                  </span>
+                </div>
+                {fileType === "competitor_analysis" && (
+                  <SourceIntelligenceLine
+                    table="source_files"
+                    id={file.id}
+                    charCount={(file as any).char_count}
+                    estimatedTokens={(file as any).estimated_tokens}
+                    scriptStrength={(file as any).script_strength}
+                    onAnalyzed={onRefresh}
+                  />
+                )}
+              </div>
               <Button
                 size="icon"
                 variant="ghost"
