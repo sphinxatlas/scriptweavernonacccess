@@ -1794,10 +1794,16 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
 **Comparison Query Expansion:** ${queryPack.comparisonQueries.length > 0 ? "enabled" : "disabled"}
 **Comparison Queries:** ${queryPack.comparisonQueries.length ? queryPack.comparisonQueries.join(" | ") : "none"}`;
 
-    // Build guidance layers section — priority order: 1) Script Instructions, 2) Anti AI Guide, 3) Script Strategy
+    // Build user-message guidance block.
+    // NOTE: The Master Guide (Script Instructions & Strategy) is intentionally
+    // NOT duplicated here — it is now injected into the system prompt for every
+    // step that needs it (Creative Brief, Insights & Research, Selected Source
+    // Analysis, Evidence Table, Outline, Full Script, Final Pass, Revision).
+    // Duplicating it in the user message wasted tokens and diluted its
+    // "writing constitution" framing. The Anti AI Guide is also already in
+    // the system prompt for script steps. Commentary transcripts remain here
+    // because they are dynamic interpretive context, not stable guidance.
     const guidanceSections: string[] = [];
-    if (instructionContext) guidanceSections.push(`## Script Instructions & Strategy (GUIDANCE ONLY — not evidence, shapes writing quality/pacing/hooks/retention)\n${instructionContext}`);
-    if (antiAiContext) guidanceSections.push(`## Anti AI Language Guide (WRITING GUIDANCE — avoid AI tells, keep output human and natural)\n${antiAiContext}`);
     if (competitorContext) guidanceSections.push(`## Commentary Transcripts (INTERPRETIVE & THEORY INPUT — not canon evidence)\nUse for angles, framings, and argument patterns. Factual canon claims must be confirmed against Tier 1 books or movie transcripts. Theories and interpretive angles do NOT require direct canon confirmation, but they must be plausible, logically coherent, and not obviously contradicted by canon. Never present commentary material as proven canon. Never reuse commentary wording, structure, or phrasing.\n${competitorContext}`);
     const guidanceBlock = guidanceSections.length > 0 ? guidanceSections.join("\n\n") + "\n\n" : "";
 
