@@ -1157,53 +1157,111 @@ serve(async (req) => {
       .map((r: any) => r.alternative_sources)
       .filter(Boolean);
 
-    // Token-budget guard for alternative sources too.
-    const MAX_PER_ALT_CHARS = 8000;
-    const MAX_TOTAL_ALT_CHARS = 40000;
-    const formatAlternativeSourcesBlock = (label: string): string => {
+    // ─────────────────────────────────────────────────────────────────────
+    // SECONDARY SOURCE TOKEN BUDGETS
+    //
+    // We have TWO budget profiles:
+    //   1. SSA_PROFILE — used ONLY by selected_source_analysis. This is the
+    //      "deep interpretation gateway" step. We allow much more raw text
+    //      through here so the model can read selected HP topic transcripts
+    //      and Alternative Sources thoroughly. If material is still too
+    //      large, we add a visible truncation marker rather than silently
+    //      dropping content.
+    //   2. CREATIVE_BRIEF_PROFILE — used ONLY by creative_brief. Selected
+    //      secondaries are still useful here for early angle setup, but we
+    //      keep the budget moderate to avoid prompt overload.
+    //
+    // No other step (evidence_table, outline, full_script, revision,
+    // final pass) receives raw selected HP topic transcripts or raw
+    // Alternative Sources. They consume the Selected Source Analysis
+    // OUTPUT instead, via previousContext.
+    // ─────────────────────────────────────────────────────────────────────
+    type BudgetProfile = "ssa" | "creative_brief";
+    const TRANSCRIPT_BUDGETS: Record<BudgetProfile, { perItem: number; total: number }> = {
+      ssa:            { perItem: 60000, total: 280000 },
+      creative_brief: { perItem: 12000, total: 80000 },
+    };
+    const ALT_BUDGETS: Record<BudgetProfile, { perItem: number; total: number }> = {
+      ssa:            { perItem: 40000, total: 160000 },
+      creative_brief: { perItem: 8000,  total: 40000 },
+    };
+
+    // Visible warnings collected per request for log/observability.
+    const truncationWarnings: string[] = [];
+
+    const formatAlternativeSourcesBlock = (label: string, profile: BudgetProfile): string => {
       if (alternativeSources.length === 0) return "";
+      const { perItem, total: maxTotal } = ALT_BUDGETS[profile];
       let total = 0;
       const parts: string[] = [];
+      let skipped = 0;
       for (const s of alternativeSources) {
         const raw = (s.content || "").toString();
-        const capped = raw.length > MAX_PER_ALT_CHARS
-          ? raw.slice(0, MAX_PER_ALT_CHARS) + "\n\n[...source truncated for token budget...]"
-          : raw;
-        if (total + capped.length > MAX_TOTAL_ALT_CHARS) break;
+        let capped = raw;
+        if (raw.length > perItem) {
+          capped = raw.slice(0, perItem) +
+            `\n\n[!! ALT SOURCE TRUNCATED — read ${perItem} of ${raw.length} chars (profile=${profile}). Important material after this point was not included.]`;
+          truncationWarnings.push(`alt_source_per_item_truncated:${s.title}:${raw.length}->${perItem}`);
+        }
+        if (total + capped.length > maxTotal) {
+          skipped += 1;
+          continue;
+        }
         const meta = [s.source_type, s.source_author, s.url].filter(Boolean).join(" • ");
         parts.push(`### "${s.title}"${meta ? ` (${meta})` : ""}\n${capped}`);
         total += capped.length;
       }
       if (parts.length === 0) return "";
-      return `\n\n## ${label} (SECONDARY, NON-CANON)\nThese are pasted secondary sources such as Reddit threads, fan comments, wiki extracts, blog posts, or research notes. Use ONLY for fan debate signals, audience language, jokes, cultural references, angle inspiration, and supporting interpretation. NEVER treat as Tier 1 canon. Do NOT cite as primary evidence. All factual canon claims must still be supported by book/movie sources.\n\n${parts.join("\n\n---\n\n")}`;
+      let footer = "";
+      if (skipped > 0) {
+        const msg = `[!! ${skipped} alternative source(s) were NOT included because the bundle exceeded the ${maxTotal}-char budget for profile=${profile}.]`;
+        footer = `\n\n${msg}`;
+        truncationWarnings.push(`alt_sources_dropped:${skipped}:profile=${profile}`);
+      }
+      return `\n\n## ${label} (SECONDARY, NON-CANON)\nThese are pasted secondary sources such as Reddit threads, fan comments, wiki extracts, blog posts, or research notes. Use ONLY for fan debate signals, audience language, jokes, cultural references, angle inspiration, and supporting interpretation. NEVER treat as Tier 1 canon. Do NOT cite as primary evidence. All factual canon claims must still be supported by book/movie sources.\n\n${parts.join("\n\n---\n\n")}${footer}`;
     };
 
-    // Token-budget guard: HP topic transcripts can be 60k+ chars each. Inlining
-    // many of them alongside source excerpts and previous pipeline outputs blows
-    // past the AI gateway's 272k token input limit. Cap each transcript and the
-    // total combined size used in any single prompt.
-    const MAX_PER_TRANSCRIPT_CHARS = 12000;
-    const MAX_TOTAL_TRANSCRIPT_CHARS = 80000;
-    const truncateTopicTranscripts = (items: any[]): any[] => {
+    const truncateTopicTranscripts = (items: any[], profile: BudgetProfile): any[] => {
+      const { perItem, total: maxTotal } = TRANSCRIPT_BUDGETS[profile];
       let total = 0;
       const out: any[] = [];
+      let skipped = 0;
       for (const r of items) {
         const raw = (r.transcript || "").toString();
-        const perCap = raw.length > MAX_PER_TRANSCRIPT_CHARS
-          ? raw.slice(0, MAX_PER_TRANSCRIPT_CHARS) + "\n\n[...transcript truncated for token budget...]"
-          : raw;
-        if (total + perCap.length > MAX_TOTAL_TRANSCRIPT_CHARS) {
-          const remaining = Math.max(0, MAX_TOTAL_TRANSCRIPT_CHARS - total);
-          if (remaining > 500) {
-            out.push({ ...r, transcript: perCap.slice(0, remaining) + "\n\n[...transcript truncated for token budget...]" });
+        let perCap = raw;
+        if (raw.length > perItem) {
+          perCap = raw.slice(0, perItem) +
+            `\n\n[!! HP TOPIC TRANSCRIPT TRUNCATED — read ${perItem} of ${raw.length} chars (profile=${profile}). Material beyond this point was not included.]`;
+          truncationWarnings.push(`topic_transcript_per_item_truncated:${r.video_title}:${raw.length}->${perItem}`);
+        }
+        if (total + perCap.length > maxTotal) {
+          const remaining = Math.max(0, maxTotal - total);
+          if (remaining > 1000) {
+            const tail = perCap.slice(0, remaining) +
+              `\n\n[!! HP TOPIC TRANSCRIPT TRUNCATED at total budget — added ${remaining} of ${perCap.length} chars from this item (profile=${profile}).]`;
+            out.push({ ...r, transcript: tail });
             total += remaining;
+            truncationWarnings.push(`topic_transcript_total_budget_clip:${r.video_title}:profile=${profile}`);
+          } else {
+            skipped += 1;
           }
+          // Mark anything left as skipped
+          const idx = items.indexOf(r);
+          skipped += Math.max(0, items.length - idx - 1);
           break;
         }
         out.push({ ...r, transcript: perCap });
         total += perCap.length;
       }
+      if (skipped > 0) {
+        truncationWarnings.push(`topic_transcripts_dropped:${skipped}:profile=${profile}`);
+      }
       return out;
+    };
+
+    const buildSecondarySkippedNotice = (): string => {
+      if (truncationWarnings.length === 0) return "";
+      return `\n\n[CONTEXT TRUNCATION NOTICE]\n${truncationWarnings.map((w) => `- ${w}`).join("\n")}\n`;
     };
 
     // Special handling for competitor_format_analysis — uses pasted scripts only, no retrieval
