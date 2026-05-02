@@ -1063,6 +1063,50 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // ────────────────────────────────────────────────────────────────────────
+    // SCRIPTWRITER ENGINE MASTER GUIDE — shared loader
+    // Pulls "instructions" + legacy "script_strategy" file_type chunks. The
+    // Master Guide is a stable writing constitution: it shapes blueprint,
+    // structure, retention, escalation, and payoff across every major step.
+    // It is NEVER evidence and must never be cited.
+    // TODO: Master Guide is currently capped at 20 chunks. Add UI or backend
+    // warning if the guide is truncated, because missing later rules can
+    // weaken script quality.
+    // ────────────────────────────────────────────────────────────────────────
+    async function loadMasterGuideContext(): Promise<string> {
+      const { data: instructionFiles } = await supabase
+        .from("source_files")
+        .select("id")
+        .in("file_type", ["instructions", "script_strategy"]);
+      if (!instructionFiles || instructionFiles.length === 0) return "";
+      const { data } = await supabase
+        .from("file_chunks")
+        .select("content")
+        .in("file_id", instructionFiles.map((f: any) => f.id))
+        .order("chunk_index")
+        .limit(20);
+      return (data || []).map((c: any) => c.content).join("\n\n");
+    }
+
+    const MASTER_GUIDE_HIGHEST_PRIORITY_HEADER =
+      `## SCRIPTWRITER ENGINE MASTER GUIDE\n\n` +
+      `HIGHEST PRIORITY WRITING CONSTITUTION — apply these rules when shaping the video blueprint, viewer question, hook logic, escalation, argument structure, section progression, retention strategy, emotional arc, and final payoff.\n\n` +
+      `This guide is not evidence. Do not cite it. Do not summarize it. Use it to shape the creative and structural decisions of the brief.\n\n`;
+
+    const MASTER_GUIDE_FRAMING_HEADER =
+      `## SCRIPTWRITER ENGINE MASTER GUIDE\n\n` +
+      `MANDATORY FRAMING GUIDE — use this to decide which insights are structurally useful for a YouTube script. Prioritize evidence and ideas that can create curiosity, escalation, tension, rehooks, emotional movement, originality, and payoff.\n\n` +
+      `This guide is not evidence and must never be cited.\n\n`;
+
+    const PRECEDENCE_LADDER =
+      `\n\n## GUIDANCE PRECEDENCE LADDER\n` +
+      `1. Source hierarchy controls factual evidence.\n` +
+      `2. Scriptwriter Engine Master Guide controls structure, retention, argument shape, pacing, rehooks, and payoff.\n` +
+      `3. Anti AI Guide acts as a hard filter for wording, phrasing, and style problems.\n` +
+      `4. Host Persona controls voice, attitude, rhythm, and point of view, but should never override factual accuracy or structure.\n` +
+      `5. Retention and escalation instructions support the Master Guide. If they conflict, follow the Master Guide.\n` +
+      `6. Commentary transcripts, topic transcripts, competitor transcripts, and alternative sources provide audience signals, theories, framing possibilities, and inspiration, but must not be copied or treated as canon.\n`;
+
     // Get the topic brief
     const { data: brief, error: briefError } = await supabase
       .from("topic_briefs")
