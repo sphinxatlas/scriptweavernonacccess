@@ -1,12 +1,12 @@
-import { BookOpen, FileText, Lightbulb, Sparkles, Upload, Wand2 } from "lucide-react";
+import { Library, ScrollText, Lightbulb, Sparkles, Feather, Wand2, BookOpen } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { to: "/", label: "Source Library", icon: Upload },
+  { to: "/", label: "Source Library", icon: Library },
   { to: "/angle-lab", label: "Angle Lab", icon: Lightbulb },
-  { to: "/briefs", label: "Topic Briefs", icon: FileText },
-  { to: "/transcripts", label: "Secondary Sources", icon: BookOpen },
+  { to: "/briefs", label: "Topic Briefs", icon: Feather },
+  { to: "/transcripts", label: "Secondary Sources", icon: ScrollText },
   { to: "/improve", label: "Script Improver", icon: Wand2 },
 ];
 
@@ -17,8 +17,8 @@ export function AppSidebar() {
     <aside className="w-64 border-r border-border bg-sidebar flex flex-col h-screen sticky top-0">
       <div className="p-6 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-md bg-primary/20 flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-primary" />
+          <div className="w-8 h-8 rounded-md bg-primary/15 flex items-center justify-center ring-1 ring-gold/30">
+            <Sparkles className="w-4 h-4 text-gold" />
           </div>
           <div>
             <h1 className="font-mono text-sm font-bold text-foreground tracking-tight">ScriptForge</h1>
@@ -36,13 +36,13 @@ export function AppSidebar() {
               key={to}
               to={to}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors",
+                "group relative flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all",
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-[inset_2px_0_0_0_hsl(var(--gold)/0.7)]"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               )}
             >
-              <Icon className={cn("w-4 h-4", isActive && "text-primary")} />
+              <Icon className={cn("w-4 h-4 transition-colors", isActive ? "text-gold" : "group-hover:text-foreground")} />
               {label}
             </NavLink>
           );
@@ -51,7 +51,7 @@ export function AppSidebar() {
 
       <div className="p-4 border-t border-border">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <BookOpen className="w-3.5 h-3.5" />
+          <BookOpen className="w-3.5 h-3.5 text-gold/70" />
           <span>Harry Potter Universe</span>
         </div>
       </div>

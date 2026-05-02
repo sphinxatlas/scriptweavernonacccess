@@ -53,15 +53,15 @@ export function PipelineSidebar({ brief, activeStep, setActiveStep, generating, 
               key={step.type}
               onClick={() => !generating && setActiveStep(step.type)}
               className={cn(
-                "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-left transition-colors",
+                "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-left transition-all",
                 isActive
-                  ? "bg-secondary text-foreground"
+                  ? "bg-secondary text-foreground shadow-[inset_2px_0_0_0_hsl(var(--gold)/0.7)]"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary/50",
                 generating && "opacity-50 cursor-not-allowed"
               )}
             >
               {hasOutput ? (
-                <CheckCircle2 className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-gold flex-shrink-0" />
               ) : (
                 <Circle className="w-3.5 h-3.5 flex-shrink-0" />
               )}
