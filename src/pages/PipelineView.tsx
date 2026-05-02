@@ -75,7 +75,9 @@ export default function PipelineView() {
     revisionOpts?: { revisionFeedback?: string; previousFullScript?: string; finalVoicePass?: boolean },
   ) => {
     if (!briefId) return;
-    const step = overrideStep || activeStep;
+    const step: PipelineStepType =
+      overrideStep || (activeStep === "clip_quote_finder" ? "full_script" : (activeStep as PipelineStepType));
+    if (activeStep === "clip_quote_finder" && !overrideStep) return;
     setGenerating(true);
     setStreamContent("");
 
