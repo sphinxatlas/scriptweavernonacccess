@@ -26,6 +26,13 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+    /* Antique gold + ink accents (subtle wizarding archive feel) */
+    --gold: 38 55% 48%;
+    --gold-soft: 38 60% 88%;
+    --ink: 222 47% 18%;
+    --emerald-muted: 158 35% 38%;
+    --success: 158 35% 38%;
+    --warning: 38 70% 50%;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -56,6 +63,12 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+    --gold: 42 65% 62%;
+    --gold-soft: 42 40% 22%;
+    --ink: 210 40% 90%;
+    --emerald-muted: 158 30% 55%;
+    --success: 158 30% 55%;
+    --warning: 42 75% 60%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -75,4 +88,40 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@layer utilities {
+  .text-gold { color: hsl(var(--gold)); }
+  .text-success { color: hsl(var(--success)); }
+  .text-warning { color: hsl(var(--warning)); }
+  .border-gold { border-color: hsl(var(--gold) / 0.5); }
+  .bg-gold-soft { background-color: hsl(var(--gold) / 0.08); }
+  .ring-gold { box-shadow: 0 0 0 1px hsl(var(--gold) / 0.35); }
+
+  .hover-gold:hover {
+    border-color: hsl(var(--gold) / 0.5);
+    box-shadow: 0 0 0 1px hsl(var(--gold) / 0.15);
+  }
+
+  /* Subtle shimmer for loading/generating states */
+  @keyframes gold-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .shimmer-gold {
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--gold) / 0.12) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: gold-shimmer 2.4s ease-in-out infinite;
+  }
+
+  @keyframes gold-pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+  .pulse-gold { animation: gold-pulse 2s ease-in-out infinite; }
 }
