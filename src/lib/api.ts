@@ -4,7 +4,6 @@ import type { Tables } from "@/integrations/supabase/types";
 export type SourceFile = Tables<"source_files">;
 export type TopicBrief = Tables<"topic_briefs">;
 export type PipelineOutput = Tables<"pipeline_outputs">;
-export type EvidencePoint = Tables<"evidence_points">;
 export type ImprovedScript = Tables<"improved_scripts">;
 
 export type PipelineStepType =
@@ -288,41 +287,11 @@ export async function savePipelineOutput(briefId: string, stepType: PipelineStep
   return data;
 }
 
-// Evidence points
-export async function getEvidencePoints(briefId: string) {
-  const { data, error } = await supabase
-    .from("evidence_points")
-    .select("*")
-    .eq("brief_id", briefId)
-    .order("created_at");
-  if (error) throw error;
-  return data;
-}
-
-export async function toggleEvidenceStar(id: string, starred: boolean) {
-  const { error } = await supabase
-    .from("evidence_points")
-    .update({ starred })
-    .eq("id", id);
-  if (error) throw error;
-}
-
-export async function saveEvidencePoints(briefId: string, points: Omit<EvidencePoint, "id" | "created_at">[]) {
-  // Clear existing
-  await supabase.from("evidence_points").delete().eq("brief_id", briefId);
-  
-  if (points.length > 0) {
-    const { error } = await supabase.from("evidence_points").insert(points);
-    if (error) throw error;
-  }
-}
-
 export async function streamGenerateStep(
   briefId: string,
   stepType: PipelineStepType,
   onDelta: (text: string) => void,
   onDone: () => void,
-  starredOnly?: boolean,
   options?: { revisionFeedback?: string; previousFullScript?: string; finalVoicePass?: boolean },
 ) {
   const resp = await fetch(
@@ -336,7 +305,6 @@ export async function streamGenerateStep(
       body: JSON.stringify({
         briefId,
         stepType,
-        starredOnly,
         revisionFeedback: options?.revisionFeedback,
         previousFullScript: options?.previousFullScript,
         finalVoicePass: options?.finalVoicePass,
