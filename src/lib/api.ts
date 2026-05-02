@@ -991,3 +991,54 @@ export async function analyzeSourceStrength(
   }
   return label;
 }
+
+// ── Clip & Quote Finder (editor-only utility) ──
+export interface ClipQuoteFinderRun {
+  id: string;
+  brief_id: string;
+  pasted_script: string;
+  editor_notes: string | null;
+  prioritize_exact_film_timestamps: boolean;
+  include_book_quote_inserts: boolean;
+  include_contextual_broll_ideas: boolean;
+  output_markdown: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClipQuoteFinderInput {
+  briefId: string;
+  pastedScript: string;
+  editorNotes?: string;
+  prioritizeExactFilmTimestamps: boolean;
+  includeBookQuoteInserts: boolean;
+  includeContextualBrollIdeas: boolean;
+}
+
+export async function runClipQuoteFinder(
+  input: ClipQuoteFinderInput,
+): Promise<{ id: string | null; outputMarkdown: string; beatCount: number }> {
+  const { data, error } = await supabase.functions.invoke('find-clips-quotes', {
+    body: input,
+  });
+  if (error) throw error;
+  if ((data as any)?.error) throw new Error((data as any).error);
+  return data as any;
+}
+
+export async function getClipQuoteFinderRun(briefId: string): Promise<ClipQuoteFinderRun | null> {
+  const { data, error } = await supabase
+    .from('clip_quote_finder_runs' as any)
+    .select('*')
+    .eq('brief_id', briefId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as any) ?? null;
+}
+
+export async function deleteClipQuoteFinderRun(id: string): Promise<void> {
+  const { error } = await supabase.from('clip_quote_finder_runs' as any).delete().eq('id', id);
+  if (error) throw error;
+}
