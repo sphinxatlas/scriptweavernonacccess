@@ -392,6 +392,104 @@ export type Database = {
           },
         ]
       }
+      question_bank_entries: {
+        Row: {
+          answer: string
+          canon_status: string
+          caveats: Json | null
+          confidence: string
+          created_at: string
+          explanation: string | null
+          id: string
+          question: string
+          script_safe_takeaway: string | null
+          tags: string[] | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          answer?: string
+          canon_status?: string
+          caveats?: Json | null
+          confidence?: string
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          question: string
+          script_safe_takeaway?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          answer?: string
+          canon_status?: string
+          caveats?: Json | null
+          confidence?: string
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          question?: string
+          script_safe_takeaway?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      question_bank_evidence: {
+        Row: {
+          canon_weight: string | null
+          created_at: string
+          entry_id: string
+          evidence_strength: string | null
+          exact_finding: string
+          id: string
+          location: string | null
+          notes: string | null
+          position: number
+          source_name: string
+          source_type: string
+          what_it_proves: string | null
+        }
+        Insert: {
+          canon_weight?: string | null
+          created_at?: string
+          entry_id: string
+          evidence_strength?: string | null
+          exact_finding: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          position?: number
+          source_name: string
+          source_type: string
+          what_it_proves?: string | null
+        }
+        Update: {
+          canon_weight?: string | null
+          created_at?: string
+          entry_id?: string
+          evidence_strength?: string | null
+          exact_finding?: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          position?: number
+          source_name?: string
+          source_type?: string
+          what_it_proves?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_bank_evidence_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "question_bank_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       source_files: {
         Row: {
           char_count: number | null
