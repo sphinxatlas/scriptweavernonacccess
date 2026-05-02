@@ -2000,13 +2000,6 @@ Now produce the Selected Source Analysis in the exact format specified. Be hones
         .maybeSingle();
       const creativeBriefContent = creativeBriefOutput?.content || "";
 
-      const topicTranscriptBlock = topicTranscripts.length > 0
-        ? "\n## Brief-Specific HP Topic Transcripts (research leads — confirm all claims in primary canon before use)\n" +
-          truncateTopicTranscripts(topicTranscripts)
-            .map((r: any) => `### "${r.video_title}" by ${r.channel_name}\n${r.transcript}`)
-            .join("\n\n---\n\n")
-        : "";
-
       systemPromptFinal = STEP_PROMPTS["six_category_extraction"]
         .replace("{{HOST_PERSONA}}", hostPersonaContext || "No host persona uploaded.");
       if (instructionContext) {
@@ -2017,7 +2010,7 @@ Now produce the Selected Source Analysis in the exact format specified. Be hones
       userMessage = `## Creative Brief
 ${creativeBriefContent || `Title: ${brief.title}\nAngle: ${brief.angle_note || brief.description || ""}`}
 
-${topicTranscriptBlock}${altSourceUserBlock}
+(Note: Raw selected HP topic transcripts and Alternative Sources are NOT included here. They are deeply interpreted in the Selected Source Analysis step. This step focuses on canon-first extraction from the indexed primary corpus.)
 
 ## Creator Feedback on Brief
 ${brief.creative_brief_feedback || "None provided."}
