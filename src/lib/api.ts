@@ -592,9 +592,15 @@ export async function saveBriefTopicTranscript(input: {
   video_title: string;
   transcript: string;
 }) {
+  const charCount = input.transcript.length;
+  const estimatedTokens = Math.max(1, Math.round(charCount / 4));
   const { data, error } = await supabase
     .from('brief_topic_transcripts')
-    .insert(input)
+    .insert({
+      ...input,
+      char_count: charCount,
+      estimated_tokens: estimatedTokens,
+    })
     .select()
     .single();
   if (error) throw error;
@@ -620,6 +626,9 @@ export interface AlternativeSource {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  char_count?: number | null;
+  estimated_tokens?: number | null;
+  script_strength?: 'strong' | 'useful' | 'limited' | null;
 }
 
 export async function getAlternativeSources(): Promise<AlternativeSource[]> {
@@ -639,6 +648,8 @@ export async function saveAlternativeSource(input: {
   url?: string | null;
   notes?: string | null;
 }): Promise<AlternativeSource> {
+  const charCount = input.content.length;
+  const estimatedTokens = Math.max(1, Math.round(charCount / 4));
   const { data, error } = await supabase
     .from('alternative_sources')
     .insert({
@@ -648,6 +659,8 @@ export async function saveAlternativeSource(input: {
       source_author: input.source_author ?? null,
       url: input.url ?? null,
       notes: input.notes ?? null,
+      char_count: charCount,
+      estimated_tokens: estimatedTokens,
     })
     .select()
     .single();
