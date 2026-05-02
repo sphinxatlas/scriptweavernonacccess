@@ -1,4 +1,4 @@
-import { Library, ScrollText, Lightbulb, Sparkles, Feather, Wand2, BookOpen } from "lucide-react";
+import { Library, ScrollText, Lightbulb, Sparkles, Feather, Wand2, BookOpen, HelpCircle } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -7,6 +7,7 @@ const navItems = [
   { to: "/angle-lab", label: "Angle Lab", icon: Lightbulb },
   { to: "/briefs", label: "Topic Briefs", icon: Feather },
   { to: "/transcripts", label: "Secondary Sources", icon: ScrollText },
+  { to: "/question-bank", label: "Question Bank", icon: HelpCircle },
   { to: "/improve", label: "Script Improver", icon: Wand2 },
 ];
 

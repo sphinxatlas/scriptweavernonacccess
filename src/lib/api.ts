@@ -493,6 +493,114 @@ export async function deleteAngleLabRun(id: string): Promise<void> {
   if (error) throw error;
 }
 
+// ── Question Bank ──
+export type QuestionBankSourceType = "book" | "transcript" | "lexicon" | "competitor_analysis";
+
+export interface QuestionBankEvidence {
+  sourceType: QuestionBankSourceType;
+  sourceName: string;
+  location: string;
+  exactFinding: string;
+  whatItProves: string;
+  evidenceStrength: "Strong" | "Medium" | "Weak";
+  canonWeight: "Primary canon" | "Canon support" | "Commentary only";
+  notes?: string;
+}
+
+export interface QuestionBankAnswer {
+  entryId?: string | null;
+  answer: string;
+  confidence: "High" | "Medium" | "Low";
+  canonStatus: string;
+  explanation: string;
+  scriptSafeTakeaway: string;
+  caveats: string[];
+  evidence: QuestionBankEvidence[];
+}
+
+export interface QuestionBankSourceFilters {
+  books?: boolean;
+  transcripts?: boolean;
+  lexicon?: boolean;
+  commentary?: boolean;
+}
+
+export async function askQuestionBank(
+  question: string,
+  sourceFilters?: QuestionBankSourceFilters,
+): Promise<QuestionBankAnswer> {
+  const { data, error } = await supabase.functions.invoke("question-bank", {
+    body: { question, sourceFilters },
+  });
+  if (error) throw error;
+  if ((data as any)?.error) throw new Error((data as any).error);
+  return data as QuestionBankAnswer;
+}
+
+export interface QuestionBankEntry {
+  id: string;
+  question: string;
+  answer: string;
+  confidence: string;
+  canon_status: string;
+  explanation: string | null;
+  script_safe_takeaway: string | null;
+  caveats: any;
+  tags: string[] | null;
+  created_at: string;
+}
+
+export async function getQuestionBankEntries(): Promise<QuestionBankEntry[]> {
+  const { data, error } = await supabase
+    .from("question_bank_entries")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data || []) as any;
+}
+
+export async function getQuestionBankEntry(id: string): Promise<QuestionBankAnswer & { question: string; created_at: string }> {
+  const { data: entry, error } = await supabase
+    .from("question_bank_entries")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  const { data: evRows, error: evErr } = await supabase
+    .from("question_bank_evidence")
+    .select("*")
+    .eq("entry_id", id)
+    .order("position", { ascending: true });
+  if (evErr) throw evErr;
+  const evidence: QuestionBankEvidence[] = (evRows || []).map((r: any) => ({
+    sourceType: r.source_type,
+    sourceName: r.source_name,
+    location: r.location ?? "",
+    exactFinding: r.exact_finding,
+    whatItProves: r.what_it_proves ?? "",
+    evidenceStrength: r.evidence_strength,
+    canonWeight: r.canon_weight,
+    notes: r.notes ?? undefined,
+  }));
+  return {
+    entryId: entry.id,
+    question: (entry as any).question,
+    created_at: (entry as any).created_at,
+    answer: (entry as any).answer,
+    confidence: (entry as any).confidence,
+    canonStatus: (entry as any).canon_status,
+    explanation: (entry as any).explanation ?? "",
+    scriptSafeTakeaway: (entry as any).script_safe_takeaway ?? "",
+    caveats: Array.isArray((entry as any).caveats) ? (entry as any).caveats : [],
+    evidence,
+  };
+}
+
+export async function deleteQuestionBankEntry(id: string): Promise<void> {
+  const { error } = await supabase.from("question_bank_entries").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // Improved scripts history
 export interface CreateImprovedScriptInput {
   title: string;
