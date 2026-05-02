@@ -86,7 +86,16 @@ serve(async (req) => {
     }
 
     // Update status
-    await supabase.from("source_files").update({ status: "indexed" }).eq("id", fileId);
+    const charCount = text.length;
+    const estimatedTokens = Math.max(1, Math.round(charCount / 4));
+    await supabase
+      .from("source_files")
+      .update({
+        status: "indexed",
+        char_count: charCount,
+        estimated_tokens: estimatedTokens,
+      })
+      .eq("id", fileId);
 
     return new Response(
       JSON.stringify({ success: true, chunksCreated: chunks.length }),
