@@ -1920,20 +1920,26 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
         `Output ONLY the revised full script.\n`;
     }
 
-    // Brief-specific HP topic transcripts — pass as a distinct context block to
-    // evidence_table, outline, and full_script (creative_brief and
-    // six_category_extraction handle them on their own branches).
+    // ─────────────────────────────────────────────────────────────────────
+    // RAW SELECTED SECONDARY SOURCES — GATED TO SSA ONLY
+    //
+    // Raw selected HP topic transcripts and raw Alternative Sources are
+    // ONLY injected into selected_source_analysis (the deep-interpretation
+    // gateway). Downstream steps (evidence_table, outline, full_script,
+    // revision, final pass, six_category_extraction) consume the SSA OUTPUT
+    // via previousContext instead of the raw text.
+    // ─────────────────────────────────────────────────────────────────────
     const topicTranscriptUserBlock =
-      ["evidence_table", "outline", "full_script", "selected_source_analysis"].includes(stepType) && topicTranscripts.length > 0
+      stepType === "selected_source_analysis" && topicTranscripts.length > 0
         ? `\n\n## Brief-Specific HP Topic Transcripts (THEORY, ANGLE, AND RESEARCH LEADS — not Tier 1 canon)\nTreat these as theory/angle/interpretation input. Factual canon claims still require Tier 1 book or movie transcript support. Theories may be used if plausible, coherent, and not obviously contradicted by canon. Frame theories honestly as theories.\n\n` +
-          truncateTopicTranscripts(topicTranscripts)
+          truncateTopicTranscripts(topicTranscripts, "ssa")
             .map((r: any) => `### "${r.video_title}" by ${r.channel_name}\n${r.transcript}`)
             .join("\n\n---\n\n")
         : "";
 
     const altSourceUserBlock =
-      ["evidence_table", "outline", "full_script", "six_category_extraction", "selected_source_analysis"].includes(stepType)
-        ? formatAlternativeSourcesBlock("Alternative Sources")
+      stepType === "selected_source_analysis"
+        ? formatAlternativeSourcesBlock("Alternative Sources", "ssa")
         : "";
 
     if (stepType === "selected_source_analysis") {
