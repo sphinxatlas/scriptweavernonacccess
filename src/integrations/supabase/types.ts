@@ -16,10 +16,13 @@ export type Database = {
     Tables: {
       alternative_sources: {
         Row: {
+          char_count: number | null
           content: string
           created_at: string
+          estimated_tokens: number | null
           id: string
           notes: string | null
+          script_strength: string | null
           source_author: string | null
           source_type: string | null
           title: string
@@ -27,10 +30,13 @@ export type Database = {
           url: string | null
         }
         Insert: {
+          char_count?: number | null
           content: string
           created_at?: string
+          estimated_tokens?: number | null
           id?: string
           notes?: string | null
+          script_strength?: string | null
           source_author?: string | null
           source_type?: string | null
           title: string
@@ -38,10 +44,13 @@ export type Database = {
           url?: string | null
         }
         Update: {
+          char_count?: number | null
           content?: string
           created_at?: string
+          estimated_tokens?: number | null
           id?: string
           notes?: string | null
+          script_strength?: string | null
           source_author?: string | null
           source_type?: string | null
           title?: string
@@ -161,22 +170,31 @@ export type Database = {
       brief_topic_transcripts: {
         Row: {
           channel_name: string
+          char_count: number | null
           created_at: string
+          estimated_tokens: number | null
           id: string
+          script_strength: string | null
           transcript: string
           video_title: string
         }
         Insert: {
           channel_name: string
+          char_count?: number | null
           created_at?: string
+          estimated_tokens?: number | null
           id?: string
+          script_strength?: string | null
           transcript: string
           video_title: string
         }
         Update: {
           channel_name?: string
+          char_count?: number | null
           created_at?: string
+          estimated_tokens?: number | null
           id?: string
+          script_strength?: string | null
           transcript?: string
           video_title?: string
         }
@@ -376,29 +394,38 @@ export type Database = {
       }
       source_files: {
         Row: {
+          char_count: number | null
           created_at: string
+          estimated_tokens: number | null
           file_size: number | null
           file_type: Database["public"]["Enums"]["source_file_type"]
           id: string
           name: string
+          script_strength: string | null
           status: string
           storage_path: string
         }
         Insert: {
+          char_count?: number | null
           created_at?: string
+          estimated_tokens?: number | null
           file_size?: number | null
           file_type: Database["public"]["Enums"]["source_file_type"]
           id?: string
           name: string
+          script_strength?: string | null
           status?: string
           storage_path: string
         }
         Update: {
+          char_count?: number | null
           created_at?: string
+          estimated_tokens?: number | null
           file_size?: number | null
           file_type?: Database["public"]["Enums"]["source_file_type"]
           id?: string
           name?: string
+          script_strength?: string | null
           status?: string
           storage_path?: string
         }
