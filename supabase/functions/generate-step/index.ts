@@ -1329,7 +1329,7 @@ serve(async (req) => {
         .join("\n\n---\n\n");
 
       const topicTranscriptBlock = topicTranscripts.length > 0
-        ? truncateTopicTranscripts(topicTranscripts)
+        ? truncateTopicTranscripts(topicTranscripts, "creative_brief")
             .map((r: any) => `### HP Topic Transcript: "${r.video_title}" by ${r.channel_name}\nUse for research leads and angle awareness. All claims must be confirmed in primary canon.\n\n${r.transcript}`)
             .join("\n\n---\n\n")
         : "No brief-specific HP topic transcripts provided for this brief.";
@@ -1357,7 +1357,7 @@ ${brief.angle_note || brief.description || "(No angle note provided)"}
 ${formatRefBlock}
 
 ## Brief-Specific HP Topic Transcripts (research leads — confirm all claims in primary canon)
-${topicTranscriptBlock}${formatAlternativeSourcesBlock("Alternative Sources")}
+${topicTranscriptBlock}${formatAlternativeSourcesBlock("Alternative Sources", "creative_brief")}${buildSecondarySkippedNotice()}
 
 Generate the Creative Brief now.`;
 
