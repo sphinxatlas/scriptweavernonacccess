@@ -1389,6 +1389,112 @@ Generate the Creative Brief now.`;
       });
     }
 
+    // ─────────────────────────────────────────────────────────────────────
+    // FINAL VOICE PASS — EARLY EXIT (skip all retrieval and large source loading)
+    //
+    // Final Pass is a lightweight voice/pacing/rhythm polish on an existing
+    // full script. It must NOT trigger canon retrieval, query packs, source
+    // excerpt assembly, secondary source bundling, or previous-output
+    // concatenation. It only needs:
+    //   - the previous full script
+    //   - Topic Brief minimal fields
+    //   - Master Guide (writing constitution)
+    //   - Anti AI Guide
+    //   - Host Persona
+    //   - the FINAL VOICE PASS instructions
+    // ─────────────────────────────────────────────────────────────────────
+    if (stepType === "full_script" && finalVoicePass && !(typeof revisionFeedback === "string" && revisionFeedback.trim().length > 0)) {
+      // Load only the lean writing-guidance layers.
+      const masterGuideText = await loadMasterGuideContext();
+
+      const { data: antiAiFilesFP } = await supabase
+        .from("source_files")
+        .select("id")
+        .eq("file_type", "anti_ai_guide");
+      let antiAiTextFP = "";
+      if (antiAiFilesFP && antiAiFilesFP.length > 0) {
+        const { data } = await supabase
+          .from("file_chunks")
+          .select("content")
+          .in("file_id", antiAiFilesFP.map((f: any) => f.id))
+          .order("chunk_index")
+          .limit(20);
+        antiAiTextFP = (data || []).map((c: any) => c.content).join("\n\n");
+      }
+
+      // Pull previous Full Script if not provided by client.
+      let prevScriptFP = (previousFullScript || "").toString();
+      if (!prevScriptFP) {
+        const { data: prevOut } = await supabase
+          .from("pipeline_outputs")
+          .select("content")
+          .eq("brief_id", briefId)
+          .eq("step_type", "full_script")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        prevScriptFP = prevOut?.content || "";
+      }
+
+      let fpSystem = STEP_PROMPTS["full_script"]
+        .replace("{{HOST_PERSONA}}", hostPersonaContext || "No host persona uploaded.")
+        .replace("{{FULL_SCRIPT_LENGTH_INSTRUCTION}}",
+          `Preserve the original word count of the script you are polishing within ±10%.`);
+
+      if (masterGuideText) {
+        fpSystem += `\n\n${MASTER_GUIDE_HIGHEST_PRIORITY_HEADER}${masterGuideText}`;
+      }
+      fpSystem += PRECEDENCE_LADDER;
+      if (antiAiTextFP) {
+        fpSystem += `\n\nANTI AI LANGUAGE GUIDE (MANDATORY — apply these rules strictly):\n${antiAiTextFP}`;
+      }
+      fpSystem +=
+        `\n\nFINAL VOICE PASS MODE (BINDING):\n` +
+        `You are performing a FINAL VOICE PASS on an existing full script.\n` +
+        `This is not a full rewrite, not a research step, and not a new generation.\n` +
+        `- Preserve the existing argument, structure, section order, evidence, source tags, editor tags, and core canon claims.\n` +
+        `- Do NOT introduce new factual or canon claims. Do NOT re-research.\n` +
+        `- Reapply the Master Guide and Host Persona more strongly without making the voice feel forced.\n` +
+        `- Improve pacing, rhythm, transitions, re-hooks, clarity, and human delivery.\n` +
+        `- Remove generic AI phrasing, repetitive triads, flat transitions, and overly academic wording.\n` +
+        `- Keep the Lexicon mention ban and editor tag discipline intact.\n` +
+        `- Do NOT change the title promise or core thesis.\n` +
+        `- Output ONLY the revised full script. No preamble, no changelog, no diff.\n`;
+
+      const fpUser =
+        `## Topic Brief\nTitle: ${brief.title}\nAngle: ${brief.angle_note || brief.description || ""}\n\n` +
+        `## Current Full Script (this is what you are polishing — do not regenerate from sources)\n${prevScriptFP || "(No previous Full Script available.)"}\n\n` +
+        `## Final Voice Pass Task\nApply a light voice-and-pacing polish following the FINAL VOICE PASS MODE rules. Do not reload sources, evidence, or transcripts. Output ONLY the revised full script.`;
+
+      console.log("FINAL_PASS_LEAN_MODE: skipping retrieval, secondary sources, and previous pipeline outputs.");
+
+      const fpResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: getModelForStep("full_script"),
+          messages: [
+            { role: "system", content: fpSystem },
+            { role: "user", content: fpUser },
+          ],
+          stream: true,
+        }),
+      });
+
+      if (!fpResponse.ok) {
+        if (fpResponse.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (fpResponse.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        const t = await fpResponse.text();
+        throw new Error(`AI gateway error: ${fpResponse.status} ${t}`);
+      }
+      return new Response(fpResponse.body, {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
+    }
+
     // Build compact retrieval query pack from brief fields (brief stays rich for generation)
     // TODO: Add hybrid semantic/vector retrieval later using embeddings and pgvector. Current retrieval is keyword/full text search only.
     const queryPack = deriveRetrievalQueryPack(brief);
