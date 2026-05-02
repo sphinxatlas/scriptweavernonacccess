@@ -1734,10 +1734,9 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
     // Inject Script Instructions into system prompt — HIGHEST PRIORITY for full_script
     if (isScriptStep && instructionContext) {
-      const priority = stepType === "full_script"
-        ? "HIGHEST PRIORITY WRITING GUIDANCE — this document overrides all other guidance sources for structure, pacing, hooks, and style"
-        : "MANDATORY — apply these rules to shape writing quality, pacing, hooks, and retention";
-      systemPrompt += `\n\nSCRIPT INSTRUCTIONS & STRATEGY (${priority}):\n${instructionContext}`;
+      // Master Guide injected as the highest-priority writing constitution.
+      systemPrompt += `\n\n${MASTER_GUIDE_HIGHEST_PRIORITY_HEADER}${instructionContext}`;
+      systemPrompt += PRECEDENCE_LADDER;
     }
 
     // Inject Anti AI Language Guide enforcement into system prompt for script steps
