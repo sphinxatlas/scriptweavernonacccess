@@ -1063,6 +1063,50 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // ────────────────────────────────────────────────────────────────────────
+    // SCRIPTWRITER ENGINE MASTER GUIDE — shared loader
+    // Pulls "instructions" + legacy "script_strategy" file_type chunks. The
+    // Master Guide is a stable writing constitution: it shapes blueprint,
+    // structure, retention, escalation, and payoff across every major step.
+    // It is NEVER evidence and must never be cited.
+    // TODO: Master Guide is currently capped at 20 chunks. Add UI or backend
+    // warning if the guide is truncated, because missing later rules can
+    // weaken script quality.
+    // ────────────────────────────────────────────────────────────────────────
+    async function loadMasterGuideContext(): Promise<string> {
+      const { data: instructionFiles } = await supabase
+        .from("source_files")
+        .select("id")
+        .in("file_type", ["instructions", "script_strategy"]);
+      if (!instructionFiles || instructionFiles.length === 0) return "";
+      const { data } = await supabase
+        .from("file_chunks")
+        .select("content")
+        .in("file_id", instructionFiles.map((f: any) => f.id))
+        .order("chunk_index")
+        .limit(20);
+      return (data || []).map((c: any) => c.content).join("\n\n");
+    }
+
+    const MASTER_GUIDE_HIGHEST_PRIORITY_HEADER =
+      `## SCRIPTWRITER ENGINE MASTER GUIDE\n\n` +
+      `HIGHEST PRIORITY WRITING CONSTITUTION — apply these rules when shaping the video blueprint, viewer question, hook logic, escalation, argument structure, section progression, retention strategy, emotional arc, and final payoff.\n\n` +
+      `This guide is not evidence. Do not cite it. Do not summarize it. Use it to shape the creative and structural decisions of the brief.\n\n`;
+
+    const MASTER_GUIDE_FRAMING_HEADER =
+      `## SCRIPTWRITER ENGINE MASTER GUIDE\n\n` +
+      `MANDATORY FRAMING GUIDE — use this to decide which insights are structurally useful for a YouTube script. Prioritize evidence and ideas that can create curiosity, escalation, tension, rehooks, emotional movement, originality, and payoff.\n\n` +
+      `This guide is not evidence and must never be cited.\n\n`;
+
+    const PRECEDENCE_LADDER =
+      `\n\n## GUIDANCE PRECEDENCE LADDER\n` +
+      `1. Source hierarchy controls factual evidence.\n` +
+      `2. Scriptwriter Engine Master Guide controls structure, retention, argument shape, pacing, rehooks, and payoff.\n` +
+      `3. Anti AI Guide acts as a hard filter for wording, phrasing, and style problems.\n` +
+      `4. Host Persona controls voice, attitude, rhythm, and point of view, but should never override factual accuracy or structure.\n` +
+      `5. Retention and escalation instructions support the Master Guide. If they conflict, follow the Master Guide.\n` +
+      `6. Commentary transcripts, topic transcripts, competitor transcripts, and alternative sources provide audience signals, theories, framing possibilities, and inspiration, but must not be copied or treated as canon.\n`;
+
     // Get the topic brief
     const { data: brief, error: briefError } = await supabase
       .from("topic_briefs")
@@ -1232,8 +1276,18 @@ serve(async (req) => {
             .join("\n\n---\n\n")
         : "No brief-specific HP topic transcripts provided for this brief.";
 
-      const systemPrompt = STEP_PROMPTS["creative_brief"]
+      // Load the Master Guide directly for Creative Brief — it must shape the
+      // blueprint (Video Engine, Hook Shape, Escalation Ladder, Final Payoff)
+      // from the very first step, not be applied retroactively at Outline time.
+      const cbMasterGuide = await loadMasterGuideContext();
+
+      let systemPrompt = STEP_PROMPTS["creative_brief"]
         .replace("{{HOST_PERSONA}}", hostPersonaContext || "No host persona uploaded.");
+
+      if (cbMasterGuide) {
+        systemPrompt += `\n\n${MASTER_GUIDE_HIGHEST_PRIORITY_HEADER}${cbMasterGuide}`;
+      }
+      systemPrompt += PRECEDENCE_LADDER;
 
       const userMessage = `## Video Title
 ${brief.title}
@@ -1680,10 +1734,9 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
     // Inject Script Instructions into system prompt — HIGHEST PRIORITY for full_script
     if (isScriptStep && instructionContext) {
-      const priority = stepType === "full_script"
-        ? "HIGHEST PRIORITY WRITING GUIDANCE — this document overrides all other guidance sources for structure, pacing, hooks, and style"
-        : "MANDATORY — apply these rules to shape writing quality, pacing, hooks, and retention";
-      systemPrompt += `\n\nSCRIPT INSTRUCTIONS & STRATEGY (${priority}):\n${instructionContext}`;
+      // Master Guide injected as the highest-priority writing constitution.
+      systemPrompt += `\n\n${MASTER_GUIDE_HIGHEST_PRIORITY_HEADER}${instructionContext}`;
+      systemPrompt += PRECEDENCE_LADDER;
     }
 
     // Inject Anti AI Language Guide enforcement into system prompt for script steps
@@ -1741,10 +1794,16 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
 **Comparison Query Expansion:** ${queryPack.comparisonQueries.length > 0 ? "enabled" : "disabled"}
 **Comparison Queries:** ${queryPack.comparisonQueries.length ? queryPack.comparisonQueries.join(" | ") : "none"}`;
 
-    // Build guidance layers section — priority order: 1) Script Instructions, 2) Anti AI Guide, 3) Script Strategy
+    // Build user-message guidance block.
+    // NOTE: The Master Guide (Script Instructions & Strategy) is intentionally
+    // NOT duplicated here — it is now injected into the system prompt for every
+    // step that needs it (Creative Brief, Insights & Research, Selected Source
+    // Analysis, Evidence Table, Outline, Full Script, Final Pass, Revision).
+    // Duplicating it in the user message wasted tokens and diluted its
+    // "writing constitution" framing. The Anti AI Guide is also already in
+    // the system prompt for script steps. Commentary transcripts remain here
+    // because they are dynamic interpretive context, not stable guidance.
     const guidanceSections: string[] = [];
-    if (instructionContext) guidanceSections.push(`## Script Instructions & Strategy (GUIDANCE ONLY — not evidence, shapes writing quality/pacing/hooks/retention)\n${instructionContext}`);
-    if (antiAiContext) guidanceSections.push(`## Anti AI Language Guide (WRITING GUIDANCE — avoid AI tells, keep output human and natural)\n${antiAiContext}`);
     if (competitorContext) guidanceSections.push(`## Commentary Transcripts (INTERPRETIVE & THEORY INPUT — not canon evidence)\nUse for angles, framings, and argument patterns. Factual canon claims must be confirmed against Tier 1 books or movie transcripts. Theories and interpretive angles do NOT require direct canon confirmation, but they must be plausible, logically coherent, and not obviously contradicted by canon. Never present commentary material as proven canon. Never reuse commentary wording, structure, or phrasing.\n${competitorContext}`);
     const guidanceBlock = guidanceSections.length > 0 ? guidanceSections.join("\n\n") + "\n\n" : "";
 
@@ -1843,6 +1902,10 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
       const hasSelectedSecondary = topicTranscripts.length > 0 || alternativeSources.length > 0;
 
       systemPromptFinal = STEP_PROMPTS["selected_source_analysis"];
+      if (instructionContext) {
+        systemPromptFinal += `\n\n${MASTER_GUIDE_FRAMING_HEADER}${instructionContext}`;
+      }
+      systemPromptFinal += PRECEDENCE_LADDER;
 
       userMessage = `## Topic Brief
 Title: ${brief.title}
@@ -1882,6 +1945,10 @@ Now produce the Selected Source Analysis in the exact format specified. Be hones
 
       systemPromptFinal = STEP_PROMPTS["six_category_extraction"]
         .replace("{{HOST_PERSONA}}", hostPersonaContext || "No host persona uploaded.");
+      if (instructionContext) {
+        systemPromptFinal += `\n\n${MASTER_GUIDE_FRAMING_HEADER}${instructionContext}`;
+      }
+      systemPromptFinal += PRECEDENCE_LADDER;
 
       userMessage = `## Creative Brief
 ${creativeBriefContent || `Title: ${brief.title}\nAngle: ${brief.angle_note || brief.description || ""}`}
@@ -1896,6 +1963,17 @@ ${sourceContext}
 
 Mine all six categories now. Rank everything by surprise value, specificity, and argument usefulness. Be precise about sources.`;
     } else {
+      // Generic generation step (e.g. evidence_table, analysis_memo, outline,
+      // full_script). Promote the Master Guide into the system prompt with the
+      // appropriate framing for non-script analytical steps. (Outline and
+      // Full Script already received the HIGHEST PRIORITY injection above as
+      // part of `isScriptStep`, so we only inject framing here for steps that
+      // didn't receive it yet.)
+      if (!isScriptStep && instructionContext) {
+        systemPromptFinal += `\n\n${MASTER_GUIDE_FRAMING_HEADER}${instructionContext}`;
+        systemPromptFinal += PRECEDENCE_LADDER;
+      }
+
       userMessage = `## Topic Brief
 ${briefContext}
 
