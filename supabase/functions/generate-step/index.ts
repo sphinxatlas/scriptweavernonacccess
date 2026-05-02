@@ -1276,8 +1276,18 @@ serve(async (req) => {
             .join("\n\n---\n\n")
         : "No brief-specific HP topic transcripts provided for this brief.";
 
-      const systemPrompt = STEP_PROMPTS["creative_brief"]
+      // Load the Master Guide directly for Creative Brief — it must shape the
+      // blueprint (Video Engine, Hook Shape, Escalation Ladder, Final Payoff)
+      // from the very first step, not be applied retroactively at Outline time.
+      const cbMasterGuide = await loadMasterGuideContext();
+
+      let systemPrompt = STEP_PROMPTS["creative_brief"]
         .replace("{{HOST_PERSONA}}", hostPersonaContext || "No host persona uploaded.");
+
+      if (cbMasterGuide) {
+        systemPrompt += `\n\n${MASTER_GUIDE_HIGHEST_PRIORITY_HEADER}${cbMasterGuide}`;
+      }
+      systemPrompt += PRECEDENCE_LADDER;
 
       const userMessage = `## Video Title
 ${brief.title}
