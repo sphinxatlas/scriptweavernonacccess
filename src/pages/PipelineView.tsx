@@ -4,11 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PipelineSidebar } from "@/components/pipeline/PipelineSidebar";
-import { EvidencePanel } from "@/components/pipeline/EvidencePanel";
 import {
   PIPELINE_STEPS,
   getPipelineOutputs,
@@ -25,7 +23,6 @@ import {
   RotateCcw,
   Copy,
   Download,
-  Star,
   ThumbsUp,
   Wand2,
   Sparkles,
@@ -39,7 +36,6 @@ export default function PipelineView() {
   const [activeStep, setActiveStep] = useState<PipelineStepType>("creative_brief");
   const [generating, setGenerating] = useState(false);
   const [streamContent, setStreamContent] = useState("");
-  const [starredOnly, setStarredOnly] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
   const [approving, setApproving] = useState(false);
   const [revisionFeedback, setRevisionFeedback] = useState("");
@@ -101,7 +97,6 @@ export default function PipelineView() {
           }
           if (revisionOpts?.revisionFeedback) setRevisionFeedback("");
         },
-        starredOnly,
         revisionOpts
           ? {
               revisionFeedback: revisionOpts.revisionFeedback,
@@ -209,8 +204,6 @@ export default function PipelineView() {
 
   if (!briefId) return null;
 
-  const showStarredToggle = activeStep === "outline" || activeStep === "full_script";
-  const showEvidenceTab = activeStep === "evidence_table" && !generating;
   const isCreativeBrief = activeStep === "creative_brief";
   const creativeBriefApproved = !!(brief && (brief as any).creative_brief_approved);
   const creativeBriefFeedback = brief && (brief as any).creative_brief_feedback;
@@ -242,15 +235,6 @@ export default function PipelineView() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {showStarredToggle && (
-                <div className="flex items-center gap-2 mr-2 border-r border-border pr-3">
-                  <Switch checked={starredOnly} onCheckedChange={setStarredOnly} />
-                  <Label className="text-xs flex items-center gap-1 cursor-pointer">
-                    <Star className="w-3 h-3 text-primary" />
-                    Starred only
-                  </Label>
-                </div>
-              )}
               {displayContent && !generating && (
                 <>
                   <Button size="sm" variant="ghost" onClick={handleCopy} className="gap-1.5 text-xs">
