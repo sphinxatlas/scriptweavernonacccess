@@ -2003,7 +2003,7 @@ ${creativeBriefContent || "(Creative Brief not yet generated — proceed using T
 ${insightsContent || "(Insights & Research not yet generated — proceed cautiously and flag canon gaps.)"}
 
 ${hasSelectedSecondary ? "## Selected Secondary Sources (analyze ONLY these)" : "## Selected Secondary Sources\n(None attached. Produce a minimal graceful analysis based on the Creative Brief and Insights & Research only — do not invent fan signals.)"}
-${topicTranscriptUserBlock}${altSourceUserBlock}
+${topicTranscriptUserBlock}${altSourceUserBlock}${buildSecondarySkippedNotice()}
 
 Now produce the Selected Source Analysis in the exact format specified. Be honest about source weight — never promote a secondary-source claim to canon. Surface what's overused, what's underdeveloped, what objections exist, and where original synthesis is possible against the canon extraction above.`;
     } else if (stepType === "six_category_extraction") {
@@ -2057,7 +2057,7 @@ ${queryPackContext}
 
 ${guidanceBlock}${previousContext ? `## Previous Pipeline Steps\n${previousContext}\n\n` : ""}${starredEvidence ? `${starredEvidence}\n\n` : ""}## Source Material Excerpts
 ${sourceContext}
-${topicTranscriptUserBlock}${altSourceUserBlock}
+${topicTranscriptUserBlock}${altSourceUserBlock}${buildSecondarySkippedNotice()}
 
 Please generate the ${stepType.replace(/_/g, " ")} based on the above information.`;
     }
