@@ -116,6 +116,26 @@ export async function getSourceFiles() {
   return data;
 }
 
+// Reconstruct full text content of an uploaded source file from its indexed chunks.
+export async function getSourceFileContent(fileId: string): Promise<string> {
+  const { data, error } = await supabase
+    .from("file_chunks")
+    .select("content, chunk_index")
+    .eq("file_id", fileId)
+    .order("chunk_index", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((c) => c.content).join("\n\n");
+}
+
+// Get a short-lived signed URL to download the original uploaded file from storage.
+export async function getSourceFileDownloadUrl(storagePath: string, expiresInSeconds = 60): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from("source-files")
+    .createSignedUrl(storagePath, expiresInSeconds, { download: true });
+  if (error) throw error;
+  return data.signedUrl;
+}
+
 export async function getTopicBriefs() {
   const { data, error } = await supabase
     .from("topic_briefs")
