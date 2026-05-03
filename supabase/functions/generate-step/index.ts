@@ -2381,6 +2381,10 @@ Please generate the ${stepType.replace(/_/g, " ")} based on the above informatio
     }
 
     // Call Lovable AI
+    // Append unified guidance block (intensity per STEP_GUIDANCE). For
+    // full_script revisions, use the revision-specific intensity entry.
+    const effectiveStepKey = isFullScriptRevision ? "full_script_revision" : stepType;
+    systemPromptFinal += buildGuidanceBlock(effectiveStepKey, guidanceLayers);
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
