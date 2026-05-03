@@ -13,6 +13,8 @@ import {
   getPipelineOutputs,
   savePipelineOutput,
   streamGenerateStep,
+  streamPolishPass,
+  type PolishPassType,
   updateBriefCreativeBriefFields,
   type PipelineStepType,
 } from "@/lib/api";
@@ -27,6 +29,8 @@ import {
   ThumbsUp,
   Wand2,
   Sparkles,
+  FileCheck2,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -41,6 +45,8 @@ export default function PipelineView() {
   const [feedbackText, setFeedbackText] = useState("");
   const [approving, setApproving] = useState(false);
   const [revisionFeedback, setRevisionFeedback] = useState("");
+  const [lastPassLabel, setLastPassLabel] = useState<string | null>(null);
+  const [runningPass, setRunningPass] = useState<PolishPassType | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const { data: brief, refetch: refetchBrief } = useQuery({
@@ -75,6 +81,7 @@ export default function PipelineView() {
     revisionOpts?: { revisionFeedback?: string; previousFullScript?: string; finalVoicePass?: boolean },
   ) => {
     if (!briefId) return;
+    setLastPassLabel(null);
     const step: PipelineStepType =
       overrideStep || (activeStep === "clip_quote_finder" ? "full_script" : (activeStep as PipelineStepType));
     if (activeStep === "clip_quote_finder" && !overrideStep) return;
@@ -216,6 +223,42 @@ export default function PipelineView() {
   const showCreativeBriefApproved = isCreativeBrief && currentOutput && !generating && creativeBriefApproved;
   const showFullScriptRevision =
     activeStep === "full_script" && !!currentOutput && !generating;
+
+  const handleRunPolishPass = async (passType: PolishPassType) => {
+    if (!briefId) return;
+    const scriptText = (currentOutput?.content || "").toString();
+    if (!scriptText.trim()) {
+      toast.error("Generate a Full Script first.");
+      return;
+    }
+    setRunningPass(passType);
+    setGenerating(true);
+    setStreamContent("");
+    let accumulated = "";
+    const docLabel =
+      passType === "anti_ai" ? "Anti AI Writing Instructions" : "Script Writing Instructions";
+    try {
+      await streamPolishPass(
+        { passType, scriptText },
+        (delta) => {
+          accumulated += delta;
+          setStreamContent(accumulated);
+        },
+        async () => {
+          await savePipelineOutput(briefId, "full_script", accumulated);
+          await refetchOutputs();
+          setGenerating(false);
+          setRunningPass(null);
+          setLastPassLabel(`Revised with ${docLabel}`);
+          toast.success(`${docLabel} pass complete`);
+        },
+      );
+    } catch (err: any) {
+      setGenerating(false);
+      setRunningPass(null);
+      toast.error(err.message || "Polish pass failed");
+    }
+  };
 
   const fullScriptContent =
     (outputs.find((o) => o.step_type === "full_script")?.content as string | undefined) || "";
@@ -365,7 +408,15 @@ export default function PipelineView() {
             ) : (
               <div ref={contentRef} className="h-full overflow-auto p-6">
                 {displayContent ? (
-                  <MarkdownContent content={displayContent} />
+                  <>
+                    {activeStep === "full_script" && lastPassLabel && !generating && (
+                      <div className="mb-3 inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded bg-primary/10 text-primary border border-primary/30">
+                        <Sparkles className="w-3 h-3" />
+                        {lastPassLabel}
+                      </div>
+                    )}
+                    <MarkdownContent content={displayContent} />
+                  </>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-center">
                     <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
@@ -388,6 +439,45 @@ export default function PipelineView() {
 
                 {showFullScriptRevision && (
                   <div className="mt-8 border-t border-border pt-6 max-w-3xl">
+                    <div className="mb-8">
+                      <h3 className="text-sm font-mono font-bold text-foreground mb-1">
+                        Final Polish (optional)
+                      </h3>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Run the finished script through a single guidance document as a focused rewrite pass. Each pass is independent and overwrites the current Full Script. Edits you make manually elsewhere should be saved back here before running.
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRunPolishPass("script_writing")}
+                          disabled={generating}
+                          className="gap-1.5"
+                        >
+                          {runningPass === "script_writing" ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <FileCheck2 className="w-3.5 h-3.5" />
+                          )}
+                          Run Script Writing Pass
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRunPolishPass("anti_ai")}
+                          disabled={generating}
+                          className="gap-1.5"
+                        >
+                          {runningPass === "anti_ai" ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                          )}
+                          Run Anti AI Pass
+                        </Button>
+                      </div>
+                    </div>
+
                     <div className="mb-3">
                       <h3 className="text-sm font-mono font-bold text-foreground flex items-center gap-2">
                         <Wand2 className="w-3.5 h-3.5 text-primary" />
