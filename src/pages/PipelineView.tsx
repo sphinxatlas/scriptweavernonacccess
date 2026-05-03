@@ -81,6 +81,7 @@ export default function PipelineView() {
     revisionOpts?: { revisionFeedback?: string; previousFullScript?: string; finalVoicePass?: boolean },
   ) => {
     if (!briefId) return;
+    setLastPassLabel(null);
     const step: PipelineStepType =
       overrideStep || (activeStep === "clip_quote_finder" ? "full_script" : (activeStep as PipelineStepType));
     if (activeStep === "clip_quote_finder" && !overrideStep) return;
