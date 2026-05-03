@@ -13,6 +13,8 @@ import {
   getPipelineOutputs,
   savePipelineOutput,
   streamGenerateStep,
+  streamPolishPass,
+  type PolishPassType,
   updateBriefCreativeBriefFields,
   type PipelineStepType,
 } from "@/lib/api";
@@ -27,6 +29,8 @@ import {
   ThumbsUp,
   Wand2,
   Sparkles,
+  FileCheck2,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -41,6 +45,8 @@ export default function PipelineView() {
   const [feedbackText, setFeedbackText] = useState("");
   const [approving, setApproving] = useState(false);
   const [revisionFeedback, setRevisionFeedback] = useState("");
+  const [lastPassLabel, setLastPassLabel] = useState<string | null>(null);
+  const [runningPass, setRunningPass] = useState<PolishPassType | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const { data: brief, refetch: refetchBrief } = useQuery({
@@ -217,6 +223,42 @@ export default function PipelineView() {
   const showFullScriptRevision =
     activeStep === "full_script" && !!currentOutput && !generating;
 
+  const handleRunPolishPass = async (passType: PolishPassType) => {
+    if (!briefId) return;
+    const scriptText = (currentOutput?.content || "").toString();
+    if (!scriptText.trim()) {
+      toast.error("Generate a Full Script first.");
+      return;
+    }
+    setRunningPass(passType);
+    setGenerating(true);
+    setStreamContent("");
+    let accumulated = "";
+    const docLabel =
+      passType === "anti_ai" ? "Anti AI Writing Instructions" : "Script Writing Instructions";
+    try {
+      await streamPolishPass(
+        { passType, scriptText },
+        (delta) => {
+          accumulated += delta;
+          setStreamContent(accumulated);
+        },
+        async () => {
+          await savePipelineOutput(briefId, "full_script", accumulated);
+          await refetchOutputs();
+          setGenerating(false);
+          setRunningPass(null);
+          setLastPassLabel(`Revised with ${docLabel}`);
+          toast.success(`${docLabel} pass complete`);
+        },
+      );
+    } catch (err: any) {
+      setGenerating(false);
+      setRunningPass(null);
+      toast.error(err.message || "Polish pass failed");
+    }
+  };
+
   const fullScriptContent =
     (outputs.find((o) => o.step_type === "full_script")?.content as string | undefined) || "";
 
@@ -388,6 +430,45 @@ export default function PipelineView() {
 
                 {showFullScriptRevision && (
                   <div className="mt-8 border-t border-border pt-6 max-w-3xl">
+                    <div className="mb-8">
+                      <h3 className="text-sm font-mono font-bold text-foreground mb-1">
+                        Final Polish (optional)
+                      </h3>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Run the finished script through a single guidance document as a focused rewrite pass. Each pass is independent and overwrites the current Full Script. Edits you make manually elsewhere should be saved back here before running.
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRunPolishPass("script_writing")}
+                          disabled={generating}
+                          className="gap-1.5"
+                        >
+                          {runningPass === "script_writing" ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <FileCheck2 className="w-3.5 h-3.5" />
+                          )}
+                          Run Script Writing Pass
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRunPolishPass("anti_ai")}
+                          disabled={generating}
+                          className="gap-1.5"
+                        >
+                          {runningPass === "anti_ai" ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                          )}
+                          Run Anti AI Pass
+                        </Button>
+                      </div>
+                    </div>
+
                     <div className="mb-3">
                       <h3 className="text-sm font-mono font-bold text-foreground flex items-center gap-2">
                         <Wand2 className="w-3.5 h-3.5 text-primary" />
