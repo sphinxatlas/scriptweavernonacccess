@@ -1260,10 +1260,29 @@ serve(async (req) => {
     // once per request. These are appended additively to every step's system
     // prompt in addition to any legacy inline injection, with intensity per
     // STEP_GUIDANCE config.
-    const guidanceLayers = await loadGuidanceLayers();
-    const layeredGuidanceBlock = buildGuidanceBlock(stepType, guidanceLayers);
+    const EMPTY_LAYER = { text: "", sourceUsed: "none" as const, chunksRead: 0, totalChunks: 0, truncated: false };
+    let guidanceLayers: GuidanceLayers = {
+      scriptInstructions: EMPTY_LAYER,
+      antiAiInstructions: EMPTY_LAYER,
+      hostPersona: EMPTY_LAYER,
+    };
+    try {
+      guidanceLayers = await loadGuidanceLayers();
+    } catch (e) {
+      console.error("[guidance] loader failed — proceeding with empty guidance layers:", e);
+    }
+    let layeredGuidanceBlock = "";
+    try {
+      layeredGuidanceBlock = buildGuidanceBlock(stepType, guidanceLayers);
+    } catch (e) {
+      console.error("[guidance] buildGuidanceBlock failed — proceeding with no guidance block:", e);
+    }
     const guidanceWarnings: string[] = [];
-    logGuidance(stepType, guidanceLayers, guidanceWarnings);
+    try {
+      logGuidance(stepType, guidanceLayers, guidanceWarnings);
+    } catch (e) {
+      console.error("[guidance] logGuidance failed:", e);
+    }
 
     // Build a small SSE comment payload (ignored by EventSource clients but
     // visible in raw stream) that surfaces guidance truncation status. Also
