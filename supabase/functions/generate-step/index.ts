@@ -1261,7 +1261,7 @@ serve(async (req) => {
     // prompt in addition to any legacy inline injection, with intensity per
     // STEP_GUIDANCE config.
     const guidanceLayers = await loadGuidanceLayers();
-    const guidanceBlock = buildGuidanceBlock(stepType, guidanceLayers);
+    const layeredGuidanceBlock = buildGuidanceBlock(stepType, guidanceLayers);
     const guidanceWarnings: string[] = [];
     logGuidance(stepType, guidanceLayers, guidanceWarnings);
 
@@ -1455,7 +1455,7 @@ serve(async (req) => {
       }
 
       const systemPrompt = STEP_PROMPTS["competitor_format_analysis"];
-      const systemPromptCFA = systemPrompt + guidanceBlock;
+      const systemPromptCFA = systemPrompt + layeredGuidanceBlock;
       const userMessage = `## Topic Brief\n**Title:** ${brief.title}\n**Description:** ${brief.description}\n\n## Competitor Scripts (${scripts.length} provided)\n\n${scripts.map((s: string, i: number) => `### Competitor Script ${i + 1}\n${s}`).join("\n\n---\n\n")}\n\nPlease analyze the format and structure of these competitor scripts.`;
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -1523,7 +1523,7 @@ serve(async (req) => {
         systemPrompt += `\n\n${MASTER_GUIDE_HIGHEST_PRIORITY_HEADER}${cbMasterGuide}`;
       }
       systemPrompt += PRECEDENCE_LADDER;
-      systemPrompt += guidanceBlock;
+      systemPrompt += layeredGuidanceBlock;
 
       const userMessage = `## Video Title
 ${brief.title}
