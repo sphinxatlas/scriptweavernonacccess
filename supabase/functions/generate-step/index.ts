@@ -1256,6 +1256,41 @@ serve(async (req) => {
       .single();
     if (briefError || !brief) throw new Error("Brief not found");
 
+    // Load shared guidance layers (Script Instructions, Anti-AI, Host Persona)
+    // once per request. These are appended additively to every step's system
+    // prompt in addition to any legacy inline injection, with intensity per
+    // STEP_GUIDANCE config.
+    const guidanceLayers = await loadGuidanceLayers();
+    const guidanceBlock = buildGuidanceBlock(stepType, guidanceLayers);
+    const guidanceWarnings: string[] = [];
+    logGuidance(stepType, guidanceLayers, guidanceWarnings);
+
+    // Build a small SSE comment payload (ignored by EventSource clients but
+    // visible in raw stream) that surfaces guidance truncation status. Also
+    // appended to truncationWarnings further below for unified observability.
+    const guidanceSseHeader = guidanceWarnings.length > 0
+      ? `: guidance_warnings ${JSON.stringify(guidanceWarnings)}\n\n`
+      : "";
+    const wrapStreamWithWarnings = (upstream: ReadableStream<Uint8Array>) => {
+      if (!guidanceSseHeader) return upstream;
+      const encoder = new TextEncoder();
+      return new ReadableStream<Uint8Array>({
+        async start(controller) {
+          controller.enqueue(encoder.encode(guidanceSseHeader));
+          const reader = upstream.getReader();
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              controller.enqueue(value);
+            }
+          } finally {
+            controller.close();
+          }
+        },
+      });
+    };
+
     // Fetch host persona
     const { data: personaFiles } = await supabase
       .from("source_files")
