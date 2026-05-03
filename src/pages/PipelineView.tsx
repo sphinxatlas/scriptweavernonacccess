@@ -407,7 +407,15 @@ export default function PipelineView() {
             ) : (
               <div ref={contentRef} className="h-full overflow-auto p-6">
                 {displayContent ? (
-                  <MarkdownContent content={displayContent} />
+                  <>
+                    {activeStep === "full_script" && lastPassLabel && !generating && (
+                      <div className="mb-3 inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded bg-primary/10 text-primary border border-primary/30">
+                        <Sparkles className="w-3 h-3" />
+                        {lastPassLabel}
+                      </div>
+                    )}
+                    <MarkdownContent content={displayContent} />
+                  </>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-center">
                     <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
