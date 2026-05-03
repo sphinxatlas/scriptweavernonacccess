@@ -1455,6 +1455,7 @@ serve(async (req) => {
       }
 
       const systemPrompt = STEP_PROMPTS["competitor_format_analysis"];
+      const systemPromptCFA = systemPrompt + guidanceBlock;
       const userMessage = `## Topic Brief\n**Title:** ${brief.title}\n**Description:** ${brief.description}\n\n## Competitor Scripts (${scripts.length} provided)\n\n${scripts.map((s: string, i: number) => `### Competitor Script ${i + 1}\n${s}`).join("\n\n---\n\n")}\n\nPlease analyze the format and structure of these competitor scripts.`;
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -1466,7 +1467,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: getModelForStep(stepType),
           messages: [
-            { role: "system", content: systemPrompt },
+            { role: "system", content: systemPromptCFA },
             { role: "user", content: userMessage },
           ],
           stream: true,
@@ -1489,7 +1490,7 @@ serve(async (req) => {
         throw new Error("AI gateway error");
       }
 
-      return new Response(response.body, {
+      return new Response(wrapStreamWithWarnings(response.body!), {
         headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
       });
     }
@@ -1522,6 +1523,7 @@ serve(async (req) => {
         systemPrompt += `\n\n${MASTER_GUIDE_HIGHEST_PRIORITY_HEADER}${cbMasterGuide}`;
       }
       systemPrompt += PRECEDENCE_LADDER;
+      systemPrompt += guidanceBlock;
 
       const userMessage = `## Video Title
 ${brief.title}
@@ -1560,7 +1562,7 @@ Generate the Creative Brief now.`;
         throw new Error(`AI gateway error: ${response.status} ${t}`);
       }
 
-      return new Response(response.body, {
+      return new Response(wrapStreamWithWarnings(response.body!), {
         headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
       });
     }
