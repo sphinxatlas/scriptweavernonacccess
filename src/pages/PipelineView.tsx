@@ -226,17 +226,30 @@ export default function PipelineView() {
 
   const handleRunPolishPass = async (passType: PolishPassType) => {
     if (!briefId) return;
-    const scriptText = (currentOutput?.content || "").toString();
+    // A1: Always pull the freshest saved Full Script from the DB so any prior
+    // pass / revision / save is included. This matches the same source of
+    // truth that savePipelineOutput writes to.
+    const fresh = await refetchOutputs();
+    const freshFullScript =
+      (fresh.data || outputs).find((o) => o.step_type === "full_script")?.content || "";
+    const scriptText = (freshFullScript || currentOutput?.content || "").toString();
     if (!scriptText.trim()) {
       toast.error("Generate a Full Script first.");
       return;
     }
+    const docLabelForConfirm =
+      passType === "anti_ai" ? "Anti AI Writing Instructions" : "Script Writing Instructions";
+    const confirmed = window.confirm(
+      `Run ${docLabelForConfirm} pass?\n\nThis will overwrite the current Full Script with the revised version. Make sure any manual edits have been saved first.`,
+    );
+    if (!confirmed) return;
     setRunningPass(passType);
     setGenerating(true);
     setStreamContent("");
     let accumulated = "";
     const docLabel =
       passType === "anti_ai" ? "Anti AI Writing Instructions" : "Script Writing Instructions";
+    toast.message(`${docLabel} pass started — this will replace the current Full Script when complete.`);
     try {
       await streamPolishPass(
         { passType, scriptText },
