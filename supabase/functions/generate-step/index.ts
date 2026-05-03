@@ -1260,10 +1260,29 @@ serve(async (req) => {
     // once per request. These are appended additively to every step's system
     // prompt in addition to any legacy inline injection, with intensity per
     // STEP_GUIDANCE config.
-    const guidanceLayers = await loadGuidanceLayers();
-    const guidanceBlock = buildGuidanceBlock(stepType, guidanceLayers);
+    const EMPTY_LAYER = { text: "", sourceUsed: "none" as const, chunksRead: 0, totalChunks: 0, truncated: false };
+    let guidanceLayers: GuidanceLayers = {
+      scriptInstructions: EMPTY_LAYER,
+      antiAiInstructions: EMPTY_LAYER,
+      hostPersona: EMPTY_LAYER,
+    };
+    try {
+      guidanceLayers = await loadGuidanceLayers();
+    } catch (e) {
+      console.error("[guidance] loader failed — proceeding with empty guidance layers:", e);
+    }
+    let layeredGuidanceBlock = "";
+    try {
+      layeredGuidanceBlock = buildGuidanceBlock(stepType, guidanceLayers);
+    } catch (e) {
+      console.error("[guidance] buildGuidanceBlock failed — proceeding with no guidance block:", e);
+    }
     const guidanceWarnings: string[] = [];
-    logGuidance(stepType, guidanceLayers, guidanceWarnings);
+    try {
+      logGuidance(stepType, guidanceLayers, guidanceWarnings);
+    } catch (e) {
+      console.error("[guidance] logGuidance failed:", e);
+    }
 
     // Build a small SSE comment payload (ignored by EventSource clients but
     // visible in raw stream) that surfaces guidance truncation status. Also
@@ -1455,7 +1474,7 @@ serve(async (req) => {
       }
 
       const systemPrompt = STEP_PROMPTS["competitor_format_analysis"];
-      const systemPromptCFA = systemPrompt + guidanceBlock;
+      const systemPromptCFA = systemPrompt + layeredGuidanceBlock;
       const userMessage = `## Topic Brief\n**Title:** ${brief.title}\n**Description:** ${brief.description}\n\n## Competitor Scripts (${scripts.length} provided)\n\n${scripts.map((s: string, i: number) => `### Competitor Script ${i + 1}\n${s}`).join("\n\n---\n\n")}\n\nPlease analyze the format and structure of these competitor scripts.`;
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -1523,7 +1542,7 @@ serve(async (req) => {
         systemPrompt += `\n\n${MASTER_GUIDE_HIGHEST_PRIORITY_HEADER}${cbMasterGuide}`;
       }
       systemPrompt += PRECEDENCE_LADDER;
-      systemPrompt += guidanceBlock;
+      systemPrompt += layeredGuidanceBlock;
 
       const userMessage = `## Video Title
 ${brief.title}
