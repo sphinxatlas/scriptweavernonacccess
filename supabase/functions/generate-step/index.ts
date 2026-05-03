@@ -1064,28 +1064,169 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // ────────────────────────────────────────────────────────────────────────
-    // SCRIPTWRITER ENGINE MASTER GUIDE — shared loader
-    // Pulls "instructions" + legacy "script_strategy" file_type chunks. The
-    // Master Guide is a stable writing constitution: it shapes blueprint,
-    // structure, retention, escalation, and payoff across every major step.
-    // It is NEVER evidence and must never be cited.
-    // TODO: Master Guide is currently capped at 20 chunks. Add UI or backend
-    // warning if the guide is truncated, because missing later rules can
-    // weaken script quality.
+    // SHARED GUIDANCE-LAYER LOADER
+    //
+    // Loads the three writing-guidance documents:
+    //   1. Script Writing Instructions (file_type: 'instructions',
+    //      legacy fallback 'script_strategy')
+    //   2. Anti AI Writing Instructions  (file_type: 'anti_ai_guide')
+    //   3. Host Persona: Melty           (file_type: 'host_persona')
+    //
+    // None of these are evidence. They never override canon, source hierarchy,
+    // or factual claims. Returns text + provenance metadata so we can log
+    // chunks read vs total and surface truncation warnings.
     // ────────────────────────────────────────────────────────────────────────
-    async function loadMasterGuideContext(): Promise<string> {
-      const { data: instructionFiles } = await supabase
+    const GUIDANCE_CHUNK_LIMIT = 40;
+
+    type LayerMeta = {
+      text: string;
+      sourceUsed: "instructions" | "script_strategy" | "anti_ai_guide" | "host_persona" | "none";
+      chunksRead: number;
+      totalChunks: number;
+      truncated: boolean;
+    };
+    type GuidanceLayers = {
+      scriptInstructions: LayerMeta;
+      antiAiInstructions: LayerMeta;
+      hostPersona: LayerMeta;
+    };
+
+    async function loadLayer(
+      fileTypes: string[],
+      label: LayerMeta["sourceUsed"],
+    ): Promise<LayerMeta> {
+      const { data: files } = await supabase
         .from("source_files")
-        .select("id")
-        .in("file_type", ["instructions", "script_strategy"]);
-      if (!instructionFiles || instructionFiles.length === 0) return "";
-      const { data } = await supabase
+        .select("id, file_type")
+        .in("file_type", fileTypes);
+      const empty: LayerMeta = { text: "", sourceUsed: "none", chunksRead: 0, totalChunks: 0, truncated: false };
+      if (!files || files.length === 0) return empty;
+      const ids = files.map((f: any) => f.id);
+      const { count: totalChunks } = await supabase
+        .from("file_chunks")
+        .select("id", { count: "exact", head: true })
+        .in("file_id", ids);
+      const { data: chunks } = await supabase
         .from("file_chunks")
         .select("content")
-        .in("file_id", instructionFiles.map((f: any) => f.id))
+        .in("file_id", ids)
         .order("chunk_index")
-        .limit(20);
-      return (data || []).map((c: any) => c.content).join("\n\n");
+        .limit(GUIDANCE_CHUNK_LIMIT);
+      const read = chunks?.length ?? 0;
+      const total = totalChunks ?? read;
+      // Determine effective source: prefer 'instructions' over legacy 'script_strategy'
+      let sourceUsed: LayerMeta["sourceUsed"] = label;
+      if (fileTypes.includes("instructions") || fileTypes.includes("script_strategy")) {
+        const hasNew = files.some((f: any) => f.file_type === "instructions");
+        const hasLegacy = files.some((f: any) => f.file_type === "script_strategy");
+        sourceUsed = hasNew ? "instructions" : hasLegacy ? "script_strategy" : "none";
+        if (sourceUsed === "script_strategy") {
+          console.warn("DEPRECATION: 'script_strategy' file_type used for Script Writing Instructions; please re-upload as 'instructions'.");
+        }
+      }
+      return {
+        text: (chunks || []).map((c: any) => c.content).join("\n\n"),
+        sourceUsed,
+        chunksRead: read,
+        totalChunks: total,
+        truncated: total > read,
+      };
+    }
+
+    async function loadGuidanceLayers(): Promise<GuidanceLayers> {
+      const [scriptInstructions, antiAiInstructions, hostPersona] = await Promise.all([
+        loadLayer(["instructions", "script_strategy"], "instructions"),
+        loadLayer(["anti_ai_guide"], "anti_ai_guide"),
+        loadLayer(["host_persona"], "host_persona"),
+      ]);
+      return { scriptInstructions, antiAiInstructions, hostPersona };
+    }
+
+    // Backwards-compatible helper used by older code paths that only need the
+    // Master Guide (Script Writing Instructions) text.
+    async function loadMasterGuideContext(): Promise<string> {
+      const layer = await loadLayer(["instructions", "script_strategy"], "instructions");
+      return layer.text;
+    }
+
+    // ── Step-level guidance intensity configuration ────────────────────────
+    type Intensity = "none" | "light" | "medium" | "strong" | "highest";
+    type StepGuidanceConfig = { script: Intensity; antiAi: Intensity; persona: Intensity };
+    const STEP_GUIDANCE: Record<string, StepGuidanceConfig> = {
+      creative_brief:              { script: "strong",  antiAi: "light",   persona: "light"   },
+      competitor_format_analysis:  { script: "light",   antiAi: "light",   persona: "none"    },
+      six_category_extraction:     { script: "medium",  antiAi: "light",   persona: "light"   },
+      selected_source_analysis:    { script: "medium",  antiAi: "light",   persona: "light"   },
+      evidence_table:              { script: "medium",  antiAi: "light",   persona: "light"   },
+      analysis_memo:               { script: "strong",  antiAi: "medium",  persona: "medium"  },
+      outline:                     { script: "highest", antiAi: "medium",  persona: "medium"  },
+      full_script:                 { script: "highest", antiAi: "highest", persona: "highest" },
+      full_script_revision:        { script: "highest", antiAi: "highest", persona: "highest" },
+      final_voice_pass:            { script: "medium",  antiAi: "highest", persona: "highest" },
+      verification:                { script: "light",   antiAi: "none",    persona: "none"    },
+      retrieval:                   { script: "none",    antiAi: "none",    persona: "none"    },
+    };
+
+    const SCRIPT_WRAPPER = (text: string, intensity: Intensity) =>
+      intensity === "none" || !text ? "" :
+      `\n\n## SCRIPT WRITING INSTRUCTIONS (${intensity.toUpperCase()} BINDING)\n` +
+      `Governs structure, argument, retention, escalation, evidence movement, emotional arc, and final payoff.\n` +
+      `Does NOT override source evidence or canon facts.\n\n${text}`;
+
+    const ANTI_AI_WRAPPER = (text: string, intensity: Intensity) =>
+      intensity === "none" || !text ? "" :
+      `\n\n## ANTI AI WRITING INSTRUCTIONS (${intensity.toUpperCase()} BINDING)\n` +
+      `Governs wording, rhythm, transitions, filler removal, sentence shape, and spoken polish.\n` +
+      `Does NOT change facts, thesis, section order, evidence, source meaning, or claim strength.\n\n${text}`;
+
+    const PERSONA_WRAPPER = (text: string, intensity: Intensity) =>
+      intensity === "none" || !text ? "" :
+      `\n\n## HOST PERSONA: MELTY (${intensity.toUpperCase()} BINDING — voice layer only)\n` +
+      `Governs voice, humour, fandom-native reactions, personality, and commentary flavour.\n` +
+      `Does NOT control structure, facts, evidence, canon meaning, or claim strength.\n` +
+      `Apply invisibly. Do not name the host unless the persona requires it.\n\n${text}`;
+
+    function buildGuidanceBlock(stepType: string, layers: GuidanceLayers): string {
+      const cfg = STEP_GUIDANCE[stepType] || { script: "none", antiAi: "none", persona: "none" };
+      const parts = [
+        SCRIPT_WRAPPER(layers.scriptInstructions.text, cfg.script),
+        ANTI_AI_WRAPPER(layers.antiAiInstructions.text, cfg.antiAi),
+        PERSONA_WRAPPER(layers.hostPersona.text, cfg.persona),
+      ].filter(Boolean);
+      const block = parts.join("");
+      const order =
+        `\n\n## GUIDANCE PRECEDENCE LADDER (BINDING)\n` +
+        `1. Source hierarchy / canon evidence (highest)\n` +
+        `2. Script Writing Instructions\n` +
+        `3. Anti AI Writing Instructions\n` +
+        `4. Host Persona: Melty\n` +
+        `5. Step-specific prompt\n` +
+        `6. User-pasted input / supporting context\n`;
+      return block ? block + order : "";
+    }
+
+    function logGuidance(
+      stepType: string,
+      layers: GuidanceLayers,
+      warnings: string[],
+    ) {
+      const cfg = STEP_GUIDANCE[stepType] || { script: "none", antiAi: "none", persona: "none" };
+      const trunc: string[] = [];
+      if (layers.scriptInstructions.truncated) trunc.push("script_instructions");
+      if (layers.antiAiInstructions.truncated) trunc.push("anti_ai");
+      if (layers.hostPersona.truncated)        trunc.push("host_persona");
+      for (const t of trunc) {
+        const w = `guidance_truncated:${t}`;
+        warnings.push(w);
+        console.warn(`[guidance] TRUNCATED ${t} for step=${stepType} (chunk limit ${GUIDANCE_CHUNK_LIMIT})`);
+      }
+      console.log("[guidance]", JSON.stringify({
+        stepType,
+        intensity: cfg,
+        scriptInstructions: { source: layers.scriptInstructions.sourceUsed, chunksRead: layers.scriptInstructions.chunksRead, totalChunks: layers.scriptInstructions.totalChunks, truncated: layers.scriptInstructions.truncated },
+        antiAi: { source: layers.antiAiInstructions.sourceUsed, chunksRead: layers.antiAiInstructions.chunksRead, totalChunks: layers.antiAiInstructions.totalChunks, truncated: layers.antiAiInstructions.truncated },
+        hostPersona: { source: layers.hostPersona.sourceUsed, chunksRead: layers.hostPersona.chunksRead, totalChunks: layers.hostPersona.totalChunks, truncated: layers.hostPersona.truncated },
+      }));
     }
 
     const MASTER_GUIDE_HIGHEST_PRIORITY_HEADER =
