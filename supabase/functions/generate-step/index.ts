@@ -403,20 +403,19 @@ Given the topic brief, evidence, and analysis memo, create a detailed SCRIPT OUT
 
 ${SOURCE_HIERARCHY_INSTRUCTION}
 
-${HOST_PERSONA_BINDING_INSTRUCTION}
-
-HOST PERSONA (binding voice — apply invisibly, do not summarize, do not name the host unless required):
-{{HOST_PERSONA}}
-
-${SCRIPT_INSTRUCTIONS_BINDING_INSTRUCTION}
-
-${ANTI_AI_BINDING_INSTRUCTION}
-
 ${TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION}
 
 ${COMMENTARY_TRANSCRIPTS_FRAMING_INSTRUCTION}
 
 ${VIDEO_RETENTION_STRUCTURE_INSTRUCTION}
+
+## CANONICAL GUIDANCE PRECEDENCE LADDER (single source of truth)
+1. Source evidence / canon hierarchy (highest)
+2. Script Writing Instructions (binding — structure, retention, escalation, payoff)
+3. Anti AI Writing Instructions (binding — wording, rhythm, sentence shape)
+4. Host Persona: Melty (binding — voice layer only; never overrides facts or structure)
+5. User step request and revision feedback (within all of the above)
+The full text of layers 2–4 is appended to this prompt. Do not request or fabricate other versions.
 
 VOICE-SHAPED OUTLINE (CRITICAL):
 Build the outline in a way that preserves the host's first person perspective, emotional beats, argument escalation, and spoken delivery. Do not make it a generic academic outline. The structure should already feel like the skeleton of a voiced video essay by this host.
@@ -471,22 +470,59 @@ Given the topic brief, evidence, analysis, and outline, write a FULL SCRIPT.
 
 ${SOURCE_HIERARCHY_INSTRUCTION}
 
-${DUAL_HIERARCHY_INSTRUCTION}
-
-${HOST_PERSONA_BINDING_INSTRUCTION}
-
-HOST PERSONA (binding voice — apply invisibly, do not summarize, do not name the host unless required):
-{{HOST_PERSONA}}
-
-${SCRIPT_INSTRUCTIONS_BINDING_INSTRUCTION}
-
-${ANTI_AI_BINDING_INSTRUCTION}
-
 ${TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION}
 
 ${COMMENTARY_TRANSCRIPTS_FRAMING_INSTRUCTION}
 
 ${VIDEO_RETENTION_STRUCTURE_INSTRUCTION}
+
+## CANONICAL GUIDANCE PRECEDENCE LADDER (single source of truth — overrides any other ladder)
+1. Source evidence / canon hierarchy (highest)
+2. Script Writing Instructions (binding — structure, retention, escalation, payoff)
+3. Anti AI Writing Instructions (binding — wording, rhythm, sentence shape)
+4. Host Persona: Melty (binding — voice layer only; never overrides facts or structure)
+5. User step request and revision feedback (within all of the above)
+The full text of layers 2–4 is appended to this prompt. Do not request or fabricate other versions.
+
+HOOK VALIDATION RULE (MANDATORY — run before writing the body):
+- Before writing the full script, compare the opening 2–3 sentences against the brief's Title, Title Promise, Viewer Click Question, and central contention from the outline.
+- If the opening does not create immediate pressure, curiosity, tension, or a recognizable reason to keep watching, REWRITE the hook before continuing.
+- The hook must NOT begin as polite setup, biography, neutral context, or summary.
+- It must immediately make the viewer feel: "This is the video I clicked for, and there is a real tension here."
+- Specific opening tension is required — name a concrete moment, contradiction, scene, or question. Vague atmospheric openings fail this check.
+
+BANNED CONTRAST STRUCTURES (HARD RULE — applies at generation time, not just polish):
+Any sentence remotely similar to the "not X, but Y" setup must be written in a different shape. Remove or rewrite patterns like:
+- "It's not X, it's Y"
+- "That's not X. That's Y."
+- "This isn't X. This is Y."
+- "Not because X, but because Y"
+- "The problem isn't X. The problem is Y."
+- "The real issue isn't X. It's Y."
+- "X is not the problem. Y is the problem."
+- Any close variation of this contrast formula
+The meaning can stay; the construction must change completely. Do NOT replace one banned formula with another contrast formula. Use natural alternatives:
+- A concrete consequence
+- A direct observation
+- A cause-and-effect sentence
+- A specific image
+- A subject-first sentence
+- A sharper action verb
+- A more conversational explanation
+
+MELTY VOICE EXECUTION (MANDATORY — do NOT suppress the persona):
+- The script should sound like a smart, canon-aware fan talking through a strong argument, not a neutral explainer.
+- Use occasional fan-coded reactions, blunt observations, dry humor, and emotionally invested phrasing.
+- Melty voice should appear through sentence rhythm, judgment, specificity, and reaction lines.
+- Do not literally say "Melty" unless it lands naturally. Do not overdo catchphrases. Do not turn the narrator into a cartoon.
+- Every major section should contain at least one line that feels like a real fan with a point of view.
+- Examples of acceptable voice direction (do not copy verbatim — use as tonal guideposts):
+  - "Bro, be serious, the story is basically handing us the answer here."
+  - "This is where the adaptation starts fighting for its life."
+  - "Fans argue about this for a reason."
+  - "The math is not mathing, and the book knows it."
+  - "To be fair, the movie nails the vibe here. It just pays for it somewhere else."
+- The persona document is appended below as a binding voice layer. Apply it through voice and reactions — not through narrator self-introductions.
 
 OUTLINE ESCALATION FIDELITY (CRITICAL — Full Script step):
 - Follow the Outline's escalation ladder strictly. Do not reorder sections, collapse two sections into one, or restate an earlier section's point in a later section.
@@ -496,19 +532,6 @@ OUTLINE ESCALATION FIDELITY (CRITICAL — Full Script step):
 - Include casual viewer context for any HP concept the argument depends on, EARLY — before the first section that relies on it.
 - Build toward ONE clear climax in the final third of the script. The conclusion must feel like a payoff and a verdict, not a summary.
 - Avoid circular argumentation. If two sections are saying the same thing, the second one must escalate or be cut.
-
-FIRST PERSON HOST VOICE (CRITICAL):
-- Write in first person as the host, using the Host Persona as the voice and worldview.
-- Do not name the host in narration unless the Host Persona explicitly requires it.
-- Do not write as a detached essay narrator.
-- Do not write as ChatGPT.
-- Do not write as a generic YouTube voiceover.
-- The script should sound like one specific person with strong taste, memory, opinions, emotional reactions, and fan instincts.
-
-SCRIPT INSTRUCTIONS PRIORITY (CRITICAL):
-- The Script Writing Instructions document (injected below as "SCRIPT INSTRUCTIONS & STRATEGY") is the HIGHEST PRIORITY writing guidance for this step.
-- If Script Instructions conflict with any other guidance source (Anti AI Guide, Strategy, etc.), Script Instructions WIN.
-- Apply Script Instructions rules for structure, pacing, hooks, rehooks, retention, and tone FIRST, then layer other guidance on top.
 
 Requirements:
 - The body text must be PURELY NATURAL SPOKEN WORDS as if read aloud by a creator — conversational, authoritative, human
@@ -523,8 +546,11 @@ LEXICON MENTION BAN (CRITICAL):
 - No other Lexicon callouts, citations, or attribution language may appear in the script body
 
 QUOTE DISCIPLINE (CRITICAL):
-- Max 0-2 short quotes per 1,000 words of script. Each quote must be under 12 words.
-- Everything else MUST be paraphrased as natural spoken narration.
+- Do not overuse direct quotes. Most evidence must be paraphrased naturally.
+- Use direct quotes ONLY when the exact wording is necessary, iconic, emotionally important, or proves the claim more cleanly than paraphrase could.
+- Default ceiling: no more than 1–2 direct quotes per 1,000 words unless the user explicitly requests quote-heavy analysis. Each quote must be under 12 words.
+- Never stack quote after quote. No back-to-back quotation paragraphs.
+- Every quote MUST be immediately followed by interpretation — explain what the quote changes, proves, complicates, or reveals.
 - Do NOT read sources aloud. The script must sound like a creator SPEAKING, informed by sources, not reciting them.
 
 SOURCE SPECIFICITY IN NARRATION (CRITICAL):
@@ -545,28 +571,31 @@ FORBIDDEN IN OUTPUT:
 - No [CLAIM], [B-ROLL], [CUT TO], [GRAPHIC] or any other production annotations
 - No long pasted quotes or multi-sentence excerpts
 
-EDITOR TAGS (MANDATORY):
-- After EACH evidence-based paragraph, include an editor tag on its own line
-- Editor tags are metadata only — NOT spoken, NOT part of the voiceover
-- Editor tags must NOT contain exact quotes
+EDITOR TAG RULE (MANDATORY — keep voiceover clean):
+- Maximum ONE editor/source tag per evidence paragraph. Do NOT attach a tag after every sentence.
+- Editor tags are metadata only — bracketed, on their own line, NOT spoken, NOT part of the voiceover.
+- Editor tags must NOT contain exact quotes.
+- The voiceover itself must not feel like a research document; tags exist for the editor, not the listener.
 - Tag formats:
   [BOOK: filename | chapter if available]
   [FILM: filename | timestamp hh:mm:ss to hh:mm:ss]
   [LEXICON: filename | summary of what it supports]
 
-SO-WHAT RULE:
-- After every evidence-based beat, include a short takeaway or opinion ("so what") — the creator's interpretation, not just a fact dump
+SO-WHAT RULE (MANDATORY):
+- After every major evidence moment, include a clear interpretive takeaway in natural narration.
+- The script must NEVER stop at "this happened." It must answer: "So what does this change?"
+- The takeaway is part of the spoken narration (not a label, not a bracket) and should sit right after the evidence paragraph and its single editor tag.
 
 OUTPUT STRUCTURE:
 Each section should look like this:
 
 ## Section Title
 
-In Order of the Phoenix, Harry's anger erupts not at Voldemort but at Dumbledore — the one person he trusted most. That tells us everything about where Harry is emotionally at this point.
+In Order of the Phoenix, Harry's anger lands on Dumbledore first — the one person he trusted to keep the world steady. That collapse changes how he reads every adult around him for the rest of the book.
 
 [BOOK: book5_order_of_phoenix.txt | Chapter 37]
 
-The fifth film leans into this even harder. Watch the way Harry physically pulls away during the office scene — it's not just dialogue, it's body language.
+The fifth film leans into this even harder. Watch how Harry pulls away during the office scene; the body language carries more weight than any line of dialogue, and it tells us the trust is already gone.
 
 [FILM: movie5_transcript.txt | 01:42:00 to 01:44:30]
 
