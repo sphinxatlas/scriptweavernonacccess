@@ -1626,6 +1626,8 @@ Generate the Creative Brief now.`;
       if (antiAiTextFP) {
         fpSystem += `\n\nANTI AI LANGUAGE GUIDE (MANDATORY — apply these rules strictly):\n${antiAiTextFP}`;
       }
+      // Append unified guidance block (Final Voice Pass intensity: anti-AI + persona highest, script medium)
+      fpSystem += buildGuidanceBlock("final_voice_pass", guidanceLayers);
       fpSystem +=
         `\n\nFINAL VOICE PASS MODE (BINDING):\n` +
         `You are performing a FINAL VOICE PASS on an existing full script.\n` +
@@ -1668,7 +1670,7 @@ Generate the Creative Brief now.`;
         const t = await fpResponse.text();
         throw new Error(`AI gateway error: ${fpResponse.status} ${t}`);
       }
-      return new Response(fpResponse.body, {
+      return new Response(wrapStreamWithWarnings(fpResponse.body!), {
         headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
       });
     }
@@ -2411,7 +2413,7 @@ Please generate the ${stepType.replace(/_/g, " ")} based on the above informatio
       throw new Error("AI gateway error");
     }
 
-    return new Response(response.body, {
+    return new Response(wrapStreamWithWarnings(response.body!), {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
