@@ -152,10 +152,17 @@ serve(async (req) => {
     );
 
     // 1. Pull instruction + anti-ai chunks
-    const [{ data: instructionFiles }, { data: antiAiFiles }] = await Promise.all([
+    const [{ data: instructionFiles }, { data: antiAiFiles }, { data: personaFiles }] = await Promise.all([
       supabase.from("source_files").select("id").in("file_type", ["instructions", "script_strategy"]),
       supabase.from("source_files").select("id").eq("file_type", "anti_ai_guide"),
+      supabase.from("source_files").select("id").eq("file_type", "host_persona"),
     ]);
+
+    // Deprecation log if only legacy script_strategy present
+    if (instructionFiles && instructionFiles.length > 0) {
+      const usingLegacy = instructionFiles.every((f: any) => f.file_type === "script_strategy");
+      if (usingLegacy) console.warn("DEPRECATION: improve-script using legacy 'script_strategy' file_type. Re-upload as 'instructions'.");
+    }
 
     let instructionChunks: any[] = [];
     if (instructionFiles && instructionFiles.length > 0) {
@@ -177,6 +184,17 @@ serve(async (req) => {
         .order("chunk_index")
         .limit(20);
       antiAiChunks = data || [];
+    }
+
+    let personaChunks: any[] = [];
+    if (personaFiles && personaFiles.length > 0) {
+      const { data } = await supabase
+        .from("file_chunks")
+        .select("content")
+        .in("file_id", personaFiles.map((f: any) => f.id))
+        .order("chunk_index")
+        .limit(40);
+      personaChunks = data || [];
     }
 
     // 2. Extract claim queries from the draft and run them against the source library
@@ -241,14 +259,34 @@ serve(async (req) => {
     const antiAiContext = antiAiChunks.length > 0
       ? antiAiChunks.map((c: any) => c.content).join("\n\n")
       : "";
+    const personaContext = personaChunks.length > 0
+      ? personaChunks.map((c: any) => c.content).join("\n\n")
+      : "";
 
     let systemPrompt = SYSTEM_PROMPT;
+    systemPrompt +=
+      `\n\n## GUIDANCE PRECEDENCE LADDER (BINDING)\n` +
+      `1. Source hierarchy / canon evidence (highest)\n` +
+      `2. Script Writing Instructions\n` +
+      `3. Anti AI Writing Instructions\n` +
+      `4. Host Persona: Melty\n` +
+      `5. Step-specific prompt\n` +
+      `6. User-pasted draft / supporting context\n`;
     if (instructionContext) {
-      systemPrompt += `\n\nSCRIPT WRITING INSTRUCTIONS (HIGHEST PRIORITY — overrides all other guidance for structure, pacing, hooks, and style):\n${instructionContext}`;
+      systemPrompt += `\n\n## SCRIPT WRITING INSTRUCTIONS (BINDING)\nGoverns structure, argument, retention, escalation, evidence movement, emotional arc, and final payoff. Does NOT override source evidence or canon facts.\n\n${instructionContext}`;
     }
     if (antiAiContext) {
-      systemPrompt += `\n\nANTI AI LANGUAGE GUIDE (MANDATORY — strictly avoid AI tells, templated intros, repetitive triads, heavy em dashes, generic CTAs):\n${antiAiContext}`;
+      systemPrompt += `\n\n## ANTI AI WRITING INSTRUCTIONS (BINDING)\nGoverns wording, rhythm, transitions, filler removal, sentence shape, and spoken polish. Does NOT change facts, thesis, section order, evidence, source meaning, or claim strength.\n\n${antiAiContext}`;
     }
+    if (personaContext) {
+      systemPrompt += `\n\n## HOST PERSONA: MELTY (BINDING — voice layer only)\nGoverns voice, humour, fandom-native reactions, personality, and commentary flavour. Does NOT control structure, facts, evidence, canon meaning, or claim strength. Apply invisibly. Do not name the host unless the persona requires it.\n\n${personaContext}`;
+    }
+
+    console.log("[improve-script guidance]", JSON.stringify({
+      scriptInstructions: { chunks: instructionChunks.length, present: instructionContext.length > 0 },
+      antiAi: { chunks: antiAiChunks.length, present: antiAiContext.length > 0 },
+      hostPersona: { chunks: personaChunks.length, present: personaContext.length > 0 },
+    }));
 
     const baseLengthInstruction = targetMinWords && targetMaxWords
       ? `Target word count: ${targetMinWords}–${targetMaxWords} words. Self-revise if outside the range.`
