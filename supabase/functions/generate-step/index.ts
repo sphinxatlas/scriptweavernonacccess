@@ -87,18 +87,6 @@ This is a Book vs Movie Comparison analysis. You MUST:
 // These wrap guidance documents (Host Persona, Script Instructions, Anti AI Guide)
 // and re-frame commentary + topic transcripts as theory/angle inputs rather than canon.
 
-const SCRIPT_INSTRUCTIONS_BINDING_INSTRUCTION = `
-SCRIPT INSTRUCTIONS — BINDING WRITING CONSTRAINTS:
-This document is not evidence, but it is mandatory for structure, pacing, formatting, and final script execution.
-Follow it closely. It must visibly shape the structure and delivery of the output.
-`;
-
-const ANTI_AI_BINDING_INSTRUCTION = `
-ANTI AI GUIDE — BINDING STYLE CONSTRAINTS:
-This document is not evidence, but it is mandatory for human sounding writing quality.
-Apply it actively in the final prose. Avoid generic AI phrasing, padded transitions, mechanical paragraphing, templated triads, signposting, and empty summaries.
-`;
-
 const TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION = `
 BRIEF SPECIFIC HP TOPIC TRANSCRIPTS — THEORY, ANGLE, AND RESEARCH LEADS:
 These are topic relevant Harry Potter commentary, theory, or transcript materials selected for this brief.
@@ -1378,13 +1366,6 @@ serve(async (req) => {
       return { scriptInstructions, antiAiInstructions, hostPersona };
     }
 
-    // Backwards-compatible helper used by older code paths that only need the
-    // Master Guide (Script Writing Instructions) text.
-    async function loadMasterGuideContext(): Promise<string> {
-      const layer = await loadLayer(["instructions", "script_strategy"], "instructions");
-      return layer.text;
-    }
-
     // ── Step-level guidance intensity configuration ────────────────────────
     type Intensity = "none" | "light" | "medium" | "strong" | "highest";
     type StepGuidanceConfig = { script: Intensity; antiAi: Intensity; persona: Intensity };
@@ -1472,16 +1453,6 @@ serve(async (req) => {
         hostPersona: { source: layers.hostPersona.sourceUsed, chunksRead: layers.hostPersona.chunksRead, totalChunks: layers.hostPersona.totalChunks, truncated: layers.hostPersona.truncated },
       }));
     }
-
-    const MASTER_GUIDE_HIGHEST_PRIORITY_HEADER =
-      `## SCRIPTWRITER ENGINE MASTER GUIDE\n\n` +
-      `HIGHEST PRIORITY WRITING CONSTITUTION — apply these rules when shaping the video blueprint, viewer question, hook logic, escalation, argument structure, section progression, retention strategy, emotional arc, and final payoff.\n\n` +
-      `This guide is not evidence. Do not cite it. Do not summarize it. Use it to shape the creative and structural decisions of the brief.\n\n`;
-
-    const MASTER_GUIDE_FRAMING_HEADER =
-      `## SCRIPTWRITER ENGINE MASTER GUIDE\n\n` +
-      `MANDATORY FRAMING GUIDE — use this to decide which insights are structurally useful for a YouTube script. Prioritize evidence and ideas that can create curiosity, escalation, tension, rehooks, emotional movement, originality, and payoff.\n\n` +
-      `This guide is not evidence and must never be cited.\n\n`;
 
     // Get the topic brief
     const { data: brief, error: briefError } = await supabase
@@ -1930,41 +1901,6 @@ Generate the Creative Brief now.`;
     };
     console.log("RETRIEVAL DEBUG:", JSON.stringify(debugInfo, null, 2));
 
-    // Get instruction & strategy file chunks (for writing behavior ONLY, never evidence)
-    // Pulls both "instructions" and legacy "script_strategy" file types
-    const { data: instructionFiles } = await supabase
-      .from("source_files")
-      .select("id")
-      .in("file_type", ["instructions", "script_strategy"]);
-
-    let instructionChunks: any[] = [];
-    if (instructionFiles && instructionFiles.length > 0) {
-      const { data } = await supabase
-        .from("file_chunks")
-        .select("content")
-        .in("file_id", instructionFiles.map(f => f.id))
-        .order("chunk_index")
-        .limit(20);
-      instructionChunks = data || [];
-    }
-
-    // Get Anti AI Language Guide chunks (writing guidance — injected into outline + full_script)
-    const { data: antiAiFiles } = await supabase
-      .from("source_files")
-      .select("id")
-      .eq("file_type", "anti_ai_guide");
-
-    let antiAiChunks: any[] = [];
-    if (antiAiFiles && antiAiFiles.length > 0) {
-      const { data } = await supabase
-        .from("file_chunks")
-        .select("content")
-        .in("file_id", antiAiFiles.map(f => f.id))
-        .order("chunk_index")
-        .limit(20);
-      antiAiChunks = data || [];
-    }
-
     // Get previous pipeline outputs for this brief
     const stepIndex = STEP_ORDER.indexOf(stepType);
     const previousSteps = STEP_ORDER.slice(0, stepIndex);
@@ -2079,16 +2015,6 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
       sourceContext = sections.join("\n\n========\n\n");
     }
-
-    const instructionContext = instructionChunks.length > 0
-      ? instructionChunks.map(c => c.content).join("\n\n")
-      : "";
-
-    // Anti AI Language Guide — injected into outline (optional) and full_script (mandatory)
-    const isScriptStep = ["outline", "full_script"].includes(stepType);
-    const antiAiContext = isScriptStep && antiAiChunks.length > 0
-      ? antiAiChunks.map(c => c.content).join("\n\n")
-      : "";
 
     // Per-entry cap on previous pipeline outputs to prevent cumulative bloat
     // in late steps (Outline, Full Script, Revision). The SSA output is the
