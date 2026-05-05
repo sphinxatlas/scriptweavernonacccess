@@ -39,45 +39,90 @@ HARD RULES:
 - Preserve all editor tags (e.g. [BOOK: ...], [FILM: ...], [LEXICON: ...]) wherever the underlying content remains.
 - Output the COMPLETE revised script only. No critique. No preamble. No change log.`;
 
-const ANTI_AI_SYSTEM = `You are running an ANTI AI POLISH PASS on an existing finished YouTube script.
+const ANTI_AI_SYSTEM = `You are running a STRICT FINAL ANTI AI CLEANUP PASS on an existing finished YouTube script.
 
-Your ONLY rewriting lens is the ANTI AI WRITING INSTRUCTIONS document provided below. Use them to remove AI residue and make the script sound like a real creator speaking.
+This is NOT a gentle wording polish. This is a strict residue-removal pass. If you finish and the script still contains banned structures, repeated "That's..." punchlines, polished essay transitions, or restated theses, you have FAILED the pass.
 
-Focus areas (use the Anti AI Writing Instructions to drive each):
-- Human spoken rhythm
-- Sentence variety
-- Natural phrasing
-- Removal of AI-sounding patterns
-- Removal of filler frames
-- Removal of generic transitions
-- Removal of mechanical contrast formulas
-- Removal of "not X, but Y" style sentence structures
-- Better paragraph flow
-- More specific wording
-- Less essay-like phrasing
-- More performable voiceover delivery
+Your ONLY rewriting lens is the ANTI AI WRITING INSTRUCTIONS document provided below.
 
-HARD RULES:
-- Preserve facts, thesis, evidence, source meaning, claim strength (only weaken unsupported claims), section order, argument structure, and canon interpretation.
-- Do NOT add new evidence, invent quotes/details, add new canon claims, or add unsupported jokes.
-- Preserve humour that works; cut humour that feels inserted.
-- Reduce repeated "That's..." punchline structures.
-- Reduce repeated thesis restatements unless they escalate.
-- Improve transitions through meaning (not generic connective tissue), improve rehooks, improve specificity, improve spoken rhythm.
-- Remove empty superlatives and fake profundity.
-- Preserve all editor tags / EDITOR REFERENCES (e.g. [BOOK: ...], [FILM: ...], [LEXICON: ...]).
+================================================================
+HIDDEN INTERNAL WORKFLOW (do all of this silently before output)
+================================================================
+1. Read the script end-to-end once.
+2. Silently scan for and mark every instance of:
+   a) Banned contrast formulas (see list below) AND their softened cousins.
+   b) Repeated "That's <noun phrase>." / "That's <pronoun> ..." punchline sentences.
+   c) Repeated thesis restatements that do not clearly escalate.
+   d) Generic essay transitions ("Moreover", "Furthermore", "In essence", "Ultimately", "At its core", "What's more", "And yet", "And so", "Here's the thing", "The truth is", "Make no mistake").
+   e) Filler frames ("It's worth noting", "It's important to remember", "Let's be clear", "Let's talk about", "When you really think about it").
+   f) Polished-but-empty lines, fake profundity, empty superlatives.
+   g) Over-explained sentences where the point already landed in the previous sentence.
+3. Rewrite each marked spot AND the immediately surrounding sentences as needed so the rewrite reads naturally.
+4. PRESERVE strong human lines (vivid, specific, funny, sharply Melty) untouched unless they violate a hard rule.
+5. Run a SILENT FINAL CHECK: re-scan the revised script for any remaining banned structure or softened cousin or repeated "That's..." cluster. If any remain, rewrite them again. Repeat until clean.
+6. Output ONLY the complete revised script.
 
-BANNED CONTRAST STRUCTURES (strictly remove or completely reconstruct, never replace with another obvious contrast formula):
+================================================================
+BANNED CONTRAST STRUCTURES — must be removed AND structurally reconstructed
+================================================================
+Direct forms:
 - "It's not X, it's Y"
 - "That's not X. That's Y."
 - "This isn't X. This is Y."
 - "Not because X, but because Y"
 - "The problem isn't X. The problem is Y."
-- "The real issue isn't X. It's Y."
+- "The real issue/tragedy/point/story isn't X. It's Y."
+- "X, but really Y"
 
-Preserve the meaning of any banned construction, but change the construction completely. Do NOT swap one banned formula for another.
+Softened cousins (ALSO BANNED — do not use these as escape hatches):
+- "goes beyond just X"
+- "not simply X"
+- "more than just X"
+- "on the surface X, underneath Y"
+- "the deeper issue is ..."
+- "the real story is ..."
+- "what's actually happening is ..."
+- "X, then, goes beyond ..."
 
-Output the COMPLETE revised script only. No critique. No preamble. No change log.`;
+Rule: Preserve the MEANING of any banned construction, but change the SENTENCE SHAPE completely. Do NOT swap one banned formula for another, and do NOT swap a direct form for its softened cousin. Rebuild the sentence around a concrete image, action, or moment instead of a rhetorical flip.
+
+Example rewrites (style only — do not copy verbatim):
+
+BAD: "The tragedy of Movie Ginny goes beyond being quiet. The films freeze her..."
+GOOD: "The films leave Movie Ginny frozen at the Gryffindor table, still trying to open her mouth while the story moves on without her."
+
+BAD: "That's Ginny's social confidence in three seconds."
+GOOD: "In three seconds, Ginny does something the films almost never let her do: she leads the room without orbiting Harry."
+
+BAD: "That's it. That's the seed."
+GOOD: "The seed is already there: Ginny is good at Harry's favorite thing, and she's already moving before he notices."
+
+================================================================
+REPEATED "THAT'S..." PUNCHLINE RULE
+================================================================
+Across the whole script, allow AT MOST 1–2 "That's ..." / "That scene is ..." / "That line is ..." / "That's why ..." punchline sentences total, and only when each one is genuinely the strongest possible landing for that beat. Rewrite all others into sentences that lead with a concrete image, action, character beat, or specific observation.
+
+================================================================
+REPEATED THESIS RESTATEMENTS
+================================================================
+If the same thesis is restated more than twice and each restatement does not clearly escalate (sharper stakes, new angle, new evidence pressure), cut or rewrite the redundant ones. The script should move forward, not loop.
+
+================================================================
+HARD PRESERVATION RULES
+================================================================
+- Preserve facts, thesis, evidence, source meaning, claim strength (only weaken unsupported claims), section order, argument structure, canon interpretation, and intended payoff.
+- Do NOT add new evidence, invent quotes/details, add new canon claims, or add unsupported jokes.
+- Preserve EDITOR REFERENCES / editor tags exactly (e.g. [BOOK: ...], [FILM: ...], [LEXICON: ...]).
+- PRESERVE STRONG HUMAN LINES. If a line is vivid, funny, specific, personally voiced, or sharply Melty, leave it alone. Do NOT corporate-flatten it. Example of what NOT to do:
+    Original: "And I'm not mad at Hermione for saying it. I'm mad at the adaptation for needing her to say it."
+    Bad revision: "My frustration here is with the adaptation..."
+  The original is stronger. Keep it.
+- Do NOT make the script more polished, more neutral, or more essay-like. The goal is LESS AI, not MORE smooth.
+
+================================================================
+OUTPUT
+================================================================
+Return ONLY the complete revised script. No critique. No preamble. No notes. No change log. No markdown headings beyond what already exists in the script.`;
 
 const PASSAGE_REWRITE_SYSTEM = `You are running a TARGETED PASSAGE REWRITE on a SHORT passage from a YouTube script (e.g. a hook, transition, paragraph, or section).
 
