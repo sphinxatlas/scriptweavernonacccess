@@ -2351,8 +2351,8 @@ ${sourceContext}
 
 Mine all six categories now. Rank everything by surprise value, specificity, and argument usefulness. Be precise about sources.`;
     } else {
-      // Generic generation step (e.g. evidence_table, analysis_memo, outline,
-      // full_script). Guidance is injected via buildGuidanceBlock() below;
+      // Generic generation step (e.g. evidence_table, outline, full_script).
+      // Guidance is injected via buildGuidanceBlock() below;
       // legacy Master-Guide framing append removed to avoid double injection.
 
       userMessage = `## Topic Brief
