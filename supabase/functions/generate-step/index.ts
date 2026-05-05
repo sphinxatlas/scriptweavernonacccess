@@ -1490,7 +1490,6 @@ serve(async (req) => {
     type StepGuidanceConfig = { script: Intensity; antiAi: Intensity; persona: Intensity };
     const STEP_GUIDANCE: Record<string, StepGuidanceConfig> = {
       creative_brief:              { script: "strong",  antiAi: "light",   persona: "light"   },
-      competitor_format_analysis:  { script: "light",   antiAi: "light",   persona: "none"    },
       six_category_extraction:     { script: "medium",  antiAi: "light",   persona: "light"   },
       selected_source_analysis:    { script: "medium",  antiAi: "light",   persona: "light"   },
       evidence_table:              { script: "medium",  antiAi: "light",   persona: "light"   },
