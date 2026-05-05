@@ -1289,7 +1289,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { briefId, stepType, revisionFeedback, previousFullScript, finalVoicePass, hookDirection } = await req.json();
+    const { briefId, stepType, revisionFeedback, previousFullScript, hookDirection } = await req.json();
     if (!briefId || !stepType) throw new Error("briefId and stepType are required");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
