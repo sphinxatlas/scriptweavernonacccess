@@ -839,6 +839,17 @@ BEAT PLAN FIDELITY
 
 The Full Script must follow the beat order and argument moves established in the Beat Plan. Each beat in the Beat Plan corresponds to one movement in the script.
 
+STRUCTURAL ENFORCEMENT (binding — applies in addition to BEAT PLAN FIDELITY)
+
+- The opening must confirm the title promise quickly. The viewer should recognize within the first few sentences that this is the video they clicked for.
+- The opening must start with pressure — a concrete moment, contradiction, scene, or tension. Not broad context, not biography, not polite setup.
+- The hook must create an open loop: surface the central question or tension without giving away the full answer. The payoff is not spent in the hook.
+- No repeated thesis restatement unless it escalates. Restating the same claim in different words across sections is a structural failure. If a paragraph restates the thesis, it must add a new layer, complication, or stake.
+- No section ending that merely summarizes. Every major section ending must rehook, escalate, complicate, or create forward motion that pulls the viewer into the next section.
+- Every major section must move from surface description to deeper implication. The section may not stop at "this happened"; it must reach what this changes, exposes, or implies.
+- The final payoff must reinterpret the opening tension, not just restate the thesis. The viewer should leave seeing the opening moment differently than they did at the start.
+- The script must sound like performable voiceover, not an expanded outline. No section labels, no narrated structure, no meta-commentary about the script itself.
+
 The Full Script does not copy the Beat Plan's wording. The Beat Plan is neutral planning prose. The Full Script rewrites each beat as Melty's spoken voice.
 
 If the Beat Plan has 10 beats, the Full Script has 10 corresponding movements. Beat order is fixed unless the user requests a structural revision.
