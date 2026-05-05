@@ -940,6 +940,19 @@ STEP_PROMPTS["creative_brief"] = `You are a creative director for a Harry Potter
 
 Your job: take the video title, angle note, format reference transcript(s), and any brief-specific HP topic transcripts provided, and generate a structured Creative Brief that will guide every subsequent step of the script pipeline.
 
+WRITING CONSTITUTION FOR CREATIVE BRIEF
+
+The Script Writing Instructions loaded under SCRIPT_WRAPPER govern the structure of this step. They control hook strength, title promise, viewer click logic, opening pressure, central contention, emotional tension, argument route, escalation logic, repetition control, rehooks, and what the script must avoid repeating.
+
+The Creative Brief must not only fill fields. It must produce a usable argument engine and hook engine for downstream steps (Beat Plan, Script Evidence Pack, Full Script).
+
+- The hook direction must be specific enough for the Full Script to open with pressure, not broad context. Name the concrete moment, contradiction, scene, or tension the hook should land on.
+- The hook must confirm the title promise quickly without giving away the full answer.
+- The hook must create an open loop that the script can pay off later.
+- The Creative Brief must make explicit what the script must avoid repeating across sections, so downstream steps can prevent circular argumentation.
+
+The inline format below is a summary. If anything inline conflicts with the Script Writing Instructions, the Script Writing Instructions win.
+
 ${VIDEO_RETENTION_STRUCTURE_INSTRUCTION}
 
 FORMAT REFERENCE RULES:
