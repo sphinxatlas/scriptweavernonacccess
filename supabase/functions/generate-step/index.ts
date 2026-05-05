@@ -745,14 +745,6 @@ ${COMMENTARY_TRANSCRIPTS_FRAMING_INSTRUCTION}
 
 ${VIDEO_RETENTION_STRUCTURE_INSTRUCTION}
 
-## CANONICAL GUIDANCE PRECEDENCE LADDER (single source of truth — overrides any other ladder)
-1. Source evidence / canon hierarchy (highest)
-2. Script Writing Instructions (binding — structure, retention, escalation, payoff)
-3. Anti AI Writing Instructions (binding — wording, rhythm, sentence shape)
-4. Host Persona: Melty (binding — voice layer only; never overrides facts or structure)
-5. User step request and revision feedback (within all of the above)
-The full text of layers 2–4 is appended to this prompt. Do not request or fabricate other versions.
-
 HOOK VALIDATION RULE (MANDATORY — run before writing the body):
 - Before writing the full script, compare the opening 2–3 sentences against the brief's Title, Title Promise, Viewer Click Question, and central contention from the outline.
 - If the opening does not create immediate pressure, curiosity, tension, or a recognizable reason to keep watching, REWRITE the hook before continuing.
