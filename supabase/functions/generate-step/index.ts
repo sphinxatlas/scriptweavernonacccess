@@ -1798,61 +1798,6 @@ serve(async (req) => {
       return `\n\n[CONTEXT TRUNCATION NOTICE]\n${truncationWarnings.map((w) => `- ${w}`).join("\n")}\n`;
     };
 
-    // Special handling for competitor_format_analysis — uses pasted scripts only, no retrieval
-    if (stepType === "competitor_format_analysis") {
-      const scripts = [
-        brief.competitor_script_1,
-        brief.competitor_script_2,
-        brief.competitor_script_3,
-        brief.competitor_script_4,
-        brief.competitor_script_5,
-      ].filter(Boolean);
-
-      if (scripts.length === 0) {
-        throw new Error("No competitor scripts found in this topic brief. Paste at least one competitor script to use this step.");
-      }
-
-      const systemPrompt = STEP_PROMPTS["competitor_format_analysis"];
-      const systemPromptCFA = systemPrompt + layeredGuidanceBlock;
-      const userMessage = `## Topic Brief\n**Title:** ${brief.title}\n**Description:** ${brief.description}\n\n## Competitor Scripts (${scripts.length} provided)\n\n${scripts.map((s: string, i: number) => `### Competitor Script ${i + 1}\n${s}`).join("\n\n---\n\n")}\n\nPlease analyze the format and structure of these competitor scripts.`;
-
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: getModelForStep(stepType),
-          messages: [
-            { role: "system", content: systemPromptCFA },
-            { role: "user", content: userMessage },
-          ],
-          stream: true,
-        }),
-      });
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        if (response.status === 402) {
-          return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits in Settings." }), {
-            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        const t = await response.text();
-        console.error("AI gateway error:", response.status, t);
-        throw new Error("AI gateway error");
-      }
-
-      return new Response(wrapStreamWithWarnings(response.body!), {
-        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
-      });
-    }
-
     // ── CREATIVE BRIEF STEP ──
     if (stepType === "creative_brief") {
       if (formatRefs.length === 0) {
