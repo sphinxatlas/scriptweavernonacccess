@@ -77,7 +77,7 @@ export default function SourceLibrary() {
             <FileUploadCard
               fileType="anti_ai_guide"
               title="🚫 Anti AI Language Guide"
-              description="Upload TXT documents listing AI writing tells and phrases to avoid. Injected into Full Script (mandatory) and Outline prompts to keep output sounding human and natural."
+              description="Upload TXT documents listing AI writing tells and phrases to avoid. Injected into Full Script (mandatory) and Beat Plan prompts to keep output sounding human and natural."
               accept=".txt"
               files={antiAiGuide}
               onRefresh={refetch}
