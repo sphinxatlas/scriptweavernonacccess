@@ -2246,9 +2246,6 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
       typeof revisionFeedback === "string" &&
       revisionFeedback.trim().length > 0;
 
-    const isFinalVoicePass =
-      stepType === "full_script" && !!finalVoicePass && !isFullScriptRevision;
-
     if (isFullScriptRevision) {
       systemPromptFinal +=
         `\n\nFULL SCRIPT REVISION MODE (BINDING):\n` +
@@ -2259,33 +2256,6 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
         `- Reuse the full pipeline context (Topic Brief, Creative Brief, Insights & Research, Evidence Table, Outline, source excerpts, Script Writing Instructions, Anti AI Guide, Host Persona, HP topic transcripts, commentary transcripts).\n` +
         `- Maintain target word count, editor tags after evidence paragraphs, source specificity, quote discipline, and the Lexicon mention ban.\n` +
         `- Output ONLY the revised Full Script. Do not include an explanation of changes, a diff, a changelog, or commentary about the revision.\n`;
-    }
-
-    if (isFinalVoicePass) {
-      systemPromptFinal +=
-        `\n\nFINAL VOICE PASS MODE (BINDING):\n` +
-        `You are performing a FINAL VOICE PASS on an existing full script.\n` +
-        `This is not a full rewrite and not a new script generation.\n\n` +
-        `Your job:\n` +
-        `- Preserve the existing argument, structure, section order, evidence, source tags, editor tags, and core canon claims.\n` +
-        `- Reapply the Script Writing Guide and Host Persona more strongly.\n` +
-        `- Make the script sound more like the intended host voice without making it feel forced.\n` +
-        `- Improve pacing, rhythm, tension, emotional movement, transitions, and punch.\n` +
-        `- Remove generic AI phrasing, repetitive phrasing, flat transitions, and overly academic wording.\n` +
-        `- Add small moments to breathe where the argument or emotion needs space.\n` +
-        `- Strengthen re-hooks and section endings only where they are currently weak.\n` +
-        `- Make the script feel more YouTube-native and spoken aloud.\n` +
-        `- Keep canon claims and evidence discipline intact.\n` +
-        `- Do not add major new arguments unless a missing connective sentence is needed.\n` +
-        `- Do not introduce new unsupported canon claims.\n` +
-        `- Do not change the title promise.\n` +
-        `- Do not over-do the host voice. The voice should feel natural, not like a character performance.\n\n` +
-        `Use the Host Persona as an invisible voice guide.\n` +
-        `Do not name the host.\n` +
-        `Do not summarize the persona.\n` +
-        `Do not mention the Script Writing Guide.\n` +
-        `Do not explain your changes. No preamble, no changelog, no diff.\n` +
-        `Output ONLY the revised full script.\n`;
     }
 
     // ─────────────────────────────────────────────────────────────────────
