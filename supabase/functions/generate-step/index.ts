@@ -186,43 +186,6 @@ I. SOURCE INTEGRATION RULE
 `;
 
 const STEP_PROMPTS: Record<string, string> = {
-  competitor_format_analysis: `You are a YouTube format analyst. Given competitor scripts pasted by the creator, analyze their STRUCTURE and FORMAT ONLY.
-
-STRICT RULES:
-- Competitor scripts must NEVER be used as factual sources and must NEVER be quoted.
-- Do NOT reuse any unique lines, jokes, names, examples, or arguments from competitor scripts.
-- Use competitor scripts ONLY to learn structure, pacing, hook shape, and section order.
-- All content in the final video must come only from primary sources (books and movie transcripts) plus secondary references where allowed.
-
-Analyze the competitor scripts and produce this EXACT output format:
-
-## Competitor Format Summary
-[Brief overview of what these scripts have in common structurally]
-
-## Hook Patterns That Win
-[List the hook structures used — e.g., question-based, bold claim, myth-busting, emotional setup]
-
-## Intro Patterns That Win
-[How do they transition from hook to body? What do the first 30-60 seconds accomplish?]
-
-## Section Structure Blueprint
-[How are the scripts divided? How many sections? What's the typical flow?]
-
-## Rehooks and Pacing Devices
-[Mid-video retention techniques — pattern interrupts, mini-hooks, cliffhangers, tonal shifts]
-
-## CTA and Closing Structure
-[How do they end? What call-to-action patterns work?]
-
-## Language Tone Notes
-[Conversational vs formal? First-person? Rhetorical questions? Humor style?]
-
-## What to Avoid Copying
-[Specific patterns or phrases that feel derivative or overused across competitors]
-
-## Abstracted Structure Template for Our Video
-[A clean, abstracted template we can follow without copying any specific content]`,
-
   retrieval: `You are a retrieval layer for a source-grounded Harry Potter research engine.
 Use ONLY the uploaded and indexed source files provided below.
 Use the provided retrieval query pack (compact derived queries), not full brief prose, as search intent.
@@ -1189,7 +1152,6 @@ const STEP_ORDER = [
   "full_script",
   "verification",
   "retrieval",
-  "competitor_format_analysis",
 ];
 
 type SearchSourceType = "book" | "transcript" | "lexicon" | "competitor_analysis";
@@ -1528,7 +1490,6 @@ serve(async (req) => {
     type StepGuidanceConfig = { script: Intensity; antiAi: Intensity; persona: Intensity };
     const STEP_GUIDANCE: Record<string, StepGuidanceConfig> = {
       creative_brief:              { script: "strong",  antiAi: "light",   persona: "light"   },
-      competitor_format_analysis:  { script: "light",   antiAi: "light",   persona: "none"    },
       six_category_extraction:     { script: "medium",  antiAi: "light",   persona: "light"   },
       selected_source_analysis:    { script: "medium",  antiAi: "light",   persona: "light"   },
       evidence_table:              { script: "medium",  antiAi: "light",   persona: "light"   },
@@ -1836,61 +1797,6 @@ serve(async (req) => {
       if (truncationWarnings.length === 0) return "";
       return `\n\n[CONTEXT TRUNCATION NOTICE]\n${truncationWarnings.map((w) => `- ${w}`).join("\n")}\n`;
     };
-
-    // Special handling for competitor_format_analysis — uses pasted scripts only, no retrieval
-    if (stepType === "competitor_format_analysis") {
-      const scripts = [
-        brief.competitor_script_1,
-        brief.competitor_script_2,
-        brief.competitor_script_3,
-        brief.competitor_script_4,
-        brief.competitor_script_5,
-      ].filter(Boolean);
-
-      if (scripts.length === 0) {
-        throw new Error("No competitor scripts found in this topic brief. Paste at least one competitor script to use this step.");
-      }
-
-      const systemPrompt = STEP_PROMPTS["competitor_format_analysis"];
-      const systemPromptCFA = systemPrompt + layeredGuidanceBlock;
-      const userMessage = `## Topic Brief\n**Title:** ${brief.title}\n**Description:** ${brief.description}\n\n## Competitor Scripts (${scripts.length} provided)\n\n${scripts.map((s: string, i: number) => `### Competitor Script ${i + 1}\n${s}`).join("\n\n---\n\n")}\n\nPlease analyze the format and structure of these competitor scripts.`;
-
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: getModelForStep(stepType),
-          messages: [
-            { role: "system", content: systemPromptCFA },
-            { role: "user", content: userMessage },
-          ],
-          stream: true,
-        }),
-      });
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        if (response.status === 402) {
-          return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits in Settings." }), {
-            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        const t = await response.text();
-        console.error("AI gateway error:", response.status, t);
-        throw new Error("AI gateway error");
-      }
-
-      return new Response(wrapStreamWithWarnings(response.body!), {
-        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
-      });
-    }
 
     // ── CREATIVE BRIEF STEP ──
     if (stepType === "creative_brief") {
@@ -2269,23 +2175,6 @@ Generate the Creative Brief now.`;
       antiAiChunks = data || [];
     }
 
-    // Get Commentary Transcript chunks (secondary commentary — angle discovery, never evidence)
-    const { data: competitorFiles } = await supabase
-      .from("source_files")
-      .select("id")
-      .eq("file_type", "competitor_analysis");
-
-    let competitorChunks: any[] = [];
-    if (competitorFiles && competitorFiles.length > 0) {
-      const { data } = await supabase
-        .from("file_chunks")
-        .select("content")
-        .in("file_id", competitorFiles.map(f => f.id))
-        .order("chunk_index")
-        .limit(15);
-      competitorChunks = data || [];
-    }
-
     // Get previous pipeline outputs for this brief
     const stepIndex = STEP_ORDER.indexOf(stepType);
     const previousSteps = STEP_ORDER.slice(0, stepIndex);
@@ -2403,12 +2292,6 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
     const instructionContext = instructionChunks.length > 0
       ? instructionChunks.map(c => c.content).join("\n\n")
-      : "";
-
-    // Guidance layers — only included for generation steps (analysis_memo, outline, full_script), NOT for retrieval/evidence_table
-    const isGenerationStep = ["analysis_memo", "outline", "full_script"].includes(stepType);
-    const competitorContext = isGenerationStep && competitorChunks.length > 0
-      ? competitorChunks.map(c => c.content).join("\n\n")
       : "";
 
     // Anti AI Language Guide — injected into outline (optional) and full_script (mandatory)
@@ -2558,7 +2441,6 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
     // the system prompt for script steps. Commentary transcripts remain here
     // because they are dynamic interpretive context, not stable guidance.
     const guidanceSections: string[] = [];
-    if (competitorContext) guidanceSections.push(`## Commentary Transcripts (INTERPRETIVE & THEORY INPUT — not canon evidence)\nUse for angles, framings, and argument patterns. Factual canon claims must be confirmed against Tier 1 books or movie transcripts. Theories and interpretive angles do NOT require direct canon confirmation, but they must be plausible, logically coherent, and not obviously contradicted by canon. Never present commentary material as proven canon. Never reuse commentary wording, structure, or phrasing.\n${competitorContext}`);
     const guidanceBlock = guidanceSections.length > 0 ? guidanceSections.join("\n\n") + "\n\n" : "";
 
     let systemPromptFinal = systemPrompt;

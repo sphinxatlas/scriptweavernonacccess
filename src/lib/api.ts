@@ -7,7 +7,6 @@ export type PipelineOutput = Tables<"pipeline_outputs">;
 export type PipelineStepType =
   | "creative_brief"
   | "six_category_extraction"
-  | "competitor_format_analysis"
   | "retrieval"
   | "selected_source_analysis"
   | "evidence_table"
@@ -68,7 +67,6 @@ export const PIPELINE_STEPS: {
   { type: "retrieval", label: "Retrieval", description: "", visible: false },
   { type: "analysis_memo", label: "Analysis Memo", description: "", visible: false },
   { type: "verification", label: "Verification", description: "", visible: false },
-  { type: "competitor_format_analysis", label: "Format Analysis", description: "", visible: false },
 ];
 
 export async function uploadSourceFile(file: File, fileType: "book" | "transcript" | "instructions" | "lexicon" | "competitor_analysis" | "host_persona" | "anti_ai_guide") {
@@ -219,11 +217,6 @@ export async function duplicateTopicBrief(briefId: string) {
     target_min_words: original.target_min_words,
     target_max_words: original.target_max_words,
     comparison_mode: original.comparison_mode,
-    competitor_script_1: original.competitor_script_1,
-    competitor_script_2: original.competitor_script_2,
-    competitor_script_3: original.competitor_script_3,
-    competitor_script_4: original.competitor_script_4,
-    competitor_script_5: original.competitor_script_5,
     // Explicitly do NOT copy: thesis, focus_areas, characters, proof_goal,
     // priority_sources, emotional_angle, tone, creative_brief_feedback,
     // creative_brief_approved (these are pipeline-generated or review state).

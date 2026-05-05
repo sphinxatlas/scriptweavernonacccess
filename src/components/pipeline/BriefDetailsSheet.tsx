@@ -11,14 +11,6 @@ interface BriefDetailsSheetProps {
 export function BriefDetailsSheet({ brief, children }: BriefDetailsSheetProps) {
   if (!brief) return null;
 
-  const competitorScripts = [
-    brief.competitor_script_1,
-    brief.competitor_script_2,
-    brief.competitor_script_3,
-    brief.competitor_script_4,
-    brief.competitor_script_5,
-  ].filter(Boolean);
-
   const lengthOption = TARGET_LENGTH_OPTIONS.find((o) => o.minutes === brief.target_minutes);
 
   return (
@@ -111,18 +103,6 @@ export function BriefDetailsSheet({ brief, children }: BriefDetailsSheetProps) {
             </Section>
           )}
 
-          {/* Competitor Scripts */}
-          {competitorScripts.length > 0 && (
-            <Section label={`Competitor Scripts (${competitorScripts.length})`}>
-              <div className="space-y-3">
-                {competitorScripts.map((script: string, i: number) => (
-                  <div key={i} className="rounded-md bg-secondary p-3 text-xs text-foreground/80 max-h-40 overflow-y-auto whitespace-pre-wrap">
-                    {script}
-                  </div>
-                ))}
-              </div>
-            </Section>
-          )}
         </div>
       </SheetContent>
     </Sheet>
