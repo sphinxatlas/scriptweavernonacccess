@@ -87,15 +87,6 @@ This is a Book vs Movie Comparison analysis. You MUST:
 // These wrap guidance documents (Host Persona, Script Instructions, Anti AI Guide)
 // and re-frame commentary + topic transcripts as theory/angle inputs rather than canon.
 
-const HOST_PERSONA_BINDING_INSTRUCTION = `
-HOST PERSONA — BINDING VOICE INSTRUCTION:
-Use this as the first person voice, worldview, emotional lens, and delivery style of the host.
-Do not cite it. Do not summarize it. Do not turn the persona into a character bio.
-Do not mention the host by name unless the persona document explicitly requires it.
-The script should feel written and spoken by this host, not by a generic narrator.
-Make the persona felt through worldview, rhythm, emotional reactions, phrasing, humor, skepticism, curiosity, and fan energy — not through introductions like "Hi, I'm ___".
-`;
-
 const SCRIPT_INSTRUCTIONS_BINDING_INSTRUCTION = `
 SCRIPT INSTRUCTIONS — BINDING WRITING CONSTRAINTS:
 This document is not evidence, but it is mandatory for structure, pacing, formatting, and final script execution.
