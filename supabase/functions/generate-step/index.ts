@@ -1578,8 +1578,7 @@ serve(async (req) => {
       // from the very first step, not be applied retroactively at Outline time.
       const cbMasterGuide = await loadMasterGuideContext();
 
-      let systemPrompt = STEP_PROMPTS["creative_brief"]
-        .replace("{{HOST_PERSONA}}", hostPersonaContext || "No host persona uploaded.");
+      let systemPrompt = STEP_PROMPTS["creative_brief"];
 
       if (cbMasterGuide) {
         systemPrompt += `\n\n${MASTER_GUIDE_HIGHEST_PRIORITY_HEADER}${cbMasterGuide}`;
@@ -1677,7 +1676,6 @@ Generate the Creative Brief now.`;
       }
 
       let fpSystem = STEP_PROMPTS["full_script"]
-        .replace("{{HOST_PERSONA}}", hostPersonaContext || "No host persona uploaded.")
         .replace("{{FULL_SCRIPT_LENGTH_INSTRUCTION}}",
           `Preserve the original word count of the script you are polishing within ±10%.`);
 
@@ -2115,15 +2113,6 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
     let systemPrompt = STEP_PROMPTS[stepType] || "You are a helpful writing assistant.";
 
-    // Inject Host Persona into outline and full_script prompts (creative_brief and
-    // six_category_extraction inject it themselves on their own branches).
-    if (stepType === "outline" || stepType === "full_script") {
-      systemPrompt = systemPrompt.replace(
-        "{{HOST_PERSONA}}",
-        hostPersonaContext || "No host persona uploaded.",
-      );
-    }
-
     // Inject dynamic target length instructions for outline and full_script
     const targetMin = brief.target_min_words ?? 1400;
     const targetMax = brief.target_max_words ?? 1600;
@@ -2350,8 +2339,7 @@ Now produce the Selected Source Analysis in the exact format specified. Be hones
         .maybeSingle();
       const creativeBriefContent = creativeBriefOutput?.content || "";
 
-      systemPromptFinal = STEP_PROMPTS["six_category_extraction"]
-        .replace("{{HOST_PERSONA}}", hostPersonaContext || "No host persona uploaded.");
+      systemPromptFinal = STEP_PROMPTS["six_category_extraction"];
       if (instructionContext) {
         systemPromptFinal += `\n\n${MASTER_GUIDE_FRAMING_HEADER}${instructionContext}`;
       }
