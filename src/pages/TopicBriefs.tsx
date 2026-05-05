@@ -347,6 +347,9 @@ export default function TopicBriefs() {
                       }}
                       placeholder={formatOptions.length === 0 ? "No format references available" : "Select format references…"}
                       emptyText="No format references available."
+                      searchable
+                      searchPlaceholder="Search format references..."
+                      emptySearchMessage="No matching sources found."
                     />
                   </div>
                   <Button
@@ -390,6 +393,9 @@ export default function TopicBriefs() {
                       onChange={setSelectedTopicIds}
                       placeholder={topicOptions.length === 0 ? "No HP topic transcripts available" : "Select HP topic transcripts…"}
                       emptyText="No HP topic transcripts available."
+                      searchable
+                      searchPlaceholder="Search HP topic transcripts..."
+                      emptySearchMessage="No matching sources found."
                     />
                   </div>
                   <Button
@@ -428,6 +434,9 @@ export default function TopicBriefs() {
                   onChange={setSelectedAltIds}
                   placeholder={altOptions.length === 0 ? "No alternative sources available" : "Select alternative sources…"}
                   emptyText="No alternative sources yet. Add some in the Secondary Source Library."
+                  searchable
+                  searchPlaceholder="Search alternative sources..."
+                  emptySearchMessage="No matching sources found."
                 />
               </div>
 
