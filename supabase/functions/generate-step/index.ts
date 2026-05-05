@@ -207,7 +207,6 @@ H. ANTI-REPETITION RULE
 
 I. SOURCE INTEGRATION RULE
 - Sources support the story and argument. They do not interrupt the pacing.
-- In the Full Script, editor tags may remain after evidence paragraphs for editing purposes, but they must NEVER replace natural spoken explanation or emotional transitions.
 - Citations live in editor tags. Voiceover lives in human, escalating spoken sentences.
 `;
 
@@ -467,6 +466,41 @@ IMPORTANT — WORD BUDGET INSTRUCTIONS (injected dynamically per brief):
 
   full_script: `You are a professional YouTube scriptwriter specializing in Harry Potter analysis content.
 Given the topic brief, evidence, analysis, and outline, write a FULL SCRIPT.
+
+WRITING CONSTITUTION
+
+Three documents govern this output:
+
+1. Script Writing Instructions (loaded under SCRIPT_WRAPPER below)
+2. Anti-AI Writing Instructions (loaded under ANTI_AI_WRAPPER below)
+3. Host Persona (loaded under PERSONA_WRAPPER below)
+
+These are not background reference material. They are the writing constitution for every sentence you produce. Read all three in full before writing. Every sentence of the output must conform to all three.
+
+The inline rules, ban lists, worked examples, and structural instructions elsewhere in this prompt are SUMMARIES of those documents. If anything inline conflicts with the documents, the documents win. The summaries exist to make the most common failures explicit, not to replace the docs.
+
+Self-check before producing each sentence:
+- Would the Script Writing Instructions approve this argument move?
+- Would the Anti-AI Writing Instructions approve this phrasing?
+- Does this sound like the Host Persona speaking?
+
+If any answer is no, rewrite. Do not produce a sentence that fails any of the three checks.
+
+HARD BAN inside the spoken script (MANDATORY)
+
+The following must NEVER appear in the spoken script body:
+- Markdown headings of any level (#, ##, ###)
+- Section labels (Hook, Introduction, Section 1, Conclusion, Outro, Part 1)
+- Editor or source tags ([BOOK:], [FILM:], [LEXICON:], [CLIP:], [B-ROLL:])
+- Time codes (0:00, 0:00-0:30)
+- Word count footers (Word count: ~X)
+- Bracketed visual cues
+- Numbered beat labels (Beat 1., Section 1.)
+- Bold or italic emphasis markers
+- Bulleted or numbered lists
+- The phrases 'in this video', 'today we are going to', 'let us dive into', 'in this episode', 'we will explore'
+
+Any of the above appearing in the spoken body invalidates the output.
 
 ${SOURCE_HIERARCHY_INSTRUCTION}
 
