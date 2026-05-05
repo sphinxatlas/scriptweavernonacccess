@@ -1857,16 +1857,11 @@ serve(async (req) => {
             .join("\n\n---\n\n")
         : "No brief-specific HP topic transcripts provided for this brief.";
 
-      // Load the Master Guide directly for Creative Brief — it must shape the
-      // blueprint (Video Engine, Hook Shape, Escalation Ladder, Final Payoff)
-      // from the very first step, not be applied retroactively at Outline time.
-      const cbMasterGuide = await loadMasterGuideContext();
-
+      // Guidance (Script Writing, Anti-AI, Host Persona) is injected solely via
+      // the unified buildGuidanceBlock() output (`layeredGuidanceBlock`).
+      // Legacy double-injection of the Master Guide here was removed to keep
+      // a single source of guidance.
       let systemPrompt = STEP_PROMPTS["creative_brief"];
-
-      if (cbMasterGuide) {
-        systemPrompt += `\n\n${MASTER_GUIDE_HIGHEST_PRIORITY_HEADER}${cbMasterGuide}`;
-      }
       systemPrompt += layeredGuidanceBlock;
 
       const userMessage = `## Video Title
@@ -2433,16 +2428,10 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
       );
     }
 
-    // Inject Script Instructions into system prompt — HIGHEST PRIORITY for full_script
-    if (isScriptStep && instructionContext) {
-      // Master Guide injected as the highest-priority writing constitution.
-      systemPrompt += `\n\n${MASTER_GUIDE_HIGHEST_PRIORITY_HEADER}${instructionContext}`;
-    }
-
-    // Inject Anti AI Language Guide enforcement into system prompt for script steps
-    if (isScriptStep && antiAiContext) {
-      systemPrompt += `\n\nApply the Anti-AI Writing Instructions document loaded in ANTI_AI_WRAPPER. The BANNED CONSTRUCTIONS block above is enforced at generation time. The wrapped document is the full authority.`;
-    }
+    // NOTE: Legacy Script Writing + Anti-AI prompt appends removed.
+    // Guidance for normal generation now flows exclusively through
+    // buildGuidanceBlock() (appended below as `layeredGuidanceBlock` /
+    // via systemPromptFinal at the end of this handler).
 
     // Originality safeguard — when the Selected Source Analysis output is in the
     // upstream context for outline / full_script / evidence_table, the model must
@@ -2608,9 +2597,7 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
       const hasSelectedSecondary = topicTranscripts.length > 0 || alternativeSources.length > 0;
 
       systemPromptFinal = STEP_PROMPTS["selected_source_analysis"];
-      if (instructionContext) {
-        systemPromptFinal += `\n\n${MASTER_GUIDE_FRAMING_HEADER}${instructionContext}`;
-      }
+      // Guidance injected via buildGuidanceBlock() below — no legacy append.
 
       userMessage = `## Topic Brief
 Title: ${brief.title}
@@ -2642,9 +2629,7 @@ Now produce the Selected Source Analysis in the exact format specified. Be hones
       const creativeBriefContent = creativeBriefOutput?.content || "";
 
       systemPromptFinal = STEP_PROMPTS["six_category_extraction"];
-      if (instructionContext) {
-        systemPromptFinal += `\n\n${MASTER_GUIDE_FRAMING_HEADER}${instructionContext}`;
-      }
+      // Guidance injected via buildGuidanceBlock() below — no legacy append.
 
       userMessage = `## Creative Brief
 ${creativeBriefContent || `Title: ${brief.title}\nAngle: ${brief.angle_note || brief.description || ""}`}
@@ -2660,14 +2645,8 @@ ${sourceContext}
 Mine all six categories now. Rank everything by surprise value, specificity, and argument usefulness. Be precise about sources.`;
     } else {
       // Generic generation step (e.g. evidence_table, analysis_memo, outline,
-      // full_script). Promote the Master Guide into the system prompt with the
-      // appropriate framing for non-script analytical steps. (Outline and
-      // Full Script already received the HIGHEST PRIORITY injection above as
-      // part of `isScriptStep`, so we only inject framing here for steps that
-      // didn't receive it yet.)
-      if (!isScriptStep && instructionContext) {
-        systemPromptFinal += `\n\n${MASTER_GUIDE_FRAMING_HEADER}${instructionContext}`;
-      }
+      // full_script). Guidance is injected via buildGuidanceBlock() below;
+      // legacy Master-Guide framing append removed to avoid double injection.
 
       userMessage = `## Topic Brief
 ${briefContext}
