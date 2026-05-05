@@ -549,6 +549,8 @@ For each beat in the Beat Plan, write one paragraph in plain prose. Number each 
 
 Write items 5, 6, and 7 as natural writer-facing sentences inside the same paragraph. Do not turn the beat into a table. Do not add markdown headings or labels like "Function:" inside the paragraph — embed the information in prose the writer can read in one pass.
 
+When a beat responds to a Selected Source Analysis Audience Objection, Recurring Fan Signal, or Underdeveloped Opportunity, surface that in plain prose inside the existing Function, Hook/payoff relation, or Anti-repetition note sentences. Do not add a new format field. Do not treat secondary-source claims as canon proof.
+
 Do not write beat functions, hook payoff relation, or anti repetition notes using mechanical contrast formulas such as "not X, but Y," "the problem is not X, the problem is Y," or "this is not X, this is Y." These upstream phrases leak into Full Script. Use concrete function language instead, such as "This beat proves," "This beat reveals," "This beat escalates," "This beat makes the audience question," or "This beat pays off."
 
 ENFORCEMENT (structural, runs before the Full Script step):
