@@ -1012,6 +1012,7 @@ const STEP_ORDER = [
   "evidence_table",
   "analysis_memo",
   "outline",
+  "script_evidence_pack",
   "full_script",
   "verification",
   "retrieval",
