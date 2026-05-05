@@ -2149,7 +2149,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     } else if (stepType === "full_script") {
       systemPrompt = systemPrompt.replace(
         "{{FULL_SCRIPT_LENGTH_INSTRUCTION}}",
-        `Enforce total word count within ${targetMin} to ${targetMax} words.\nIf the draft falls outside this range, self-revise until it lands inside.\nInclude a final line: Word count: ~X (target: ${targetMin}–${targetMax})`
+        `Enforce total word count within ${targetMin} to ${targetMax} words silently. If the draft falls outside this range, self-revise until it lands inside. Do NOT include a "Word count" line or any numeric footer in the output.`
       );
     }
 
