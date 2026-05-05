@@ -695,6 +695,7 @@ export type Database = {
         | "creative_brief"
         | "six_category_extraction"
         | "selected_source_analysis"
+        | "script_evidence_pack"
       source_file_type:
         | "book"
         | "transcript"
@@ -842,6 +843,7 @@ export const Constants = {
         "creative_brief",
         "six_category_extraction",
         "selected_source_analysis",
+        "script_evidence_pack",
       ],
       source_file_type: [
         "book",
