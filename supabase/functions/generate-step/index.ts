@@ -2063,16 +2063,18 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
       if (cbEntry?.content) {
         parts.push(`### CREATIVE BRIEF (DIRECTIONAL ONLY — title promise, thesis direction, tone, emotional arc, intended payoff)\n${capPreviousOutput("creative_brief", cbEntry.content)}`);
       }
-      // Optional Hook Direction — only injected for full_script. No other step reads this.
-      const hd = typeof hookDirection === "string" ? hookDirection.trim() : "";
-      if (hd) {
-        parts.push(
-          `## Selected Hook / Opening Direction\n${hd}\n\n` +
-            `The user provided the following hook or opening direction. Use it as the opening direction for the Full Script. Preserve the strongest wording where it works, but adapt transitions naturally so the final script flows as one continuous spoken voiceover. Do not bolt this onto an unrelated script. The first section must grow out of this opening and lead smoothly into the Creative Brief and Script Evidence Pack argument. If the hook conflicts with canon evidence, source hierarchy, Anti AI rules, or the Script Evidence Pack, preserve the intent but correct the execution.`,
-        );
-      }
+      // Hook is injected separately below as a top-level user-message section,
+      // BEFORE "## Previous Pipeline Steps", so it gets architectural priority
+      // over Pack Beat 1.
       previousContext = parts.join("\n\n");
     }
+
+    // Compute the selected hook direction once, for use in both the system
+    // prompt binding block and the user message section. Only active for full_script.
+    const selectedHook =
+      stepType === "full_script" && typeof hookDirection === "string"
+        ? hookDirection.trim()
+        : "";
 
     let systemPrompt = STEP_PROMPTS[stepType] || "You are a helpful writing assistant.";
 
@@ -2119,6 +2121,11 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
     if (stepType === "full_script") {
       systemPrompt += `\n\nSOURCE PRECEDENCE (BINDING): The Script Evidence Pack is the CONTROLLING source for argument route, beat sequence, evidence, source-grounded claims, fan objections, repetition control, and hook/payoff execution. The Creative Brief is DIRECTIONAL ONLY: title promise, thesis direction, tone, emotional arc, intended payoff. If they conflict, follow the Script Evidence Pack. Do not import Creative Brief sentences verbatim. Do not restate the thesis using Creative Brief phrasing more than once. Treat the Creative Brief as a compass, not as script copy.`;
       systemPrompt += `\n\nANTI-INVENTION RULE (BINDING):\nThe Script Evidence Pack contains every canon claim, scene, quote, and evidence point that the Full Script is permitted to use. You may not introduce any of the following if they are not present in the Script Evidence Pack:\n- Specific scenes from books or films\n- Direct or paraphrased quotes\n- Canon facts about characters, events, or settings\n- Specific moments framed as evidence\n- References to deleted scenes, behind-the-scenes material, or interviews\n\nIf a beat in the Script Evidence Pack is thin or has weak evidence, write the beat with the evidence available. Do not fill the gap by adding scenes, quotes, or details that are not in the Pack. If a beat genuinely cannot be written from the Pack alone, generate the beat as written and add a single bracketed flag at that point in the script: [FLAG: insufficient evidence in Pack].\n\nThe Source Material Excerpts section provided in the user message exists only as context. You may not introduce any claim from those excerpts that is not also present in the Script Evidence Pack. The Script Evidence Pack is the only source of permitted content.\n\nThis rule applies regardless of how natural, plausible, or argumentatively useful an additional claim might seem.`;
+    }
+
+    // Selected Hook binding — only when a hook direction is present for full_script.
+    if (selectedHook) {
+      systemPrompt += `\n\nSELECTED HOOK DIRECTION (BINDING — OVERRIDES PACK BEAT 1):\nA specific hook direction has been selected for this script. This hook direction controls the opening of the Full Script and overrides Beat 1 of the Script Evidence Pack.\n\nThe selected hook direction is provided in the user message under the heading "## Selected Hook / Opening Direction".\n\nRules for using the selected hook:\n- The opening of the Full Script must reflect the selected hook direction. The script must open on the framing, scene, contradiction, or question the hook establishes.\n- If the Script Evidence Pack Beat 1 conflicts with the selected hook, follow the selected hook for the opening and reorganize Beat 1 content to flow from it naturally.\n- Preserve the strongest wording from the selected hook in your opening sentences.\n- After the hook lands, the script returns to the Script Evidence Pack beat sequence as written.\n- If the selected hook conflicts with canon evidence, source hierarchy, or the Anti AI Writing Rules, preserve the hook's intent and angle but correct the execution.\n\nThis rule activates only when a selected hook is provided. Without a selected hook, the Script Evidence Pack Beat 1 controls the opening as written.`;
     }
 
     // Add comparison mode instruction if enabled
