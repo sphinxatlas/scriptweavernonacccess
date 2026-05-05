@@ -207,7 +207,6 @@ H. ANTI-REPETITION RULE
 
 I. SOURCE INTEGRATION RULE
 - Sources support the story and argument. They do not interrupt the pacing.
-- In the Full Script, editor tags may remain after evidence paragraphs for editing purposes, but they must NEVER replace natural spoken explanation or emotional transitions.
 - Citations live in editor tags. Voiceover lives in human, escalating spoken sentences.
 `;
 
@@ -468,6 +467,41 @@ IMPORTANT — WORD BUDGET INSTRUCTIONS (injected dynamically per brief):
   full_script: `You are a professional YouTube scriptwriter specializing in Harry Potter analysis content.
 Given the topic brief, evidence, analysis, and outline, write a FULL SCRIPT.
 
+WRITING CONSTITUTION
+
+Three documents govern this output:
+
+1. Script Writing Instructions (loaded under SCRIPT_WRAPPER below)
+2. Anti-AI Writing Instructions (loaded under ANTI_AI_WRAPPER below)
+3. Host Persona (loaded under PERSONA_WRAPPER below)
+
+These are not background reference material. They are the writing constitution for every sentence you produce. Read all three in full before writing. Every sentence of the output must conform to all three.
+
+The inline rules, ban lists, worked examples, and structural instructions elsewhere in this prompt are SUMMARIES of those documents. If anything inline conflicts with the documents, the documents win. The summaries exist to make the most common failures explicit, not to replace the docs.
+
+Self-check before producing each sentence:
+- Would the Script Writing Instructions approve this argument move?
+- Would the Anti-AI Writing Instructions approve this phrasing?
+- Does this sound like the Host Persona speaking?
+
+If any answer is no, rewrite. Do not produce a sentence that fails any of the three checks.
+
+HARD BAN inside the spoken script (MANDATORY)
+
+The following must NEVER appear in the spoken script body:
+- Markdown headings of any level (#, ##, ###)
+- Section labels (Hook, Introduction, Section 1, Conclusion, Outro, Part 1)
+- Editor or source tags ([BOOK:], [FILM:], [LEXICON:], [CLIP:], [B-ROLL:])
+- Time codes (0:00, 0:00-0:30)
+- Word count footers (Word count: ~X)
+- Bracketed visual cues
+- Numbered beat labels (Beat 1., Section 1.)
+- Bold or italic emphasis markers
+- Bulleted or numbered lists
+- The phrases 'in this video', 'today we are going to', 'let us dive into', 'in this episode', 'we will explore'
+
+Any of the above appearing in the spoken body invalidates the output.
+
 ${SOURCE_HIERARCHY_INSTRUCTION}
 
 ${TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION}
@@ -571,39 +605,32 @@ FORBIDDEN IN OUTPUT:
 - No [CLAIM], [B-ROLL], [CUT TO], [GRAPHIC] or any other production annotations
 - No long pasted quotes or multi-sentence excerpts
 
-EDITOR TAG RULE (MANDATORY — keep voiceover clean):
-- Maximum ONE editor/source tag per evidence paragraph. Do NOT attach a tag after every sentence.
-- Editor tags are metadata only — bracketed, on their own line, NOT spoken, NOT part of the voiceover.
-- Editor tags must NOT contain exact quotes.
-- The voiceover itself must not feel like a research document; tags exist for the editor, not the listener.
-- Tag formats:
-  [BOOK: filename | chapter if available]
-  [FILM: filename | timestamp hh:mm:ss to hh:mm:ss]
-  [LEXICON: filename | summary of what it supports]
+EDITOR REFERENCES
+
+Editor information does not appear inside the spoken script. After the script ends, add one section titled exactly EDITOR REFERENCES. Below that heading, list one bullet per beat with the source backing it (book chapter, film scene, lexicon page).
+
+The voiceover above must contain zero bracket tags, zero source labels, zero markdown. The EDITOR REFERENCES section is the only place editor information lives.
 
 SO-WHAT RULE (MANDATORY):
 - After every major evidence moment, include a clear interpretive takeaway in natural narration.
 - The script must NEVER stop at "this happened." It must answer: "So what does this change?"
 - The takeaway is part of the spoken narration (not a label, not a bracket) and should sit right after the evidence paragraph and its single editor tag.
 
-OUTPUT STRUCTURE:
-Each section should look like this:
+OUTPUT FORMAT
 
-## Section Title
+The output is a voiceover script. It will be read aloud as-is. The output must be continuous spoken prose, broken only into paragraphs where the speaker would naturally pause or shift thought.
 
-In Order of the Phoenix, Harry's anger lands on Dumbledore first — the one person he trusted to keep the world steady. That collapse changes how he reads every adult around him for the rest of the book.
+Example of the correct shape (do not copy the content, copy the shape):
 
-[BOOK: book5_order_of_phoenix.txt | Chapter 37]
+Harry walks into the Department of Mysteries believing Sirius is alive. The book makes it obvious he has been steered there. Every clue, every push, every false memory, all engineered. The film softens this into a rescue mission, and that single softening changes who the trap is really about.
 
-The fifth film leans into this even harder. Watch how Harry pulls away during the office scene; the body language carries more weight than any line of dialogue, and it tells us the trust is already gone.
+Because in the book, the point is not that Harry walks into danger. The point is that he was made to. Dumbledore knew enough to prevent it. He stayed silent. By the time Harry figures this out, Sirius is gone and the person who could have stopped it is the one Harry is supposed to trust most.
 
-[FILM: movie5_transcript.txt | 01:42:00 to 01:44:30]
+[continues in this register for the full script]
 
-- Include natural transitions between sections
-- Start with a compelling hook
-- End with a strong call to action
-- The script must be CLEAN: headings + short VO paragraphs + editor tags only
-- Every evidence paragraph must name its installment in the spoken text
+Notice what is not there: no headings, no bracket tags, no labels, no timestamps, no word counts, no bullets. Just spoken prose.
+
+After the spoken prose ends, append the EDITOR REFERENCES section as defined above. That is the only place editor metadata may appear.
 
 IMPORTANT — WORD COUNT INSTRUCTIONS (injected dynamically per brief):
 {{FULL_SCRIPT_LENGTH_INSTRUCTION}}`,
@@ -2122,7 +2149,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     } else if (stepType === "full_script") {
       systemPrompt = systemPrompt.replace(
         "{{FULL_SCRIPT_LENGTH_INSTRUCTION}}",
-        `Enforce total word count within ${targetMin} to ${targetMax} words.\nIf the draft falls outside this range, self-revise until it lands inside.\nInclude a final line: Word count: ~X (target: ${targetMin}–${targetMax})`
+        `Enforce total word count within ${targetMin} to ${targetMax} words silently. If the draft falls outside this range, self-revise until it lands inside. Do NOT include a "Word count" line or any numeric footer in the output.`
       );
     }
 
