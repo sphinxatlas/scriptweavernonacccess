@@ -536,6 +536,8 @@ INPUTS YOU HAVE ACCESS TO
 - The Six Category Extraction (the canon mining)
 - The Creative Brief (the argument framing and angle)
 
+Evidence Table supplies canon proof; Selected Source Analysis supplies audience-side material such as objections, recurring fan signals, expected surface answers, emotional language, and underdeveloped opportunities. Both must be consulted for different purposes — Evidence Table for what is true in canon, Selected Source Analysis for what the audience already thinks, expects, or argues about.
+
 FORMAT
 
 For each beat in the Beat Plan, write one paragraph in plain prose. Number each paragraph to match the beat number. The paragraph must cover:
