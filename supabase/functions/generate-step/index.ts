@@ -724,6 +724,59 @@ Good:
 ENFORCEMENT
 If a banned construction appears in the draft, the output is invalid. Rewrite using the recipe before completing the script. The Anti-AI Writing Instructions document loaded under ANTI_AI_WRAPPER is the full authority. The patterns above are the most common failures, not the complete list.
 
+FINAL ANTI-AI SELF-AUDIT BEFORE OUTPUT
+
+Before returning the final script, silently audit the entire spoken script body from first paragraph to last paragraph.
+
+You must specifically search for and rewrite:
+
+1. Contrast flip formulas:
+- 'That is not X. That is Y.'
+- 'That's not X. That's Y.'
+- 'This is not X. This is Y.'
+- 'It is not X. It is Y.'
+- 'X does not mean Y. It means Z.'
+- 'Don't call it X. Call it Y.'
+- Any sentence pair where the first sentence negates a label and the second sentence replaces it with the real meaning.
+
+Rewrite these using active consequence, image, or direct claim.
+
+Bad:
+'That's not bravery. That's a kid stalling.'
+Better:
+'The scene plays like a stall, not a victory.'
+'Draco is buying seconds because every answer terrifies him.'
+'His hesitation carries fear before it carries courage.'
+
+Bad:
+'That's not teenage independence. That's a child trying to manage the impossible.'
+Better:
+'Draco is trying to manage something even Narcissa can't soften.'
+'The line exposes a child handling pressure his family can no longer absorb.'
+
+2. Three-part symmetry stacks:
+
+Any run of three or more consecutive sentences with the same structure must be rewritten.
+
+Bad:
+'Knowledge doesn't count. Improvement doesn't count. Curiosity doesn't count.'
+Better:
+'Knowledge and curiosity barely register in that house. What counts is whether Draco can keep the hierarchy intact.'
+
+Bad:
+'He uses slurs. He tries to get people hurt. He throws his power around.'
+Better:
+'He uses slurs, throws his power around, and sometimes tries to get people hurt.'
+
+Bad:
+'Lucius taught him X. Narcissa taught him Y. Bellatrix taught him Z.'
+Better:
+'Lucius gives Draco the first lesson: status is everything. Narcissa turns protection into threat. Bellatrix takes the family logic to its ugliest endpoint, where loyalty can mean offering children to Voldemort.'
+
+This audit is mandatory. Do not mention the audit in the output. Only return the corrected script.
+
+If any contrast flip or three-part symmetry stack remains, the output is invalid.
+
 ${SOURCE_HIERARCHY_INSTRUCTION}
 
 ${TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION}
