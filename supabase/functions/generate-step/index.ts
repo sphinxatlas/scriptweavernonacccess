@@ -2373,11 +2373,38 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
       return content.slice(0, cap) +
         `\n\n[!! PREVIOUS OUTPUT TRUNCATED — kept ${cap} of ${content.length} chars from ${stepName} to control prompt size. Earlier sections preserved; tail dropped.]`;
     };
-    const previousContext = previousOutputs && previousOutputs.length > 0
+    // Default previousContext: all upstream steps. Full Script overrides this
+    // below so it sees ONLY the Creative Brief and the Script Evidence Pack.
+    let previousContext = previousOutputs && previousOutputs.length > 0
       ? previousOutputs
           .map((o: any) => `### ${o.step_type.replace(/_/g, " ").toUpperCase()}\n${capPreviousOutput(o.step_type, o.content || "")}`)
           .join("\n\n")
       : "";
+
+    // ── FULL SCRIPT TRANSFORMATION BOUNDARY ────────────────────────────────
+    // The Full Script reads ONLY the Creative Brief (argument framing) and
+    // the Script Evidence Pack (canon, beat-mapped). It must NOT see the
+    // Evidence Table, Beat Plan (outline), Selected Source Analysis, or
+    // Six Category Extraction directly. If the Pack is missing, fail loudly.
+    if (stepType === "full_script") {
+      const cbEntry = (previousOutputs || []).find((o: any) => o.step_type === "creative_brief");
+      const packEntry = (previousOutputs || []).find((o: any) => o.step_type === "script_evidence_pack");
+      if (!packEntry || !packEntry.content) {
+        return new Response(
+          JSON.stringify({
+            error:
+              "Script Evidence Pack required. Please generate the Script Evidence Pack before generating the Full Script.",
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const parts: string[] = [];
+      if (cbEntry?.content) {
+        parts.push(`### CREATIVE BRIEF\n${capPreviousOutput("creative_brief", cbEntry.content)}`);
+      }
+      parts.push(`### SCRIPT EVIDENCE PACK\n${capPreviousOutput("script_evidence_pack", packEntry.content)}`);
+      previousContext = parts.join("\n\n");
+    }
 
     let systemPrompt = STEP_PROMPTS[stepType] || "You are a helpful writing assistant.";
 
