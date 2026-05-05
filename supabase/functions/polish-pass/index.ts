@@ -79,42 +79,48 @@ Preserve the meaning of any banned construction, but change the construction com
 
 Output the COMPLETE revised script only. No critique. No preamble. No change log.`;
 
-const ANTI_AI_PASSAGE_SYSTEM = `You are running an ANTI AI REVISION on a SHORT PASSAGE from a YouTube script (e.g. a hook, a transition, a paragraph, or a section).
+const PASSAGE_REWRITE_SYSTEM = `You are running a TARGETED PASSAGE REWRITE on a SHORT passage from a YouTube script (e.g. a hook, transition, paragraph, or section).
 
-Your ONLY rewriting lens is the ANTI AI WRITING INSTRUCTIONS document provided below, plus any optional user feedback.
+You have THREE binding writing-guidance documents loaded below:
+1. SCRIPT WRITING INSTRUCTIONS — argument logic, hook strength, escalation, payoff, retention, structural judgment.
+2. ANTI AI WRITING INSTRUCTIONS — sentence-level cleanup, spoken rhythm, specificity, filler removal, repetition control, mechanical contrast formula removal.
+3. HOST PERSONA / MELTY — voice, humour, fandom perspective, sharpness, delivery.
+
+Use ALL THREE together. Do NOT favour only one lens unless the user feedback explicitly directs you to.
 
 You will receive:
-- A pasted passage (the only text to revise)
-- Optional user feedback (e.g. "this hook is not strong enough", "make this less academic", "remove the contrast formula", "make the transition sharper", "make this more spoken")
+- A pasted passage (the ONLY text you may rewrite)
+- Optional user feedback (e.g. "this hook is not strong enough", "make this less academic", "remove the contrast formula", "make this more Melty", "sharpen the rehook")
 
-Apply the Anti AI Writing Instructions to remove:
-- Mechanical contrast formulas
-- "not X, but Y" constructions
-- "That is not X. That is Y." constructions
-- "the problem is not X, the problem is Y" constructions
-- Repeated "That's..." punchline structures
-- Generic AI transitions
-- Filler frames
-- Empty superlatives and fake profundity
+You MAY improve:
+- Hook strength, argument clarity, retention pressure, rehooks, transitions
+- Rhythm, spoken delivery, sentence structure, pacing
+- Specificity, payoff wording inside the passage
+- Melty voice, humour where it lands
+- Removal of mechanical contrast formulas and repetition
 
-Improve:
-- Spoken rhythm
-- Specificity
-- Transitions through meaning
-- Rehooks
-- Naturalness for voiceover
+You MUST preserve:
+- The factual meaning of the pasted passage
+- The user's intended point
+- Existing canon claims and existing evidence (unless the user asks otherwise)
+- Paragraph breaks where useful
+- Level of certainty (unless the user asks to strengthen or soften it)
+- EDITOR REFERENCES / editor tags if present
 
-HARD PRESERVATION RULES:
-- Do NOT change facts, thesis, evidence, source meaning, claim route, canon interpretation.
-- Do NOT add new evidence, new canon claims, invented quotes, or unsupported jokes.
-- Preserve humour that works; cut humour that feels inserted.
-- Preserve EDITOR REFERENCES / editor tags if present.
-- If banned contrast formulas appear, rewrite into a completely different sentence structure — never swap one banned formula for another.
-- If user feedback is empty, run a general Anti AI cleanup on the passage.
+You MUST NOT:
+- Invent new canon evidence, new quotes, or unsupported facts
+- Expand into a whole new section unless the user asks
+- Reference unseen parts of the script
+- Add labels like "Revised Hook" or "Option 1"
+- Add commentary, notes, diagnosis, markdown headings, preamble, or change log
+- Return multiple options unless the user asks
+- Swap one banned contrast formula for another — rewrite the structure entirely
+
+If user feedback is provided, follow it as the local task direction while staying inside the three guidance documents. If feedback is empty, run a balanced rewrite using all three lenses.
 
 OUTPUT RULES (STRICT):
 - Return ONLY the revised passage text.
-- No commentary, no notes, no diagnosis, no labels, no markdown headings, no explanation, no preamble, no change log, no quotation wrappers.`;
+- No commentary, no notes, no labels, no markdown headings, no explanation, no preamble, no change log, no quotation wrappers.`;
 
 const MELTY_VOICE_SYSTEM = `MELTY VOICE POLISH
 
@@ -202,60 +208,112 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    const docFileTypes =
-      passType === "anti_ai" ? ["anti_ai_guide"] :
-      passType === "melty_voice" ? ["host_persona"] :
-      ["instructions", "script_strategy"];
-    const docLabel =
-      passType === "anti_ai" ? "Anti AI Writing Instructions" :
-      passType === "melty_voice" ? "Host Persona" :
-      "Script Writing Instructions";
+    let systemPrompt: string;
+    let userPrompt: string;
 
-    const guidance = await loadGuidanceText(supabase, docFileTypes);
+    if (scope === "passage") {
+      // Passage Rewrite: load ALL THREE guidance documents.
+      const [scriptWriting, antiAi, hostPersona] = await Promise.all([
+        loadGuidanceText(supabase, ["instructions", "script_strategy"]),
+        loadGuidanceText(supabase, ["anti_ai_guide"]),
+        loadGuidanceText(supabase, ["host_persona"]),
+      ]);
 
-    if (!guidance.text || guidance.text.trim().length < 20) {
-      return new Response(
-        JSON.stringify({
-          error: `${docLabel} document not found in your Source Library. Upload it before running this pass.`,
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+      const missing: string[] = [];
+      if (!scriptWriting.text || scriptWriting.text.trim().length < 20) missing.push("Script Writing Instructions");
+      if (!antiAi.text || antiAi.text.trim().length < 20) missing.push("Anti AI Writing Instructions");
+      if (!hostPersona.text || hostPersona.text.trim().length < 20) missing.push("Host Persona / Melty");
+      if (missing.length > 0) {
+        return new Response(
+          JSON.stringify({
+            error: `Passage Rewrite requires these documents in your Source Library: ${missing.join(", ")}.`,
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
 
-    if (guidance.truncated) {
-      console.warn(`WARNING: Guidance document '${docLabel}' truncated at ${GUIDANCE_CHUNK_LIMIT} chunks. Raise GUIDANCE_CHUNK_LIMIT to avoid partial guidance.`);
-    }
+      for (const [label, g] of [
+        ["Script Writing Instructions", scriptWriting],
+        ["Anti AI Writing Instructions", antiAi],
+        ["Host Persona", hostPersona],
+      ] as const) {
+        if (g.truncated) {
+          console.warn(`WARNING: Guidance document '${label}' truncated at ${GUIDANCE_CHUNK_LIMIT} chunks.`);
+        }
+      }
 
-    console.log("[polish-pass]", JSON.stringify({
-      passType,
-      docLabel,
-      docFileTypes,
-      guidanceChunks: guidance.chunks,
-      guidanceTruncated: guidance.truncated,
-      scriptChars: scriptText.length,
-    }));
+      console.log("[polish-pass]", JSON.stringify({
+        scope: "passage",
+        scriptWritingChunks: scriptWriting.chunks,
+        antiAiChunks: antiAi.chunks,
+        hostPersonaChunks: hostPersona.chunks,
+        passageChars: scriptText.length,
+        hasFeedback: userFeedback.length > 0,
+      }));
 
-    const baseSystem =
-      passType === "anti_ai"
-        ? (scope === "passage" ? ANTI_AI_PASSAGE_SYSTEM : ANTI_AI_SYSTEM)
-        : passType === "melty_voice" ? MELTY_VOICE_SYSTEM
-        : SCRIPT_WRITING_SYSTEM;
-    const systemPrompt =
-      baseSystem +
-      `\n\n## ${docLabel.toUpperCase()} (BINDING — primary lens for this pass)\n\n${guidance.text}` +
-      (guidance.truncated ? `\n\n[Note: ${docLabel} document was truncated to the first ${GUIDANCE_CHUNK_LIMIT} chunks.]` : "");
+      systemPrompt =
+        PASSAGE_REWRITE_SYSTEM +
+        `\n\n## SCRIPT WRITING INSTRUCTIONS (BINDING)\n\n${scriptWriting.text}` +
+        `\n\n## ANTI AI WRITING INSTRUCTIONS (BINDING)\n\n${antiAi.text}` +
+        `\n\n## HOST PERSONA / MELTY (BINDING)\n\n${hostPersona.text}`;
 
-    const userPrompt = (passType === "anti_ai" && scope === "passage")
-      ? `Run an Anti AI revision on the following passage. Return ONLY the revised passage text — no commentary, labels, or explanations.
+      userPrompt = `Rewrite the following passage using ALL THREE guidance documents above. Return ONLY the revised passage text — no commentary, labels, headings, or explanations.
 
 ${userFeedback ? `## USER FEEDBACK\n${userFeedback}\n\n` : ""}## PASSAGE
-${scriptText}`
-      : `Run a ${docLabel} polish pass on the following script.
+${scriptText}`;
+    } else {
+      // Full-script polish pass — unchanged behavior (single-doc lens).
+      const docFileTypes =
+        passType === "anti_ai" ? ["anti_ai_guide"] :
+        passType === "melty_voice" ? ["host_persona"] :
+        ["instructions", "script_strategy"];
+      const docLabel =
+        passType === "anti_ai" ? "Anti AI Writing Instructions" :
+        passType === "melty_voice" ? "Host Persona" :
+        "Script Writing Instructions";
+
+      const guidance = await loadGuidanceText(supabase, docFileTypes);
+
+      if (!guidance.text || guidance.text.trim().length < 20) {
+        return new Response(
+          JSON.stringify({
+            error: `${docLabel} document not found in your Source Library. Upload it before running this pass.`,
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      if (guidance.truncated) {
+        console.warn(`WARNING: Guidance document '${docLabel}' truncated at ${GUIDANCE_CHUNK_LIMIT} chunks.`);
+      }
+
+      console.log("[polish-pass]", JSON.stringify({
+        passType,
+        scope: "full_script",
+        docLabel,
+        docFileTypes,
+        guidanceChunks: guidance.chunks,
+        guidanceTruncated: guidance.truncated,
+        scriptChars: scriptText.length,
+      }));
+
+      const baseSystem =
+        passType === "anti_ai" ? ANTI_AI_SYSTEM :
+        passType === "melty_voice" ? MELTY_VOICE_SYSTEM :
+        SCRIPT_WRITING_SYSTEM;
+
+      systemPrompt =
+        baseSystem +
+        `\n\n## ${docLabel.toUpperCase()} (BINDING — primary lens for this pass)\n\n${guidance.text}` +
+        (guidance.truncated ? `\n\n[Note: ${docLabel} document was truncated to the first ${GUIDANCE_CHUNK_LIMIT} chunks.]` : "");
+
+      userPrompt = `Run a ${docLabel} polish pass on the following script.
 
 Return the COMPLETE revised script only. Do not include any commentary, summary, or change log. Preserve everything that already works; only rewrite what the ${docLabel} require.
 
 ## CURRENT SCRIPT
 ${scriptText}`;
+    }
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
