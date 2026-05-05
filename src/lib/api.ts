@@ -7,7 +7,6 @@ export type PipelineOutput = Tables<"pipeline_outputs">;
 export type PipelineStepType =
   | "creative_brief"
   | "six_category_extraction"
-  | "competitor_format_analysis"
   | "retrieval"
   | "selected_source_analysis"
   | "evidence_table"
