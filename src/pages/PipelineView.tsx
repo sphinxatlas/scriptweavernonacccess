@@ -35,7 +35,6 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type ActiveStep = PipelineStepType | "clip_quote_finder";
 
