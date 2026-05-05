@@ -659,9 +659,6 @@ STEP_PROMPTS["creative_brief"] = `You are a creative director for a Harry Potter
 
 Your job: take the video title, angle note, format reference transcript(s), and any brief-specific HP topic transcripts provided, and generate a structured Creative Brief that will guide every subsequent step of the script pipeline.
 
-HOST PERSONA (write the brief with this voice and worldview in mind):
-{{HOST_PERSONA}}
-
 ${VIDEO_RETENTION_STRUCTURE_INSTRUCTION}
 
 FORMAT REFERENCE RULES:
@@ -736,9 +733,6 @@ IMPORTANT SOURCE RULES:
 - HP topic transcripts and knowledge base sources can point you toward what to investigate but every claim must be confirmed in primary canon
 - Do NOT invent or fabricate evidence
 - If canon material does not support a claim, say so explicitly
-
-HOST PERSONA:
-{{HOST_PERSONA}}
 
 Produce output in this EXACT format:
 
