@@ -400,11 +400,11 @@ export default function PipelineView() {
                     <div>
                       <h3 className="font-mono text-sm font-bold text-foreground flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-primary" />
-                        Anti AI Cleanup
+                        Script Cleanup & Passage Rewrite
                       </h3>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Uses only the Anti AI Writing Instructions document. Does not use Creative
-                        Brief, Evidence Pack, Beat Plan, or any pipeline context.
+                        Focused post-generation tools. Neither tool uses the Creative Brief,
+                        Evidence Pack, Beat Plan, or any pipeline context.
                       </p>
                     </div>
 
@@ -446,13 +446,14 @@ export default function PipelineView() {
                       )}
                     </div>
 
-                    {/* Tool 2 — Passage Revision */}
+                    {/* Tool 2 — Passage Rewrite */}
                     <div className="space-y-3 p-4 rounded-md border border-border bg-secondary/30">
                       <div>
-                        <h4 className="text-sm font-semibold text-foreground">Passage Revision</h4>
+                        <h4 className="text-sm font-semibold text-foreground">Passage Rewrite</h4>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Paste a hook, transition, paragraph, or section. Optional feedback steers the
-                          revision. Output is shown only — never saved or written back to the script.
+                          Paste a hook, transition, paragraph, or section. Uses Script Writing,
+                          Anti AI, and Melty guidance together. Returns the revised passage only and
+                          never saves automatically.
                         </p>
                       </div>
                       <div className="space-y-2">
