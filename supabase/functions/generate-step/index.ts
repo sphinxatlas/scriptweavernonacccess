@@ -128,23 +128,6 @@ Use them to discover interesting angles, framings, and argument patterns.
 - Never copy commentary wording, structure, or phrasing into the script.
 `;
 
-const DUAL_HIERARCHY_INSTRUCTION = `
-DUAL HIERARCHY — THE FINAL SCRIPT MUST OBEY BOTH AT ONCE:
-
-Evidence hierarchy:
-- Tier 1 books and movie transcripts prove canon claims.
-- Lexicon can support background understanding but cannot be mentioned in narration.
-- Commentary and HP topic transcripts can inspire theories, angles, and interpretations, but cannot prove canon facts.
-- Guidance documents are not evidence.
-
-Writing hierarchy:
-- Host Persona is mandatory for first person voice.
-- Script Instructions are mandatory for structure and execution.
-- Anti AI Guide is mandatory for style and human writing quality.
-
-The final script must not merely include these documents in the prompt. It must visibly apply them in the writing.
-`;
-
 const VIDEO_RETENTION_STRUCTURE_INSTRUCTION = `
 VIDEO RETENTION & ESCALATION LAYER (BINDING — applies to Creative Brief, Outline, and Full Script):
 
