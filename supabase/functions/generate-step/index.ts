@@ -972,6 +972,8 @@ The Creative Brief must not only fill fields. It must produce a usable argument 
 - The hook must create an open loop that the script can pay off later.
 - The Creative Brief must make explicit what the script must avoid repeating across sections, so downstream steps can prevent circular argumentation.
 
+The Creative Brief must not phrase the Core Thesis, Hook Shape, Video Engine, Escalation Ladder, or Final Payoff using mechanical contrast formulas such as "not X, but Y," "the problem is not X, the problem is Y," "this is not X, this is Y," or softened versions of the same structure. Preserve the meaning, but use active cause and effect, consequence, scene specific phrasing, or direct argument language instead.
+
 The inline format below is a summary. If anything inline conflicts with the Script Writing Instructions, the Script Writing Instructions win.
 
 ${VIDEO_RETENTION_STRUCTURE_INSTRUCTION}
