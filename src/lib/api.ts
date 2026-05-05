@@ -67,7 +67,6 @@ export const PIPELINE_STEPS: {
   { type: "retrieval", label: "Retrieval", description: "", visible: false },
   { type: "analysis_memo", label: "Analysis Memo", description: "", visible: false },
   { type: "verification", label: "Verification", description: "", visible: false },
-  { type: "competitor_format_analysis", label: "Format Analysis", description: "", visible: false },
 ];
 
 export async function uploadSourceFile(file: File, fileType: "book" | "transcript" | "instructions" | "lexicon" | "competitor_analysis" | "host_persona" | "anti_ai_guide") {
