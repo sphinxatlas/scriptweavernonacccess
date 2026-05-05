@@ -2275,12 +2275,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     const targetMin = brief.target_min_words ?? 1400;
     const targetMax = brief.target_max_words ?? 1600;
 
-    if (stepType === "outline") {
-      systemPrompt = systemPrompt.replace(
-        "{{OUTLINE_LENGTH_INSTRUCTION}}",
-        `Include a word budget per section that sums to ${targetMin}–${targetMax} words total.\nInclude an estimated total word count line at the end of the outline.`
-      );
-    } else if (stepType === "full_script") {
+    if (stepType === "full_script") {
       systemPrompt = systemPrompt.replace(
         "{{FULL_SCRIPT_LENGTH_INSTRUCTION}}",
         `Enforce total word count within ${targetMin} to ${targetMax} words silently. If the draft falls outside this range, self-revise until it lands inside. Do NOT include a "Word count" line or any numeric footer in the output.`
