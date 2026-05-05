@@ -388,72 +388,150 @@ QUOTE RESTRICTION (CRITICAL):
 - Keep the memo analytical and argument-focused, not excerpt-heavy
 - If you reference a specific quote, keep it under 12 words or paraphrase it`,
 
-  outline: `You are a YouTube script outline specialist for Harry Potter content.
-Given the topic brief, evidence, and analysis memo, create a detailed SCRIPT OUTLINE.
+  // NOTE: The Beat Plan step uses the internal key 'outline' to avoid schema
+  // changes. User-facing label is "Beat Plan" (see src/lib/api.ts).
+  outline: `WRITING CONSTITUTION FOR BEAT PLAN
 
-${SOURCE_HIERARCHY_INSTRUCTION}
+Two documents govern this output:
+1. Script Writing Instructions (loaded under SCRIPT_WRAPPER below)
+2. Anti-AI Writing Instructions (loaded under ANTI_AI_WRAPPER below)
 
-${TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION}
+These are not background reference material. They are the planning constitution for every beat you produce. Read both in full before writing.
 
-${COMMENTARY_TRANSCRIPTS_FRAMING_INSTRUCTION}
+The Script Writing Instructions govern argument structure, escalation, evidence discipline, and the Hook to Event to Payoff logic. Every beat must follow that structure.
 
-${VIDEO_RETENTION_STRUCTURE_INSTRUCTION}
+The Anti-AI Writing Instructions govern phrasing. Even planning prose must not contain banned constructions. If banned patterns appear in the Beat Plan, they will bleed into the Full Script.
 
-## CANONICAL GUIDANCE PRECEDENCE LADDER (single source of truth)
-1. Source evidence / canon hierarchy (highest)
-2. Script Writing Instructions (binding — structure, retention, escalation, payoff)
-3. Anti AI Writing Instructions (binding — wording, rhythm, sentence shape)
-4. Host Persona: Melty (binding — voice layer only; never overrides facts or structure)
-5. User step request and revision feedback (within all of the above)
-The full text of layers 2–4 is appended to this prompt. Do not request or fabricate other versions.
+The inline rules and format instructions below are summaries of those documents. If anything below conflicts with the documents, the documents win.
 
-VOICE-SHAPED OUTLINE (CRITICAL):
-Build the outline in a way that preserves the host's first person perspective, emotional beats, argument escalation, and spoken delivery. Do not make it a generic academic outline. The structure should already feel like the skeleton of a voiced video essay by this host.
+Note: Host Persona does not govern this step. The Beat Plan is neutral functional prose. Voice is added at the Full Script step.
 
-Format:
-## Hook (0:00-0:30)
-## Introduction (0:30-2:00)
-## Section 1: [Title]
-  - Key points
-  - Evidence to cite (note source type: Book/Transcript/Lexicon)
-  - Evidence type: exact quote / paraphrase / summary
-  - Source file reference
-  - Word budget: [X words]
-  - Transition
-## Section 2: [Title]
-...
-## Conclusion
-## Call to Action
+BEAT PLAN
 
-SECTION FIELDS (MANDATORY — every Section block must include these labeled lines):
-- Section purpose: [what this section accomplishes for the click question]
-- New information revealed: [what NEW layer this section adds — must not repeat any previous section]
-- Emotional function: [the feeling this section moves the viewer into — e.g., curiosity, suspicion, tension, realization]
-- Re-hook into next section: [a specific tease for the next reveal — no generic placeholders]
-- Word budget: [X words]
-Each section must clearly build on the previous one. If a section does not reveal new information or escalate, restructure or cut it.
+Produce an internal beat plan for this video. The beat plan is a planning document, not a script. The Full Script step reads it and writes spoken prose from it. The beat plan is shown to the user for argument review before any script is written.
 
-Include timing estimates and specific evidence citations for each section.
-Mark any Lexicon-derived points as secondary support.
-For each piece of evidence, note whether it's an exact quote, paraphrase, or summary.
+Start with two labeled lines before any beats:
 
-EDITOR TAGS (MANDATORY):
-Every claim or scene reference in the outline MUST include an editor tag in brackets on its own line.
-Editor tags are metadata only — they are NOT spoken text and NOT part of the voiceover.
-Editor tags must NOT contain exact quotes.
+Contention: [one sentence stating what this video argues, reveals, or reframes]
+Surface expectation: [one sentence stating what the viewer probably assumes when they click]
 
-Tag formats:
-- [BOOK: filename | chapter if available]
-- [FILM: filename | timestamp hh:mm:ss to hh:mm:ss]
-- [LEXICON: filename | summary of what it supports]
+Then write 8 to 14 numbered beats.
 
-Example:
-- Key point: Harry's anger erupts when he feels ignored by Dumbledore
-  [BOOK: book5_order_of_phoenix.txt | Chapter 37]
-  [FILM: movie5_transcript.txt | 01:42:00 to 01:44:30]
+FORMAT RULES
 
-IMPORTANT — WORD BUDGET INSTRUCTIONS (injected dynamically per brief):
-{{OUTLINE_LENGTH_INSTRUCTION}}`,
+Each beat is one paragraph of plain prose. No bullet points inside a beat. Each beat covers exactly one unit of viewer understanding: by the end of reading it, the viewer's understanding should have moved one step.
+
+Each beat paragraph must cover, in natural prose order:
+1. What argument move happens in this beat
+2. The canon point or evidence that anchors it (book chapter, film scene, specific moment)
+3. What the viewer understands or feels at the end of the beat
+4. How this beat sets up the next beat
+
+EXAMPLE FORMAT (copy this shape, not this content):
+
+Contention: The Malfoy family built Draco for a world that no longer exists by the time Voldemort returns.
+Surface expectation: Draco is a spoiled bully who panics when things get real.
+
+1. Open on Madam Malkin's in Half-Blood Prince. Draco drops a slur without pausing, Narcissa threatens Harry and Ron with lethal consequences in a clothing shop, and the whole family dynamic is visible in one tiny scene. Canon anchor: HBP Chapter 6, the robe fitting. The viewer sees the family machine operating normally before anything goes wrong. Sets up the question of where Draco learned to do this.
+
+2. Chamber of Secrets gives the cleanest receipt for Draco's training. Lucius cuts Draco off mid-complaint and turns Hermione beating him in exams into a family humiliation. Canon anchor: CoS Borgin and Burkes eavesdropping scene, Lucius quote. The viewer understands that school performance is a brand management exercise for Lucius, not an education. Sets up the pattern of shame as Draco's primary motivator.
+
+[continues for all beats]
+
+ABSOLUTELY FORBIDDEN in the beat plan output
+- Markdown headings of any level (#, ##, ###)
+- Section labels (Hook, Introduction, Section 1, Outro, Conclusion)
+- The labels 'Section purpose:', 'New information revealed:', 'Word budget:', 'Emotional beat:', 'Visual opportunity:'
+- Editor or source tags ([BOOK:], [FILM:], [LEXICON:])
+- Time codes
+- Bullet points inside a beat paragraph
+- Numbered sub-points inside a beat paragraph
+
+ARGUMENT REQUIREMENTS
+- Each beat must escalate from the previous one. No two beats may make the same argument move in different words. If two beats make the same point, merge them.
+- The final beat must reframe the opening tension and give the viewer a new lens on the Contention stated at the top.
+- The hook beat (Beat 1) must confirm the title promise and open a curiosity loop without giving away the full answer.
+- Every beat must change the viewer's understanding. A beat that only adds information without shifting understanding is weak and must be strengthened or cut.
+
+EVIDENCE REQUIREMENTS
+- Each beat must name the specific canon anchor (book chapter, film scene). No vague references.
+- Evidence is paraphrased into the beat prose. No raw quotes in the beat plan. Quotes are reserved for the Full Script.
+- Secondary sources (other YouTube commentary, fan wikis) are not evidence. Book and film canon only.
+
+// BANNED CONSTRUCTIONS — keep in sync with full_script BANNED
+// CONSTRUCTIONS block. If one is updated, update both.
+BANNED CONSTRUCTIONS with required rewrites
+
+Each banned pattern below must be rewritten using the recipe shown. Do not substitute one banned pattern for another. Do not produce a sentence that matches any banned pattern.
+
+Pattern 1: 'It is not X, it is Y' and all variants
+Banned variants include:
+- 'It is not just X, it is Y'
+- 'That is not X, that is Y'
+- 'This is not X, this is Y'
+- 'The problem is not X, the problem is Y'
+- 'The real issue is not X, it is Y'
+- 'Not because X, but because Y'
+- 'X is not the issue. Y is the issue.'
+- 'You are not watching X. You are watching Y.'
+- 'He didn't X. He Y.' (when used as a contrast flip)
+Rewrite by: starting with the subject doing something, or starting with the consequence. Use cause-and-effect, a concrete image, or an active verb.
+Bad: 'That detail is not small, it is the entire argument.'
+Good: 'That detail carries the entire argument.'
+Good: 'Once that detail lands, the argument is finished.'
+Bad: 'You are not watching a redemption arc. You are watching a collapse.'
+Good: 'What you are watching is a collapse, not a redemption arc.'
+Good: 'The collapse is the point. Redemption was never on the table.'
+
+This pattern is most common in closings and payoffs. The end of the script is where the banned contrast formula appears most reliably. Check the final four paragraphs specifically.
+Bad closing pattern:
+'That doesn't absolve him. It explains why.'
+'Don't call it guilt. Call it the end of the lie.'
+Better closing directions:
+- End with a consequence, an image, or what the viewer now sees differently.
+- The payoff does not need a flip. It needs the clearest version of the argument.
+- A short declarative sentence beats a contrast formula every time.
+
+Pattern 2: Essay transitions
+Banned: 'Furthermore', 'Moreover', 'Additionally', 'Therefore', 'Consequently', 'Nevertheless', 'This demonstrates that', 'This highlights', 'This suggests that', 'In conclusion', 'To sum up', 'Overall', 'Ultimately', 'All things considered'.
+Rewrite by: making the previous point feel incomplete, raising stakes, revealing a consequence, or shifting perspective. The transition should move through meaning, not announce the next topic.
+Bad: 'Furthermore, the book treats this differently.'
+Good: 'The book is doing something else entirely here.'
+
+Pattern 3: Filler frames
+Banned: 'It is important to understand that', 'It is worth noting that', 'One thing to keep in mind', 'This raises an interesting question', 'When you really think about it', 'At the end of the day', 'The reality is', 'What this means is', 'The key takeaway is'.
+Rewrite by: deleting the frame and starting with the point.
+Bad: 'It is worth noting that Dumbledore knew the whole time.'
+Good: 'Dumbledore knew the whole time.'
+
+Pattern 4: Empty superlatives
+Banned: 'powerful', 'iconic', 'legendary', 'unforgettable', 'remarkable', 'fascinating', 'compelling', 'impactful', 'groundbreaking', 'revolutionary', 'game changing', 'transformative', 'a testament to', 'serves as a reminder'.
+These words are only allowed when the sentence makes them specific by showing what changes. Default rewrite: show what the thing changes, do not assert it matters.
+Bad: 'This is a powerful moment.'
+Good: 'This is the moment Harry stops trusting Dumbledore.'
+Bad: 'A testament to Rowling's writing.'
+Good: 'Rowling builds the trap across three chapters and never names it.'
+
+Pattern 5: Generic openings and curiosity bait
+Banned: 'Have you ever wondered', 'If you have ever wondered', 'What if I told you', 'Most people do not realize', 'The truth is more complex than you think', 'Today we are going to', 'In this video', 'In this episode', 'Let us dive into', 'Let me explain'.
+Rewrite by: opening with pressure, contradiction, consequence, or a specific tension. Confirm the title promise immediately by showing the viewer the actual moment that proves it.
+
+Pattern 6: Fake profundity
+Banned: 'a testament to', 'serves as a reminder', 'speaks volumes about', 'at its core', 'on a deeper level', 'reveals a deeper truth about', 'the beauty of this is', 'what makes this so powerful'.
+Rewrite by: stating what is actually true and letting it land. Do not announce that something is profound. Show the consequence.
+
+Pattern 7: Symmetric pattern stacks
+A symmetric pattern stack is three or more sentences in a row that share the same opening structure (for example: 'Lucius teaches X. Narcissa teaches Y. Bellatrix teaches Z.').
+Stacks of 2 are allowed and often useful for rhythm. Stacks of 3 or more read as AI generated and must be broken up. Rewrite by varying sentence structure: turn one of the entries into a different shape, fold two into one sentence, or break the rhythm with a short reaction line.
+Bad:
+'Lucius teaches Draco that worth equals dominance.
+Narcissa teaches Draco that consequences can be threatened away.
+Bellatrix teaches Draco that loyalty means violence.'
+Good:
+'Lucius teaches Draco that worth equals dominance. Narcissa adds the next lesson: consequences are something you threaten away, not something you face. And then Bellatrix arrives, and the lessons get darker. Loyalty equals violence, even against your own blood.'
+
+ENFORCEMENT
+If a banned construction appears in the draft, the output is invalid. Rewrite using the recipe before completing the beat plan. The Anti-AI Writing Instructions document loaded under ANTI_AI_WRAPPER is the full authority. The patterns above are the most common failures, not the complete list.`,
 
   // NOTE: The BANNED CONSTRUCTIONS block inside this prompt must be kept
   // in sync with the Beat Plan step prompt when that step is added.
