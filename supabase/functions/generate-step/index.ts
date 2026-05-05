@@ -518,6 +518,15 @@ Bad: 'You are not watching a redemption arc. You are watching a collapse.'
 Good: 'What you are watching is a collapse, not a redemption arc.'
 Good: 'The collapse is the point. Redemption was never on the table.'
 
+This pattern is most common in closings and payoffs. The end of the script is where the banned contrast formula appears most reliably. Check the final four paragraphs specifically.
+Bad closing pattern:
+'That doesn't absolve him. It explains why.'
+'Don't call it guilt. Call it the end of the lie.'
+Better closing directions:
+- End with a consequence, an image, or what the viewer now sees differently.
+- The payoff does not need a flip. It needs the clearest version of the argument.
+- A short declarative sentence beats a contrast formula every time.
+
 Pattern 2: Essay transitions
 Banned: 'Furthermore', 'Moreover', 'Additionally', 'Therefore', 'Consequently', 'Nevertheless', 'This demonstrates that', 'This highlights', 'This suggests that', 'In conclusion', 'To sum up', 'Overall', 'Ultimately', 'All things considered'.
 Rewrite by: making the previous point feel incomplete, raising stakes, revealing a consequence, or shifting perspective. The transition should move through meaning, not announce the next topic.
