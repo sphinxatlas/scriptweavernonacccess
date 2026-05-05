@@ -1427,7 +1427,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { briefId, stepType, revisionFeedback, previousFullScript, finalVoicePass } = await req.json();
+    const { briefId, stepType, revisionFeedback, previousFullScript, finalVoicePass, hookDirection } = await req.json();
     if (!briefId || !stepType) throw new Error("briefId and stepType are required");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -2463,6 +2463,14 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
         parts.push(`### CREATIVE BRIEF\n${capPreviousOutput("creative_brief", cbEntry.content)}`);
       }
       parts.push(`### SCRIPT EVIDENCE PACK\n${capPreviousOutput("script_evidence_pack", packEntry.content)}`);
+      // Optional Hook Direction — only injected for full_script. No other step reads this.
+      const hd = typeof hookDirection === "string" ? hookDirection.trim() : "";
+      if (hd) {
+        parts.push(
+          `## Selected Hook / Opening Direction\n${hd}\n\n` +
+            `The user provided the following hook or opening direction. Use it as the opening direction for the Full Script. Preserve the strongest wording where it works, but adapt transitions naturally so the final script flows as one continuous spoken voiceover. Do not bolt this onto an unrelated script. The first section must grow out of this opening and lead smoothly into the Creative Brief and Script Evidence Pack argument. If the hook conflicts with canon evidence, source hierarchy, Anti AI rules, or the Script Evidence Pack, preserve the intent but correct the execution.`,
+        );
+      }
       previousContext = parts.join("\n\n");
     }
 

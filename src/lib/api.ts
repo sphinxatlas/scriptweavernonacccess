@@ -296,6 +296,39 @@ export async function savePipelineOutput(briefId: string, stepType: PipelineStep
 
 export type PolishPassType = "script_writing" | "anti_ai" | "melty_voice";
 
+// ── Hook Options (transient UI state — never persisted) ──
+export type HookOption = {
+  hook_label: string;
+  hook_text: string;
+  angle_route: string;
+  why_it_works: string;
+  open_loop: string;
+  risk_or_weakness: string;
+};
+
+export async function generateHookOptions(
+  briefId: string,
+  hookFeedback?: string,
+): Promise<{ hooks: HookOption[] }> {
+  const { data, error } = await supabase.functions.invoke("generate-hook-options", {
+    body: { briefId, hookFeedback: hookFeedback?.trim() || undefined },
+  });
+  if (error) {
+    // Surface server-provided error message when available.
+    const ctx: any = (error as any).context;
+    let msg: string | undefined;
+    try {
+      const body = await ctx?.json?.();
+      msg = body?.error;
+    } catch { /* ignore */ }
+    throw new Error(msg || error.message || "Failed to generate hook options");
+  }
+  if (!data?.hooks || !Array.isArray(data.hooks)) {
+    throw new Error("Hook options response was malformed");
+  }
+  return { hooks: data.hooks as HookOption[] };
+}
+
 export async function streamPolishPass(
   input: { passType: PolishPassType; scriptText: string; scope?: "full_script" | "passage"; userFeedback?: string },
   onDelta: (text: string) => void,
@@ -355,7 +388,7 @@ export async function streamGenerateStep(
   stepType: PipelineStepType,
   onDelta: (text: string) => void,
   onDone: () => void,
-  options?: { revisionFeedback?: string; previousFullScript?: string; finalVoicePass?: boolean },
+  options?: { revisionFeedback?: string; previousFullScript?: string; finalVoicePass?: boolean; hookDirection?: string },
 ) {
   const resp = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-step`,
@@ -371,6 +404,7 @@ export async function streamGenerateStep(
         revisionFeedback: options?.revisionFeedback,
         previousFullScript: options?.previousFullScript,
         finalVoicePass: options?.finalVoicePass,
+        hookDirection: options?.hookDirection,
       }),
     }
   );
