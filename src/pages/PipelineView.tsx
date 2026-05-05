@@ -6,6 +6,16 @@ import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { PipelineSidebar } from "@/components/pipeline/PipelineSidebar";
 import { ClipQuoteFinderPanel } from "@/components/pipeline/ClipQuoteFinderPanel";
 import {
@@ -13,6 +23,7 @@ import {
   getPipelineOutputs,
   savePipelineOutput,
   streamGenerateStep,
+  streamPolishPass,
   updateBriefCreativeBriefFields,
   type PipelineStepType,
 } from "@/lib/api";
@@ -25,6 +36,8 @@ import {
   Copy,
   Download,
   ThumbsUp,
+  Sparkles,
+  Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,6 +50,13 @@ export default function PipelineView() {
   const [streamContent, setStreamContent] = useState("");
   const [feedbackText, setFeedbackText] = useState("");
   const [approving, setApproving] = useState(false);
+  const [antiAiRunning, setAntiAiRunning] = useState(false);
+  const [antiAiStream, setAntiAiStream] = useState("");
+  const [confirmAntiAiOpen, setConfirmAntiAiOpen] = useState(false);
+  const [passageInput, setPassageInput] = useState("");
+  const [passageFeedback, setPassageFeedback] = useState("");
+  const [passageRunning, setPassageRunning] = useState(false);
+  const [passageOutput, setPassageOutput] = useState("");
   const contentRef = useRef<HTMLDivElement>(null);
 
   const { data: brief, refetch: refetchBrief } = useQuery({
@@ -152,6 +172,81 @@ export default function PipelineView() {
 
   const fullScriptContent =
     (outputs.find((o) => o.step_type === "full_script")?.content as string | undefined) || "";
+
+  const isFullScriptStep = activeStep === "full_script";
+
+  const runFullScriptAntiAi = async () => {
+    if (!briefId) return;
+    if (!fullScriptContent || fullScriptContent.trim().length < 50) {
+      toast.error("Generate a Full Script first.");
+      return;
+    }
+    setConfirmAntiAiOpen(false);
+    setAntiAiRunning(true);
+    setAntiAiStream("");
+    let acc = "";
+    try {
+      await streamPolishPass(
+        { passType: "anti_ai", scope: "full_script", scriptText: fullScriptContent },
+        (delta) => {
+          acc += delta;
+          setAntiAiStream(acc);
+        },
+        async () => {
+          if (!acc.trim()) {
+            setAntiAiRunning(false);
+            toast.error("Anti AI cleanup returned no content. Nothing was overwritten.");
+            return;
+          }
+          await savePipelineOutput(briefId, "full_script", acc);
+          await refetchOutputs();
+          setAntiAiRunning(false);
+          setAntiAiStream("");
+          toast.success("Full Script Anti AI cleanup saved.");
+        },
+      );
+    } catch (err: any) {
+      setAntiAiRunning(false);
+      toast.error(err.message || "Anti AI cleanup failed");
+    }
+  };
+
+  const runPassageRevision = async () => {
+    if (!passageInput.trim()) {
+      toast.error("Paste a passage to revise.");
+      return;
+    }
+    setPassageRunning(true);
+    setPassageOutput("");
+    let acc = "";
+    try {
+      await streamPolishPass(
+        {
+          passType: "anti_ai",
+          scope: "passage",
+          scriptText: passageInput,
+          userFeedback: passageFeedback,
+        },
+        (delta) => {
+          acc += delta;
+          setPassageOutput(acc);
+        },
+        () => {
+          setPassageRunning(false);
+          if (!acc.trim()) toast.error("No revised passage returned.");
+        },
+      );
+    } catch (err: any) {
+      setPassageRunning(false);
+      toast.error(err.message || "Passage revision failed");
+    }
+  };
+
+  const copyPassageOutput = () => {
+    if (!passageOutput) return;
+    navigator.clipboard.writeText(passageOutput);
+    toast.success("Revised passage copied");
+  };
 
   return (
     <Layout>
@@ -300,6 +395,127 @@ export default function PipelineView() {
                   </div>
                 )}
 
+                {isFullScriptStep && !generating && (
+                  <div className="mt-10 border-t border-border pt-6 max-w-3xl space-y-8">
+                    <div>
+                      <h3 className="font-mono text-sm font-bold text-foreground flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-primary" />
+                        Anti AI Cleanup
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Uses only the Anti AI Writing Instructions document. Does not use Creative
+                        Brief, Evidence Pack, Beat Plan, or any pipeline context.
+                      </p>
+                    </div>
+
+                    {/* Tool 1 — Full Script Anti AI Cleanup */}
+                    <div className="space-y-3 p-4 rounded-md border border-border bg-secondary/30">
+                      <div>
+                        <h4 className="text-sm font-semibold text-foreground">Full Script Anti AI Cleanup</h4>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Runs the entire saved Full Script through the Anti AI document. Overwrites the
+                          saved Full Script after you confirm and the run completes.
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => setConfirmAntiAiOpen(true)}
+                        disabled={antiAiRunning || !fullScriptContent}
+                        className="gap-1.5"
+                      >
+                        {antiAiRunning ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            Cleaning...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3.5 h-3.5" />
+                            Run Full Script Anti AI Cleanup
+                          </>
+                        )}
+                      </Button>
+                      {antiAiRunning && antiAiStream && (
+                        <div className="mt-2 max-h-64 overflow-auto rounded border border-border bg-background p-3 text-xs whitespace-pre-wrap text-foreground/80">
+                          {antiAiStream}
+                          <div className="flex items-center gap-2 mt-2 text-primary">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                            Streaming Anti AI cleanup... will save when complete.
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Tool 2 — Passage Revision */}
+                    <div className="space-y-3 p-4 rounded-md border border-border bg-secondary/30">
+                      <div>
+                        <h4 className="text-sm font-semibold text-foreground">Passage Revision</h4>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Paste a hook, transition, paragraph, or section. Optional feedback steers the
+                          revision. Output is shown only — never saved or written back to the script.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs">Pasted passage</Label>
+                        <Textarea
+                          value={passageInput}
+                          onChange={(e) => setPassageInput(e.target.value)}
+                          rows={6}
+                          placeholder="Paste the passage to revise..."
+                          className="bg-background border-border resize-none text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs">Feedback (optional)</Label>
+                        <Textarea
+                          value={passageFeedback}
+                          onChange={(e) => setPassageFeedback(e.target.value)}
+                          rows={3}
+                          placeholder='e.g. "this hook is not strong enough", "make this less academic", "remove the contrast formula"'
+                          className="bg-background border-border resize-none text-sm"
+                        />
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={runPassageRevision}
+                        disabled={passageRunning || !passageInput.trim()}
+                        className="gap-1.5"
+                      >
+                        {passageRunning ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            Revising...
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-3.5 h-3.5" />
+                            Revise Passage
+                          </>
+                        )}
+                      </Button>
+                      {passageOutput && (
+                        <div className="mt-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs">Revised passage</Label>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={copyPassageOutput}
+                              className="gap-1.5 text-xs h-7"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              Copy
+                            </Button>
+                          </div>
+                          <div className="rounded border border-border bg-background p-3 text-sm whitespace-pre-wrap text-foreground/85">
+                            {passageOutput}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
               </div>
             )}
           </div>
@@ -307,6 +523,23 @@ export default function PipelineView() {
           )}
         </div>
       </div>
+
+      <AlertDialog open={confirmAntiAiOpen} onOpenChange={setConfirmAntiAiOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Overwrite saved Full Script?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This runs the entire saved Full Script through the Anti AI Writing Instructions
+              document. When the stream finishes successfully, the revised version will replace the
+              saved Full Script. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={runFullScriptAntiAi}>Run & Overwrite</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }

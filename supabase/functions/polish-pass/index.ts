@@ -10,6 +10,7 @@ const corsHeaders = {
 const GUIDANCE_CHUNK_LIMIT = 100;
 
 type PassType = "script_writing" | "anti_ai" | "melty_voice";
+type PassScope = "full_script" | "passage";
 
 const SCRIPT_WRITING_SYSTEM = `You are running a SCRIPT WRITING POLISH PASS on an existing finished YouTube script.
 
@@ -57,13 +58,14 @@ Focus areas (use the Anti AI Writing Instructions to drive each):
 - More performable voiceover delivery
 
 HARD RULES:
-- Preserve the script's core topic, thesis, evidence, structure, claims, section order, and payoff.
-- Keep the script as close as possible to the existing version.
-- Only rewrite where the Anti AI Writing Instructions identify AI residue, awkward rhythm, generic phrasing, repeated sentence shapes, filler, or unnatural voiceover language.
-- Do NOT change the argument structure, reorder sections, add new evidence, change the thesis, or change source interpretation.
-- Do NOT rebuild hooks or rehooks unless the issue is mainly wording.
-- Do NOT add unsupported claims or invent evidence.
-- Preserve all editor tags (e.g. [BOOK: ...], [FILM: ...], [LEXICON: ...]).
+- Preserve facts, thesis, evidence, source meaning, claim strength (only weaken unsupported claims), section order, argument structure, and canon interpretation.
+- Do NOT add new evidence, invent quotes/details, add new canon claims, or add unsupported jokes.
+- Preserve humour that works; cut humour that feels inserted.
+- Reduce repeated "That's..." punchline structures.
+- Reduce repeated thesis restatements unless they escalate.
+- Improve transitions through meaning (not generic connective tissue), improve rehooks, improve specificity, improve spoken rhythm.
+- Remove empty superlatives and fake profundity.
+- Preserve all editor tags / EDITOR REFERENCES (e.g. [BOOK: ...], [FILM: ...], [LEXICON: ...]).
 
 BANNED CONTRAST STRUCTURES (strictly remove or completely reconstruct, never replace with another obvious contrast formula):
 - "It's not X, it's Y"
@@ -76,6 +78,43 @@ BANNED CONTRAST STRUCTURES (strictly remove or completely reconstruct, never rep
 Preserve the meaning of any banned construction, but change the construction completely. Do NOT swap one banned formula for another.
 
 Output the COMPLETE revised script only. No critique. No preamble. No change log.`;
+
+const ANTI_AI_PASSAGE_SYSTEM = `You are running an ANTI AI REVISION on a SHORT PASSAGE from a YouTube script (e.g. a hook, a transition, a paragraph, or a section).
+
+Your ONLY rewriting lens is the ANTI AI WRITING INSTRUCTIONS document provided below, plus any optional user feedback.
+
+You will receive:
+- A pasted passage (the only text to revise)
+- Optional user feedback (e.g. "this hook is not strong enough", "make this less academic", "remove the contrast formula", "make the transition sharper", "make this more spoken")
+
+Apply the Anti AI Writing Instructions to remove:
+- Mechanical contrast formulas
+- "not X, but Y" constructions
+- "That is not X. That is Y." constructions
+- "the problem is not X, the problem is Y" constructions
+- Repeated "That's..." punchline structures
+- Generic AI transitions
+- Filler frames
+- Empty superlatives and fake profundity
+
+Improve:
+- Spoken rhythm
+- Specificity
+- Transitions through meaning
+- Rehooks
+- Naturalness for voiceover
+
+HARD PRESERVATION RULES:
+- Do NOT change facts, thesis, evidence, source meaning, claim route, canon interpretation.
+- Do NOT add new evidence, new canon claims, invented quotes, or unsupported jokes.
+- Preserve humour that works; cut humour that feels inserted.
+- Preserve EDITOR REFERENCES / editor tags if present.
+- If banned contrast formulas appear, rewrite into a completely different sentence structure — never swap one banned formula for another.
+- If user feedback is empty, run a general Anti AI cleanup on the passage.
+
+OUTPUT RULES (STRICT):
+- Return ONLY the revised passage text.
+- No commentary, no notes, no diagnosis, no labels, no markdown headings, no explanation, no preamble, no change log, no quotation wrappers.`;
 
 const MELTY_VOICE_SYSTEM = `MELTY VOICE POLISH
 
@@ -144,9 +183,15 @@ serve(async (req) => {
       body.passType === "melty_voice" ? "melty_voice" :
       "script_writing";
     const scriptText: string = (body.scriptText || "").toString();
+    const scope: PassScope = body.scope === "passage" ? "passage" : "full_script";
+    const userFeedback: string = (body.userFeedback || "").toString().trim();
 
-    if (!scriptText || scriptText.trim().length < 50) {
-      return new Response(JSON.stringify({ error: "Script text is too short. Generate or paste a full script first." }), {
+    const minLen = scope === "passage" ? 10 : 50;
+    if (!scriptText || scriptText.trim().length < minLen) {
+      const minMsg = scope === "passage"
+        ? "Passage is too short. Paste at least a sentence or two."
+        : "Script text is too short. Generate or paste a full script first.";
+      return new Response(JSON.stringify({ error: minMsg }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -191,15 +236,21 @@ serve(async (req) => {
     }));
 
     const baseSystem =
-      passType === "anti_ai" ? ANTI_AI_SYSTEM :
-      passType === "melty_voice" ? MELTY_VOICE_SYSTEM :
-      SCRIPT_WRITING_SYSTEM;
+      passType === "anti_ai"
+        ? (scope === "passage" ? ANTI_AI_PASSAGE_SYSTEM : ANTI_AI_SYSTEM)
+        : passType === "melty_voice" ? MELTY_VOICE_SYSTEM
+        : SCRIPT_WRITING_SYSTEM;
     const systemPrompt =
       baseSystem +
       `\n\n## ${docLabel.toUpperCase()} (BINDING — primary lens for this pass)\n\n${guidance.text}` +
       (guidance.truncated ? `\n\n[Note: ${docLabel} document was truncated to the first ${GUIDANCE_CHUNK_LIMIT} chunks.]` : "");
 
-    const userPrompt = `Run a ${docLabel} polish pass on the following script.
+    const userPrompt = (passType === "anti_ai" && scope === "passage")
+      ? `Run an Anti AI revision on the following passage. Return ONLY the revised passage text — no commentary, labels, or explanations.
+
+${userFeedback ? `## USER FEEDBACK\n${userFeedback}\n\n` : ""}## PASSAGE
+${scriptText}`
+      : `Run a ${docLabel} polish pass on the following script.
 
 Return the COMPLETE revised script only. Do not include any commentary, summary, or change log. Preserve everything that already works; only rewrite what the ${docLabel} require.
 
