@@ -352,25 +352,12 @@ Rules:
 - If an angle was inspired by a commentary transcript, it must be confirmed against books or movie transcripts before inclusion`,
 
   analysis_memo: `You are a script analysis expert for Harry Potter YouTube content.
-Given the topic brief, evidence table, and source material, write an ANALYSIS MEMO.
+
+This is a brief strategy note only. Maximum 200 words. Do not exceed this limit. Summarize the single most important strategic insight from the research for the video argument. One paragraph only.
 
 ${SOURCE_HIERARCHY_INSTRUCTION}
 
-The memo should:
-- Synthesize the evidence into key themes and arguments
-- Identify patterns, contradictions, and interesting angles
-- Suggest the strongest narrative thread for a YouTube script
-- Note any gaps in evidence that need addressing
-- Clearly distinguish between claims grounded in primary sources vs secondary Lexicon support
-- For each major claim, note the evidence type (exact quote, paraphrase, summary, interpretation)
-- Flag any claims that rely solely on Lexicon as "needs primary confirmation"
-- Be 800-1500 words
-
-QUOTE RESTRICTION (CRITICAL):
-- You may DISCUSS and REFERENCE quotes conceptually (e.g. "Dumbledore's line about choices captures...")
-- You must NOT paste long excerpts or multi-sentence quotes into the memo
-- Keep the memo analytical and argument-focused, not excerpt-heavy
-- If you reference a specific quote, keep it under 12 words or paraphrase it`,
+QUOTE RESTRICTION: do not paste excerpts. Reference conceptually only.`,
 
   // NOTE: The Beat Plan step uses the internal key 'outline' to avoid schema
   // changes. User-facing label is "Beat Plan" (see src/lib/api.ts).
