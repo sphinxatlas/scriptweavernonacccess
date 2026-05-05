@@ -493,9 +493,6 @@ The following must NEVER appear in the spoken script body:
 
 Any of the above appearing in the spoken body invalidates the output.
 
-// NOTE: The same BANNED CONSTRUCTIONS block must be added to the Beat
-// Plan step prompt when that step is created in a later prompt. Keep
-// these two in sync.
 BANNED CONSTRUCTIONS with required rewrites
 
 Each banned pattern below must be rewritten using the recipe shown. Do not substitute one banned pattern for another. Do not produce a sentence that matches any banned pattern.
