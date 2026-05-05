@@ -88,6 +88,10 @@ Improve only these things:
 - Emotional register: match the host persona document's described register for each type of moment
 - Recognizable persona lines: add 1 to 2 more Meltyisms if natural openings exist, keeping the total across the script at 2 to 4 maximum
 
+FINAL ANTI-AI SELF-AUDIT BEFORE OUTPUT
+
+Before returning the polished version, silently audit the script for contrast flip formulas (e.g. "That's not X. That's Y.", "It is not X. It is Y.", "Don't call it X. Call it Y.") and three-part symmetry stacks (any run of three or more consecutive sentences with the same structure). Rewrite them only when doing so does not change the argument, facts, or evidence.
+
 WRITING CONSTITUTION FOR THIS PASS
 
 The Host Persona document loaded below is the only governing document for this pass. Read it in full before making any changes.
