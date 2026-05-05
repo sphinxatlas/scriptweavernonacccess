@@ -1901,41 +1901,6 @@ Generate the Creative Brief now.`;
     };
     console.log("RETRIEVAL DEBUG:", JSON.stringify(debugInfo, null, 2));
 
-    // Get instruction & strategy file chunks (for writing behavior ONLY, never evidence)
-    // Pulls both "instructions" and legacy "script_strategy" file types
-    const { data: instructionFiles } = await supabase
-      .from("source_files")
-      .select("id")
-      .in("file_type", ["instructions", "script_strategy"]);
-
-    let instructionChunks: any[] = [];
-    if (instructionFiles && instructionFiles.length > 0) {
-      const { data } = await supabase
-        .from("file_chunks")
-        .select("content")
-        .in("file_id", instructionFiles.map(f => f.id))
-        .order("chunk_index")
-        .limit(20);
-      instructionChunks = data || [];
-    }
-
-    // Get Anti AI Language Guide chunks (writing guidance — injected into outline + full_script)
-    const { data: antiAiFiles } = await supabase
-      .from("source_files")
-      .select("id")
-      .eq("file_type", "anti_ai_guide");
-
-    let antiAiChunks: any[] = [];
-    if (antiAiFiles && antiAiFiles.length > 0) {
-      const { data } = await supabase
-        .from("file_chunks")
-        .select("content")
-        .in("file_id", antiAiFiles.map(f => f.id))
-        .order("chunk_index")
-        .limit(20);
-      antiAiChunks = data || [];
-    }
-
     // Get previous pipeline outputs for this brief
     const stepIndex = STEP_ORDER.indexOf(stepType);
     const previousSteps = STEP_ORDER.slice(0, stepIndex);
