@@ -1804,7 +1804,6 @@ serve(async (req) => {
       if (cbMasterGuide) {
         systemPrompt += `\n\n${MASTER_GUIDE_HIGHEST_PRIORITY_HEADER}${cbMasterGuide}`;
       }
-      systemPrompt += PRECEDENCE_LADDER;
       systemPrompt += layeredGuidanceBlock;
 
       const userMessage = `## Video Title
@@ -1903,7 +1902,6 @@ Generate the Creative Brief now.`;
       if (masterGuideText) {
         fpSystem += `\n\n${MASTER_GUIDE_HIGHEST_PRIORITY_HEADER}${masterGuideText}`;
       }
-      fpSystem += PRECEDENCE_LADDER;
       if (antiAiTextFP) {
         fpSystem += `\n\nANTI AI LANGUAGE GUIDE (MANDATORY — apply these rules strictly):\n${antiAiTextFP}`;
       }
@@ -2376,7 +2374,6 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     if (isScriptStep && instructionContext) {
       // Master Guide injected as the highest-priority writing constitution.
       systemPrompt += `\n\n${MASTER_GUIDE_HIGHEST_PRIORITY_HEADER}${instructionContext}`;
-      systemPrompt += PRECEDENCE_LADDER;
     }
 
     // Inject Anti AI Language Guide enforcement into system prompt for script steps
@@ -2551,7 +2548,6 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
       if (instructionContext) {
         systemPromptFinal += `\n\n${MASTER_GUIDE_FRAMING_HEADER}${instructionContext}`;
       }
-      systemPromptFinal += PRECEDENCE_LADDER;
 
       userMessage = `## Topic Brief
 Title: ${brief.title}
@@ -2586,7 +2582,6 @@ Now produce the Selected Source Analysis in the exact format specified. Be hones
       if (instructionContext) {
         systemPromptFinal += `\n\n${MASTER_GUIDE_FRAMING_HEADER}${instructionContext}`;
       }
-      systemPromptFinal += PRECEDENCE_LADDER;
 
       userMessage = `## Creative Brief
 ${creativeBriefContent || `Title: ${brief.title}\nAngle: ${brief.angle_note || brief.description || ""}`}
@@ -2609,7 +2604,6 @@ Mine all six categories now. Rank everything by surprise value, specificity, and
       // didn't receive it yet.)
       if (!isScriptStep && instructionContext) {
         systemPromptFinal += `\n\n${MASTER_GUIDE_FRAMING_HEADER}${instructionContext}`;
-        systemPromptFinal += PRECEDENCE_LADDER;
       }
 
       userMessage = `## Topic Brief
