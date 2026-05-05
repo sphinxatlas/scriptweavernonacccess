@@ -87,15 +87,6 @@ This is a Book vs Movie Comparison analysis. You MUST:
 // These wrap guidance documents (Host Persona, Script Instructions, Anti AI Guide)
 // and re-frame commentary + topic transcripts as theory/angle inputs rather than canon.
 
-const HOST_PERSONA_BINDING_INSTRUCTION = `
-HOST PERSONA — BINDING VOICE INSTRUCTION:
-Use this as the first person voice, worldview, emotional lens, and delivery style of the host.
-Do not cite it. Do not summarize it. Do not turn the persona into a character bio.
-Do not mention the host by name unless the persona document explicitly requires it.
-The script should feel written and spoken by this host, not by a generic narrator.
-Make the persona felt through worldview, rhythm, emotional reactions, phrasing, humor, skepticism, curiosity, and fan energy — not through introductions like "Hi, I'm ___".
-`;
-
 const SCRIPT_INSTRUCTIONS_BINDING_INSTRUCTION = `
 SCRIPT INSTRUCTIONS — BINDING WRITING CONSTRAINTS:
 This document is not evidence, but it is mandatory for structure, pacing, formatting, and final script execution.
@@ -668,9 +659,6 @@ STEP_PROMPTS["creative_brief"] = `You are a creative director for a Harry Potter
 
 Your job: take the video title, angle note, format reference transcript(s), and any brief-specific HP topic transcripts provided, and generate a structured Creative Brief that will guide every subsequent step of the script pipeline.
 
-HOST PERSONA (write the brief with this voice and worldview in mind):
-{{HOST_PERSONA}}
-
 ${VIDEO_RETENTION_STRUCTURE_INSTRUCTION}
 
 FORMAT REFERENCE RULES:
@@ -745,9 +733,6 @@ IMPORTANT SOURCE RULES:
 - HP topic transcripts and knowledge base sources can point you toward what to investigate but every claim must be confirmed in primary canon
 - Do NOT invent or fabricate evidence
 - If canon material does not support a claim, say so explicitly
-
-HOST PERSONA:
-{{HOST_PERSONA}}
 
 Produce output in this EXACT format:
 
@@ -1237,10 +1222,12 @@ serve(async (req) => {
 
     const PERSONA_WRAPPER = (text: string, intensity: Intensity) =>
       intensity === "none" || !text ? "" :
-      `\n\n## HOST PERSONA: MELTY (${intensity.toUpperCase()} BINDING — voice layer only)\n` +
-      `Governs voice, humour, fandom-native reactions, personality, and commentary flavour.\n` +
-      `Does NOT control structure, facts, evidence, canon meaning, or claim strength.\n` +
-      `Apply invisibly. Do not name the host unless the persona requires it.\n\n${text}`;
+      `\n\n## PERSONA_WRAPPER (operating voice, mandatory)\n` +
+      `The host persona below is the voice speaking the entire script. Every sentence must sound like this person. Their reactions, rhythm, judgment, humor, and emotional register are the medium of the script, not decoration. The viewer should know who is talking by the second sentence without being told.\n\n` +
+      `The persona does not introduce themselves unless the script genuinely needs it. They do not say 'hey guys' or 'what is up'. Their presence is felt through word choice, sentence rhythm, what they react to, when they get blunt, when they get quiet.\n\n` +
+      `Use 2 to 4 recognizable persona-specific lines per script maximum. Do not overload. Do not invent new catchphrases. Pull from the persona document only.\n\n` +
+      `The persona does not override canon. If canon and the persona's instinct disagree, canon wins and the persona narrates the disagreement.\n\n` +
+      `PERSONA DOCUMENT FOLLOWS:\n\n${text}`;
 
     function buildGuidanceBlock(stepType: string, layers: GuidanceLayers): string {
       const cfg = STEP_GUIDANCE[stepType] || { script: "none", antiAi: "none", persona: "none" };
@@ -1591,8 +1578,7 @@ serve(async (req) => {
       // from the very first step, not be applied retroactively at Outline time.
       const cbMasterGuide = await loadMasterGuideContext();
 
-      let systemPrompt = STEP_PROMPTS["creative_brief"]
-        .replace("{{HOST_PERSONA}}", hostPersonaContext || "No host persona uploaded.");
+      let systemPrompt = STEP_PROMPTS["creative_brief"];
 
       if (cbMasterGuide) {
         systemPrompt += `\n\n${MASTER_GUIDE_HIGHEST_PRIORITY_HEADER}${cbMasterGuide}`;
@@ -1690,7 +1676,6 @@ Generate the Creative Brief now.`;
       }
 
       let fpSystem = STEP_PROMPTS["full_script"]
-        .replace("{{HOST_PERSONA}}", hostPersonaContext || "No host persona uploaded.")
         .replace("{{FULL_SCRIPT_LENGTH_INSTRUCTION}}",
           `Preserve the original word count of the script you are polishing within ±10%.`);
 
@@ -2128,15 +2113,6 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
     let systemPrompt = STEP_PROMPTS[stepType] || "You are a helpful writing assistant.";
 
-    // Inject Host Persona into outline and full_script prompts (creative_brief and
-    // six_category_extraction inject it themselves on their own branches).
-    if (stepType === "outline" || stepType === "full_script") {
-      systemPrompt = systemPrompt.replace(
-        "{{HOST_PERSONA}}",
-        hostPersonaContext || "No host persona uploaded.",
-      );
-    }
-
     // Inject dynamic target length instructions for outline and full_script
     const targetMin = brief.target_min_words ?? 1400;
     const targetMax = brief.target_max_words ?? 1600;
@@ -2363,8 +2339,7 @@ Now produce the Selected Source Analysis in the exact format specified. Be hones
         .maybeSingle();
       const creativeBriefContent = creativeBriefOutput?.content || "";
 
-      systemPromptFinal = STEP_PROMPTS["six_category_extraction"]
-        .replace("{{HOST_PERSONA}}", hostPersonaContext || "No host persona uploaded.");
+      systemPromptFinal = STEP_PROMPTS["six_category_extraction"];
       if (instructionContext) {
         systemPromptFinal += `\n\n${MASTER_GUIDE_FRAMING_HEADER}${instructionContext}`;
       }
