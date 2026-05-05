@@ -1346,7 +1346,7 @@ serve(async (req) => {
     // or factual claims. Returns text + provenance metadata so we can log
     // chunks read vs total and surface truncation warnings.
     // ────────────────────────────────────────────────────────────────────────
-    const GUIDANCE_CHUNK_LIMIT = 40;
+    const GUIDANCE_CHUNK_LIMIT = 100;
 
     type LayerMeta = {
       text: string;
@@ -1488,10 +1488,20 @@ serve(async (req) => {
       if (layers.scriptInstructions.truncated) trunc.push("script_instructions");
       if (layers.antiAiInstructions.truncated) trunc.push("anti_ai");
       if (layers.hostPersona.truncated)        trunc.push("host_persona");
+      const docNames: Record<string, string> = {
+        script_instructions: "Script Writing Instructions",
+        anti_ai: "Anti-AI Writing Instructions",
+        host_persona: "Host Persona",
+      };
+      const totals: Record<string, number> = {
+        script_instructions: layers.scriptInstructions.totalChunks,
+        anti_ai: layers.antiAiInstructions.totalChunks,
+        host_persona: layers.hostPersona.totalChunks,
+      };
       for (const t of trunc) {
         const w = `guidance_truncated:${t}`;
         warnings.push(w);
-        console.warn(`[guidance] TRUNCATED ${t} for step=${stepType} (chunk limit ${GUIDANCE_CHUNK_LIMIT})`);
+        console.warn(`WARNING: Guidance document '${docNames[t] || t}' truncated at ${GUIDANCE_CHUNK_LIMIT} chunks. Full document has ${totals[t] ?? "?"} chunks. Raise GUIDANCE_CHUNK_LIMIT to avoid partial guidance.`);
       }
       console.log("[guidance]", JSON.stringify({
         stepType,
