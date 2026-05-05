@@ -428,7 +428,8 @@ ARGUMENT REQUIREMENTS
 EVIDENCE REQUIREMENTS
 - Each beat must name the specific canon anchor (book chapter, film scene). No vague references.
 - Evidence is paraphrased into the beat prose. No raw quotes in the beat plan. Quotes are reserved for the Full Script.
-- Secondary sources (other YouTube commentary, fan wikis) are not evidence. Book and film canon only.
+- Secondary sources (other YouTube commentary, fan wikis, Reddit, Quora, blog posts) are not canon evidence. Factual/canon anchors must come from book and film canon only — never from secondary sources.
+- SSA-derived audience signals (Audience Objections, Recurring Fan Signals, Expected Surface Answers, Underdeveloped Opportunities) are required inputs for shaping rehooks, escalation rungs, and at least one pre-emption beat where relevant. Use them to design the argument's audience-facing moves, not to supply canon proof.
 
 // BANNED CONSTRUCTIONS — keep in sync with full_script BANNED
 // CONSTRUCTIONS block. If one is updated, update both.
@@ -536,6 +537,8 @@ INPUTS YOU HAVE ACCESS TO
 - The Six Category Extraction (the canon mining)
 - The Creative Brief (the argument framing and angle)
 
+Evidence Table supplies canon proof; Selected Source Analysis supplies audience-side material such as objections, recurring fan signals, expected surface answers, emotional language, and underdeveloped opportunities. Both must be consulted for different purposes — Evidence Table for what is true in canon, Selected Source Analysis for what the audience already thinks, expects, or argues about.
+
 FORMAT
 
 For each beat in the Beat Plan, write one paragraph in plain prose. Number each paragraph to match the beat number. The paragraph must cover:
@@ -549,7 +552,7 @@ For each beat in the Beat Plan, write one paragraph in plain prose. Number each 
 
 Write items 5, 6, and 7 as natural writer-facing sentences inside the same paragraph. Do not turn the beat into a table. Do not add markdown headings or labels like "Function:" inside the paragraph — embed the information in prose the writer can read in one pass.
 
-When a beat responds to a Selected Source Analysis Audience Objection, Recurring Fan Signal, or Underdeveloped Opportunity, surface that in plain prose inside the existing Function, Hook/payoff relation, or Anti-repetition note sentences. Do not add a new format field. Do not treat secondary-source claims as canon proof.
+Wherever a beat is relevant to a Selected Source Analysis Audience Objection, Recurring Fan Signal, Expected Surface Answer, or Underdeveloped Opportunity, you MUST surface that connection in plain prose inside the existing Function, Hook/payoff relation, or Anti-repetition note sentences. This is mandatory, not optional, for every beat where such a signal applies. Do not add a new format field. Do not create a table. Do not treat secondary-source claims as canon proof.
 
 Do not write beat functions, hook payoff relation, or anti repetition notes using mechanical contrast formulas such as "not X, but Y," "the problem is not X, the problem is Y," or "this is not X, this is Y." These upstream phrases leak into Full Script. Use concrete function language instead, such as "This beat proves," "This beat reveals," "This beat escalates," "This beat makes the audience question," or "This beat pays off."
 
@@ -579,7 +582,8 @@ EVIDENCE DISCIPLINE
 - Paraphrase by default. Quotes only when exact wording matters.
 - If a beat needs more than one piece of evidence, include the strongest one and note the second briefly in prose.
 - Do not include evidence that does not advance the beat's argument move. If it does not serve the beat, cut it.
-- Secondary sources (commentary, fan wikis, other YouTubers) are not evidence and must not appear.
+- Secondary sources (commentary, fan wikis, other YouTubers, Reddit, Quora, blog posts) cannot supply Harry Potter facts, canon proof, quotes, or evidence. Never cite them as proof and never paste their content.
+- Audience-side signals synthesized through the Selected Source Analysis (objections, recurring fan signals, expected surface answers, emotional language, underdeveloped opportunities) are allowed and required where relevant. Use them only as framing, objection handling, or angle context in plain prose — never as factual proof for a canon claim.
 
 // BANNED CONSTRUCTIONS — keep in sync with full_script and beat_plan (outline)
 // versions. If one is updated, update all three.
