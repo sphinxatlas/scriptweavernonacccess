@@ -423,6 +423,7 @@ ARGUMENT REQUIREMENTS
 - The final beat must reframe the opening tension and give the viewer a new lens on the Contention stated at the top.
 - The hook beat (Beat 1) must confirm the title promise and open a curiosity loop without giving away the full answer.
 - Every beat must change the viewer's understanding. A beat that only adds information without shifting understanding is weak and must be strengthened or cut.
+- When Selected Source Analysis appears in previous context, use its Audience Objections, Recurring Fan Signals, and Underdeveloped Opportunities to shape rehooks, escalation rungs, and at least one beat that pre-empts a likely fan objection. Do not treat secondary-source claims as canon proof.
 
 EVIDENCE REQUIREMENTS
 - Each beat must name the specific canon anchor (book chapter, film scene). No vague references.
