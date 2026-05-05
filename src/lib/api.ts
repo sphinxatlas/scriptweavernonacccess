@@ -50,8 +50,8 @@ export const PIPELINE_STEPS: {
   },
   {
     type: "outline",
-    label: "Outline",
-    description: "Full script outline with section structure, word budgets, and editor tags.",
+    label: "Beat Plan",
+    description: "Internal beat plan: numbered prose beats for argument review before the Full Script.",
     visible: true,
   },
   {
