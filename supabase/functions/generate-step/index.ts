@@ -493,6 +493,73 @@ The following must NEVER appear in the spoken script body:
 
 Any of the above appearing in the spoken body invalidates the output.
 
+// NOTE: The same BANNED CONSTRUCTIONS block must be added to the Beat
+// Plan step prompt when that step is created in a later prompt. Keep
+// these two in sync.
+BANNED CONSTRUCTIONS with required rewrites
+
+Each banned pattern below must be rewritten using the recipe shown. Do not substitute one banned pattern for another. Do not produce a sentence that matches any banned pattern.
+
+Pattern 1: 'It is not X, it is Y' and all variants
+Banned variants include:
+- 'It is not just X, it is Y'
+- 'That is not X, that is Y'
+- 'This is not X, this is Y'
+- 'The problem is not X, the problem is Y'
+- 'The real issue is not X, it is Y'
+- 'Not because X, but because Y'
+- 'X is not the issue. Y is the issue.'
+- 'You are not watching X. You are watching Y.'
+- 'He didn't X. He Y.' (when used as a contrast flip)
+Rewrite by: starting with the subject doing something, or starting with the consequence. Use cause-and-effect, a concrete image, or an active verb.
+Bad: 'That detail is not small, it is the entire argument.'
+Good: 'That detail carries the entire argument.'
+Good: 'Once that detail lands, the argument is finished.'
+Bad: 'You are not watching a redemption arc. You are watching a collapse.'
+Good: 'What you are watching is a collapse, not a redemption arc.'
+Good: 'The collapse is the point. Redemption was never on the table.'
+
+Pattern 2: Essay transitions
+Banned: 'Furthermore', 'Moreover', 'Additionally', 'Therefore', 'Consequently', 'Nevertheless', 'This demonstrates that', 'This highlights', 'This suggests that', 'In conclusion', 'To sum up', 'Overall', 'Ultimately', 'All things considered'.
+Rewrite by: making the previous point feel incomplete, raising stakes, revealing a consequence, or shifting perspective. The transition should move through meaning, not announce the next topic.
+Bad: 'Furthermore, the book treats this differently.'
+Good: 'The book is doing something else entirely here.'
+
+Pattern 3: Filler frames
+Banned: 'It is important to understand that', 'It is worth noting that', 'One thing to keep in mind', 'This raises an interesting question', 'When you really think about it', 'At the end of the day', 'The reality is', 'What this means is', 'The key takeaway is'.
+Rewrite by: deleting the frame and starting with the point.
+Bad: 'It is worth noting that Dumbledore knew the whole time.'
+Good: 'Dumbledore knew the whole time.'
+
+Pattern 4: Empty superlatives
+Banned: 'powerful', 'iconic', 'legendary', 'unforgettable', 'remarkable', 'fascinating', 'compelling', 'impactful', 'groundbreaking', 'revolutionary', 'game changing', 'transformative', 'a testament to', 'serves as a reminder'.
+These words are only allowed when the sentence makes them specific by showing what changes. Default rewrite: show what the thing changes, do not assert it matters.
+Bad: 'This is a powerful moment.'
+Good: 'This is the moment Harry stops trusting Dumbledore.'
+Bad: 'A testament to Rowling's writing.'
+Good: 'Rowling builds the trap across three chapters and never names it.'
+
+Pattern 5: Generic openings and curiosity bait
+Banned: 'Have you ever wondered', 'If you have ever wondered', 'What if I told you', 'Most people do not realize', 'The truth is more complex than you think', 'Today we are going to', 'In this video', 'In this episode', 'Let us dive into', 'Let me explain'.
+Rewrite by: opening with pressure, contradiction, consequence, or a specific tension. Confirm the title promise immediately by showing the viewer the actual moment that proves it.
+
+Pattern 6: Fake profundity
+Banned: 'a testament to', 'serves as a reminder', 'speaks volumes about', 'at its core', 'on a deeper level', 'reveals a deeper truth about', 'the beauty of this is', 'what makes this so powerful'.
+Rewrite by: stating what is actually true and letting it land. Do not announce that something is profound. Show the consequence.
+
+Pattern 7: Symmetric pattern stacks
+A symmetric pattern stack is three or more sentences in a row that share the same opening structure (for example: 'Lucius teaches X. Narcissa teaches Y. Bellatrix teaches Z.').
+Stacks of 2 are allowed and often useful for rhythm. Stacks of 3 or more read as AI generated and must be broken up. Rewrite by varying sentence structure: turn one of the entries into a different shape, fold two into one sentence, or break the rhythm with a short reaction line.
+Bad:
+'Lucius teaches Draco that worth equals dominance.
+Narcissa teaches Draco that consequences can be threatened away.
+Bellatrix teaches Draco that loyalty means violence.'
+Good:
+'Lucius teaches Draco that worth equals dominance. Narcissa adds the next lesson: consequences are something you threaten away, not something you face. And then Bellatrix arrives, and the lessons get darker. Loyalty equals violence, even against your own blood.'
+
+ENFORCEMENT
+If a banned construction appears in the draft, the output is invalid. Rewrite using the recipe before completing the script. The Anti-AI Writing Instructions document loaded under ANTI_AI_WRAPPER is the full authority. The patterns above are the most common failures, not the complete list.
+
 ${SOURCE_HIERARCHY_INSTRUCTION}
 
 ${TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION}
