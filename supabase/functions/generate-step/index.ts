@@ -1200,7 +1200,7 @@ serve(async (req) => {
       selected_source_analysis:    { script: "medium",  antiAi: "light",   persona: "light"   },
       evidence_table:              { script: "medium",  antiAi: "light",   persona: "light"   },
       analysis_memo:               { script: "strong",  antiAi: "medium",  persona: "medium"  },
-      outline:                     { script: "highest", antiAi: "medium",  persona: "medium"  },
+      outline:                     { script: "highest", antiAi: "strong",  persona: "strong"  },
       full_script:                 { script: "highest", antiAi: "highest", persona: "highest" },
       full_script_revision:        { script: "highest", antiAi: "highest", persona: "highest" },
       final_voice_pass:            { script: "medium",  antiAi: "highest", persona: "highest" },
