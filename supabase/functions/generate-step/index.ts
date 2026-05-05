@@ -185,66 +185,6 @@ I. SOURCE INTEGRATION RULE
 `;
 
 const STEP_PROMPTS: Record<string, string> = {
-  retrieval: `You are a retrieval layer for a source-grounded Harry Potter research engine.
-Use ONLY the uploaded and indexed source files provided below.
-Use the provided retrieval query pack (compact derived queries), not full brief prose, as search intent.
-Search across the full uploaded primary corpus by default: all books, all movie transcripts.
-Use Lexicon only as secondary support.
-Do NOT use general Harry Potter knowledge.
-Do NOT invent examples.
-Do NOT fabricate retrieval output.
-If no indexed matches are found, return a failure report instead of placeholder evidence.
-
-${SOURCE_HIERARCHY_INSTRUCTION}
-
-If source material IS provided below, format the report as:
-## Retrieval Summary
-- Total sources found
-- Breakdown by type (Books, Transcripts, Lexicon)
-- Both books AND movie transcripts are ALWAYS searched for every brief
-
-## Book Evidence (PRIMARY)
-For each relevant passage:
-- **Source**: [filename]
-- **Evidence Type**: exact quote / paraphrase / summary
-- **Content**: [the passage]
-- **Relevance**: [why this matters to the topic]
-
-## Movie Evidence (PRIMARY)
-[Same format — movie transcripts are always searched, not just in comparison mode]
-
-## Possible Contrast Pairs
-Where book and movie evidence address similar scenes or themes, present them as contrast pairs:
-- **Book**: [source + content]
-- **Movie**: [source + content]
-- **Contrast Note**: [what differs]
-
-## Lexicon Support (SECONDARY)
-[Same format, clearly marked as secondary]
-
-## Commentary Angles (Secondary — Needs Canon Confirmation)
-For each relevant commentary passage:
-- **Source**: [filename]
-- **Content**: [the passage]
-- **Potential Angle**: [what angle or framing this suggests]
-- **Canon Confirmation Needed**: [what must be verified against books/movie transcripts]
-Note: These are from YouTube commentary transcripts. They may inspire angles but are NOT canon evidence. All factual claims must be confirmed against Tier 1 sources.
-
-## Retrieval Gaps
-- What evidence is missing?
-- What should be searched for manually?
-- Which claims lack primary source support?
-
-If NO source material is provided below, return ONLY:
-## Retrieval Failure Report
-- **Status**: No indexed matches found for the derived query pack
-- **Source types searched**: [list]
-- **Filters applied**: [list]
-- **Primary query**: [primary compact query]
-- **Compact queries used**: [list]
-- **Likely reason**: [assessment of why no matches were found]
-Do NOT generate placeholder evidence. Do NOT proceed based on general knowledge.`,
-
   evidence_table: `You are a research assistant curating the strongest evidence for a YouTube script about Harry Potter.
 Given the topic brief, retrieval results, and source material excerpts, create a CURATED EVIDENCE TABLE.
 
