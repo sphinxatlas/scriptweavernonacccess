@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { PipelineSidebar } from "@/components/pipeline/PipelineSidebar";
 import { ClipQuoteFinderPanel } from "@/components/pipeline/ClipQuoteFinderPanel";
 import {
