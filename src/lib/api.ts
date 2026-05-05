@@ -217,11 +217,6 @@ export async function duplicateTopicBrief(briefId: string) {
     target_min_words: original.target_min_words,
     target_max_words: original.target_max_words,
     comparison_mode: original.comparison_mode,
-    competitor_script_1: original.competitor_script_1,
-    competitor_script_2: original.competitor_script_2,
-    competitor_script_3: original.competitor_script_3,
-    competitor_script_4: original.competitor_script_4,
-    competitor_script_5: original.competitor_script_5,
     // Explicitly do NOT copy: thesis, focus_areas, characters, proof_goal,
     // priority_sources, emotional_angle, tone, creative_brief_feedback,
     // creative_brief_approved (these are pipeline-generated or review state).
