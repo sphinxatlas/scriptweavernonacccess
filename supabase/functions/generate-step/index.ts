@@ -1049,12 +1049,9 @@ const STEP_ORDER = [
   "six_category_extraction",
   "selected_source_analysis",
   "evidence_table",
-  "analysis_memo",
   "outline",
   "script_evidence_pack",
   "full_script",
-  "verification",
-  "retrieval",
 ];
 
 type SearchSourceType = "book" | "transcript" | "lexicon" | "competitor_analysis";
