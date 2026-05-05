@@ -2444,7 +2444,6 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
     // the system prompt for script steps. Commentary transcripts remain here
     // because they are dynamic interpretive context, not stable guidance.
     const guidanceSections: string[] = [];
-    if (competitorContext) guidanceSections.push(`## Commentary Transcripts (INTERPRETIVE & THEORY INPUT — not canon evidence)\nUse for angles, framings, and argument patterns. Factual canon claims must be confirmed against Tier 1 books or movie transcripts. Theories and interpretive angles do NOT require direct canon confirmation, but they must be plausible, logically coherent, and not obviously contradicted by canon. Never present commentary material as proven canon. Never reuse commentary wording, structure, or phrasing.\n${competitorContext}`);
     const guidanceBlock = guidanceSections.length > 0 ? guidanceSections.join("\n\n") + "\n\n" : "";
 
     let systemPromptFinal = systemPrompt;
