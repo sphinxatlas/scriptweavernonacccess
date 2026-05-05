@@ -6,10 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import SourceLibrary from "./pages/SourceLibrary";
 import TopicBriefs from "./pages/TopicBriefs";
 import PipelineView from "./pages/PipelineView";
-import ScriptImprover from "./pages/ScriptImprover";
 import TranscriptLibrary from "./pages/TranscriptLibrary";
-import AngleLab from "./pages/AngleLab";
-import QuestionBank from "./pages/QuestionBank";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,12 +19,9 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<SourceLibrary />} />
-          <Route path="/angle-lab" element={<AngleLab />} />
           <Route path="/briefs" element={<TopicBriefs />} />
           <Route path="/briefs/:briefId" element={<PipelineView />} />
-          <Route path="/improve" element={<ScriptImprover />} />
           <Route path="/transcripts" element={<TranscriptLibrary />} />
-          <Route path="/question-bank" element={<QuestionBank />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
