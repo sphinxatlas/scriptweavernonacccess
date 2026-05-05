@@ -15,6 +15,7 @@ export type PipelineStepType =
   | "evidence_table"
   | "analysis_memo"
   | "outline"
+  | "script_evidence_pack"
   | "full_script"
   | "verification";
 
@@ -52,6 +53,12 @@ export const PIPELINE_STEPS: {
     type: "outline",
     label: "Beat Plan",
     description: "Internal beat plan: numbered prose beats for argument review before the Full Script.",
+    visible: true,
+  },
+  {
+    type: "script_evidence_pack",
+    label: "Script Evidence Pack",
+    description: "Writer-facing brief mapping each beat to its canon evidence in clean prose. The only research the Full Script reads.",
     visible: true,
   },
   {

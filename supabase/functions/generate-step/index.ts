@@ -14,6 +14,7 @@ function getModelForStep(stepType: string) {
       "selected_source_analysis",
       "analysis_memo",
       "outline",
+      "script_evidence_pack",
       "full_script",
     ].includes(stepType)
   ) {
@@ -533,6 +534,113 @@ Good:
 ENFORCEMENT
 If a banned construction appears in the draft, the output is invalid. Rewrite using the recipe before completing the beat plan. The Anti-AI Writing Instructions document loaded under ANTI_AI_WRAPPER is the full authority. The patterns above are the most common failures, not the complete list.`,
 
+  // Script Evidence Pack — transformation boundary between research and writing.
+  // The Full Script step reads ONLY the Creative Brief and this Pack.
+  script_evidence_pack: `WRITING CONSTITUTION FOR SCRIPT EVIDENCE PACK
+
+Two documents govern this output:
+1. Script Writing Instructions (loaded under SCRIPT_WRAPPER below)
+2. Anti-AI Writing Instructions (loaded under ANTI_AI_WRAPPER below)
+
+These are not background reference. They are the constitution for every paragraph you produce. Read both before writing.
+
+The Script Writing Instructions govern evidence discipline: only include evidence that moves the argument forward, interpret every piece of evidence before moving on, and do not dump context.
+
+The Anti-AI Writing Instructions govern phrasing. The Script Evidence Pack is a writer-facing brief. If it contains AI residue, that residue passes directly into the Full Script.
+
+The inline rules and format instructions below are summaries of those documents. If anything conflicts, the documents win.
+
+Note: Host Persona governs this step at medium intensity only. The Pack is writer-facing functional prose. Full voice is added at the Full Script step.
+
+SCRIPT EVIDENCE PACK
+
+Produce a writer-facing brief that maps every beat from the Beat Plan to the canon evidence that anchors it. This brief is the only research document the Full Script step will read. The Full Script will not see the Evidence Table, the Beat Plan, the Selected Source Analysis, or the Six Category Extraction. Only this Pack.
+
+That means the Pack must contain everything the writer needs. If a canon point is not in the Pack, it will not be in the script.
+
+INPUTS YOU HAVE ACCESS TO
+- The Beat Plan (the argument structure, beat by beat)
+- The Evidence Table (the raw canon research)
+- The Selected Source Analysis (source-level interpretation)
+- The Six Category Extraction (the canon mining)
+- The Creative Brief (the argument framing and angle)
+
+FORMAT
+
+For each beat in the Beat Plan, write one paragraph in plain prose. Number each paragraph to match the beat number. The paragraph must cover:
+1. What the beat is doing (one sentence paraphrasing the Beat Plan)
+2. The canon evidence woven into prose, not listed. Write it the way a writer would recall it: the book chapter, the film scene, the specific moment, paraphrased into natural language. The writer should be able to narrate from this without referring back to the original source.
+3. Any single direct quote worth considering verbatim, in quotation marks. Maximum one quote per beat. Most beats should have zero.
+4. Any meaningful contradiction between book and film worth noting in narration, in one sentence.
+
+EXAMPLE FORMAT (copy this shape, not this content):
+
+Beat 1. The opening establishes that Harry has been steered to the Department of Mysteries. In Order of the Phoenix chapters 32 to 35, Rowling makes the manipulation explicit across multiple scenes: every false vision plants urgency, every push from Kreacher nudges Harry toward the Ministry, and the locked door at the Prophecy Hall is designed to confirm the bait. The film compresses this into a rescue mission, removing the engineering almost entirely. No quote needed here. Book and film disagree on what kind of scene this is: the book is about manufactured certainty, the film is about speed.
+
+Beat 2. Dumbledore's knowledge becomes the real accusation. In Deathly Hallows chapter 35, Kings Cross, Dumbledore admits to Harry directly that he knew enough to intervene and chose silence. He names it as his mistake without being asked. Quote worth considering: "I cared more for your happiness than your knowing the truth." This quote appears only in the book; the film never delivers this admission with the same weight.
+
+[continues for all beats]
+
+ABSOLUTELY FORBIDDEN in the Script Evidence Pack output
+- Markdown headings or tables
+- Editor or source tags ([BOOK:], [FILM:], [LEXICON:])
+- Bullet lists or numbered sub-lists inside a beat paragraph
+- Bracketed citations (use prose attribution instead)
+- Raw quote dumps or evidence stacks (maximum one quote per beat)
+- The structure or formatting of the Evidence Table
+- Any content not tied to a specific beat in the Beat Plan
+
+EVIDENCE DISCIPLINE
+- Paraphrase by default. Quotes only when exact wording matters.
+- If a beat needs more than one piece of evidence, include the strongest one and note the second briefly in prose.
+- Do not include evidence that does not advance the beat's argument move. If it does not serve the beat, cut it.
+- Secondary sources (commentary, fan wikis, other YouTubers) are not evidence and must not appear.
+
+// BANNED CONSTRUCTIONS — keep in sync with full_script and beat_plan (outline)
+// versions. If one is updated, update all three.
+BANNED CONSTRUCTIONS with required rewrites
+
+Each banned pattern below must be rewritten using the recipe shown. Do not substitute one banned pattern for another. Do not produce a sentence that matches any banned pattern.
+
+Pattern 1: 'It is not X, it is Y' and all variants
+Banned variants include:
+- 'It is not just X, it is Y'
+- 'That is not X, that is Y'
+- 'This is not X, this is Y'
+- 'The problem is not X, the problem is Y'
+- 'The real issue is not X, it is Y'
+- 'Not because X, but because Y'
+- 'X is not the issue. Y is the issue.'
+- 'You are not watching X. You are watching Y.'
+- 'He didn't X. He Y.' (when used as a contrast flip)
+Rewrite by: starting with the subject doing something, or starting with the consequence. Use cause-and-effect, a concrete image, or an active verb.
+
+Pattern 2: Essay transitions
+Banned: 'Furthermore', 'Moreover', 'Additionally', 'Therefore', 'Consequently', 'Nevertheless', 'This demonstrates that', 'This highlights', 'This suggests that', 'In conclusion', 'To sum up', 'Overall', 'Ultimately', 'All things considered'.
+Rewrite by: making the previous point feel incomplete, raising stakes, revealing a consequence, or shifting perspective.
+
+Pattern 3: Filler frames
+Banned: 'It is important to understand that', 'It is worth noting that', 'One thing to keep in mind', 'This raises an interesting question', 'When you really think about it', 'At the end of the day', 'The reality is', 'What this means is', 'The key takeaway is'.
+Rewrite by: deleting the frame and starting with the point.
+
+Pattern 4: Empty superlatives
+Banned: 'powerful', 'iconic', 'legendary', 'unforgettable', 'remarkable', 'fascinating', 'compelling', 'impactful', 'groundbreaking', 'revolutionary', 'game changing', 'transformative', 'a testament to', 'serves as a reminder'.
+Default rewrite: show what the thing changes, do not assert it matters.
+
+Pattern 5: Generic openings and curiosity bait
+Banned: 'Have you ever wondered', 'If you have ever wondered', 'What if I told you', 'Most people do not realize', 'The truth is more complex than you think', 'Today we are going to', 'In this video', 'In this episode', 'Let us dive into', 'Let me explain'.
+Rewrite by: opening with pressure, contradiction, consequence, or a specific tension.
+
+Pattern 6: Fake profundity
+Banned: 'a testament to', 'serves as a reminder', 'speaks volumes about', 'at its core', 'on a deeper level', 'reveals a deeper truth about', 'the beauty of this is', 'what makes this so powerful'.
+Rewrite by: stating what is actually true and letting it land.
+
+Pattern 7: Symmetric pattern stacks
+Three or more sentences in a row sharing the same opening structure. Stacks of 2 are fine; stacks of 3+ read as AI generated and must be broken up by varying sentence structure.
+
+ENFORCEMENT
+If a banned construction appears in the draft, the output is invalid. Rewrite using the recipe before completing the Pack. The Anti-AI Writing Instructions document loaded under ANTI_AI_WRAPPER is the full authority. The patterns above are the most common failures, not the complete list.`,
+
   // BANNED CONSTRUCTIONS — keep in sync with the Beat Plan (outline) prompt
   // BANNED CONSTRUCTIONS block. If one is updated, update both.
   full_script: `You are a professional YouTube scriptwriter specializing in Harry Potter analysis content.
@@ -1011,6 +1119,7 @@ const STEP_ORDER = [
   "evidence_table",
   "analysis_memo",
   "outline",
+  "script_evidence_pack",
   "full_script",
   "verification",
   "retrieval",
@@ -1359,6 +1468,7 @@ serve(async (req) => {
       evidence_table:              { script: "medium",  antiAi: "light",   persona: "light"   },
       analysis_memo:               { script: "strong",  antiAi: "medium",  persona: "medium"  },
       outline:                     { script: "highest", antiAi: "strong",  persona: "strong"  },
+      script_evidence_pack:        { script: "strong",  antiAi: "strong",  persona: "medium"  },
       full_script:                 { script: "highest", antiAi: "highest", persona: "highest" },
       full_script_revision:        { script: "highest", antiAi: "highest", persona: "highest" },
       final_voice_pass:            { script: "medium",  antiAi: "highest", persona: "highest" },
@@ -2263,11 +2373,38 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
       return content.slice(0, cap) +
         `\n\n[!! PREVIOUS OUTPUT TRUNCATED — kept ${cap} of ${content.length} chars from ${stepName} to control prompt size. Earlier sections preserved; tail dropped.]`;
     };
-    const previousContext = previousOutputs && previousOutputs.length > 0
+    // Default previousContext: all upstream steps. Full Script overrides this
+    // below so it sees ONLY the Creative Brief and the Script Evidence Pack.
+    let previousContext = previousOutputs && previousOutputs.length > 0
       ? previousOutputs
           .map((o: any) => `### ${o.step_type.replace(/_/g, " ").toUpperCase()}\n${capPreviousOutput(o.step_type, o.content || "")}`)
           .join("\n\n")
       : "";
+
+    // ── FULL SCRIPT TRANSFORMATION BOUNDARY ────────────────────────────────
+    // The Full Script reads ONLY the Creative Brief (argument framing) and
+    // the Script Evidence Pack (canon, beat-mapped). It must NOT see the
+    // Evidence Table, Beat Plan (outline), Selected Source Analysis, or
+    // Six Category Extraction directly. If the Pack is missing, fail loudly.
+    if (stepType === "full_script") {
+      const cbEntry = (previousOutputs || []).find((o: any) => o.step_type === "creative_brief");
+      const packEntry = (previousOutputs || []).find((o: any) => o.step_type === "script_evidence_pack");
+      if (!packEntry || !packEntry.content) {
+        return new Response(
+          JSON.stringify({
+            error:
+              "Script Evidence Pack required. Please generate the Script Evidence Pack before generating the Full Script.",
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const parts: string[] = [];
+      if (cbEntry?.content) {
+        parts.push(`### CREATIVE BRIEF\n${capPreviousOutput("creative_brief", cbEntry.content)}`);
+      }
+      parts.push(`### SCRIPT EVIDENCE PACK\n${capPreviousOutput("script_evidence_pack", packEntry.content)}`);
+      previousContext = parts.join("\n\n");
+    }
 
     let systemPrompt = STEP_PROMPTS[stepType] || "You are a helpful writing assistant.";
 
