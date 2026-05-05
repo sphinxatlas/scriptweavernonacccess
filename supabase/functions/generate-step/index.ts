@@ -2204,7 +2204,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
     // Inject Anti AI Language Guide enforcement into system prompt for script steps
     if (isScriptStep && antiAiContext) {
-      systemPrompt += `\n\nANTI AI LANGUAGE GUIDE (MANDATORY — apply these rules strictly):\n- Avoid common AI phrases, templated intros, and AI word clusters described below\n- Avoid over-tidy signposting, repetitive triads, and generic CTAs\n- Do not use em dashes heavily\n- Keep wording natural and voiceover-friendly\n- The final script must sound human, original, and not trigger obvious AI detection signals\n\nAnti AI Language Guide content:\n${antiAiContext}`;
+      systemPrompt += `\n\nApply the Anti-AI Writing Instructions document loaded in ANTI_AI_WRAPPER. The BANNED CONSTRUCTIONS block above is enforced at generation time. The wrapped document is the full authority.`;
     }
 
     // Originality safeguard — when the Selected Source Analysis output is in the
