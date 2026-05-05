@@ -294,7 +294,7 @@ export async function savePipelineOutput(briefId: string, stepType: PipelineStep
   return data;
 }
 
-export type PolishPassType = "script_writing" | "anti_ai";
+export type PolishPassType = "script_writing" | "anti_ai" | "melty_voice";
 
 export async function streamPolishPass(
   input: { passType: PolishPassType; scriptText: string },
