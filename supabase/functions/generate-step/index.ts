@@ -2289,13 +2289,16 @@ Mine all six categories now. Rank everything by surprise value, specificity, and
       // Guidance is injected via buildGuidanceBlock() below;
       // legacy Master-Guide framing append removed to avoid double injection.
 
+      const selectedHookBlock = selectedHook
+        ? `## Selected Hook / Opening Direction (BINDING — OVERRIDES PACK BEAT 1)\n\n${selectedHook}\n\nThis hook direction controls the opening of the Full Script. The opening must reflect this hook before the script transitions into the Script Evidence Pack beat sequence.\n\n`
+        : "";
       userMessage = `## Topic Brief
 ${briefContext}
 
 ## Retrieval Query Pack (Derived)
 ${queryPackContext}
 
-${guidanceBlock}${previousContext ? `## Previous Pipeline Steps\n${previousContext}\n\n` : ""}## Source Material Excerpts
+${guidanceBlock}${selectedHookBlock}${previousContext ? `## Previous Pipeline Steps\n${previousContext}\n\n` : ""}## Source Material Excerpts
 ${sourceContext}
 ${topicTranscriptUserBlock}${altSourceUserBlock}${buildSecondarySkippedNotice()}
 
