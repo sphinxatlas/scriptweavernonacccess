@@ -1512,15 +1512,6 @@ serve(async (req) => {
       `MANDATORY FRAMING GUIDE — use this to decide which insights are structurally useful for a YouTube script. Prioritize evidence and ideas that can create curiosity, escalation, tension, rehooks, emotional movement, originality, and payoff.\n\n` +
       `This guide is not evidence and must never be cited.\n\n`;
 
-    const PRECEDENCE_LADDER =
-      `\n\n## GUIDANCE PRECEDENCE LADDER\n` +
-      `1. Source hierarchy controls factual evidence.\n` +
-      `2. Scriptwriter Engine Master Guide controls structure, retention, argument shape, pacing, rehooks, and payoff.\n` +
-      `3. Anti AI Guide acts as a hard filter for wording, phrasing, and style problems.\n` +
-      `4. Host Persona controls voice, attitude, rhythm, and point of view, but should never override factual accuracy or structure.\n` +
-      `5. Retention and escalation instructions support the Master Guide. If they conflict, follow the Master Guide.\n` +
-      `6. Commentary transcripts, topic transcripts, competitor transcripts, and alternative sources provide audience signals, theories, framing possibilities, and inspiration, but must not be copied or treated as canon.\n`;
-
     // Get the topic brief
     const { data: brief, error: briefError } = await supabase
       .from("topic_briefs")
