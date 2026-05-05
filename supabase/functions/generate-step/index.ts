@@ -2296,9 +2296,6 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
     // Guidance layers — only included for generation steps (analysis_memo, outline, full_script), NOT for retrieval/evidence_table
     const isGenerationStep = ["analysis_memo", "outline", "full_script"].includes(stepType);
-    const competitorContext = isGenerationStep && competitorChunks.length > 0
-      ? competitorChunks.map(c => c.content).join("\n\n")
-      : "";
 
     // Anti AI Language Guide — injected into outline (optional) and full_script (mandatory)
     const isScriptStep = ["outline", "full_script"].includes(stepType);
