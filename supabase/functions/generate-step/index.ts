@@ -992,6 +992,12 @@ HP TOPIC TRANSCRIPT RULES:
 - Identify specific scenes or moments to verify against primary canon (books and movie transcripts)
 - Do NOT treat as proof of canon facts
 
+ALTERNATIVE SOURCES (SECONDARY) RULES:
+- The block titled "## Alternative Sources (SECONDARY, NON-CANON)" contains pasted Reddit threads, forum comments, blog posts, fan articles, wiki extracts, and similar non-canon material the creator selected for this brief.
+- Mine this block for: fan debate signals, repeated viewer complaints, audience emotional language, common objections, the expected surface answer most viewers assume, the surprising deeper answer fans rarely reach, underdeveloped angles, and what fans already say too often (so the video can avoid repeating it).
+- Use those signals when filling: Viewer Click Question, Expected Answer, Surprising Actual Answer, Hook Shape, What To Avoid, Fairness Move, Emotional Arc, and Video Engine. The Creative Brief should feel sharpened by real audience tension, not floating in a vacuum.
+- Alternative sources cannot supply Harry Potter facts. Any factual claim about canon must come from books, film transcripts, or other approved primary/canon sources. Fan claims from alternative sources can inspire angles or objections, but must be verified against primary canon before being treated as evidence.
+
 Generate the Creative Brief in this EXACT format:
 
 ## Creative Brief: [Video Title]
