@@ -31,6 +31,8 @@ import {
   Sparkles,
   FileCheck2,
   ShieldCheck,
+  Mic,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -47,6 +49,7 @@ export default function PipelineView() {
   const [revisionFeedback, setRevisionFeedback] = useState("");
   const [lastPassLabel, setLastPassLabel] = useState<string | null>(null);
   const [runningPass, setRunningPass] = useState<PolishPassType | null>(null);
+  const [showAdvancedPolish, setShowAdvancedPolish] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const { data: brief, refetch: refetchBrief } = useQuery({
@@ -237,8 +240,11 @@ export default function PipelineView() {
       toast.error("Generate a Full Script first.");
       return;
     }
-    const docLabelForConfirm =
-      passType === "anti_ai" ? "Anti AI Writing Instructions" : "Script Writing Instructions";
+    const passLabel =
+      passType === "anti_ai" ? "Anti AI Writing Instructions" :
+      passType === "melty_voice" ? "Melty Voice (Host Persona)" :
+      "Script Writing Instructions";
+    const docLabelForConfirm = passLabel;
     const confirmed = window.confirm(
       `Run ${docLabelForConfirm} pass?\n\nThis will overwrite the current Full Script with the revised version. Make sure any manual edits have been saved first.`,
     );
@@ -247,8 +253,7 @@ export default function PipelineView() {
     setGenerating(true);
     setStreamContent("");
     let accumulated = "";
-    const docLabel =
-      passType === "anti_ai" ? "Anti AI Writing Instructions" : "Script Writing Instructions";
+    const docLabel = passLabel;
     toast.message(`${docLabel} pass started — this will replace the current Full Script when complete.`);
     try {
       await streamPolishPass(
