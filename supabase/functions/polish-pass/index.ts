@@ -7,9 +7,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const GUIDANCE_CHUNK_LIMIT = 40;
+const GUIDANCE_CHUNK_LIMIT = 100;
 
-type PassType = "script_writing" | "anti_ai";
+type PassType = "script_writing" | "anti_ai" | "melty_voice";
 
 const SCRIPT_WRITING_SYSTEM = `You are running a SCRIPT WRITING POLISH PASS on an existing finished YouTube script.
 
@@ -77,6 +77,30 @@ Preserve the meaning of any banned construction, but change the construction com
 
 Output the COMPLETE revised script only. No critique. No preamble. No change log.`;
 
+const MELTY_VOICE_SYSTEM = `MELTY VOICE POLISH
+
+You are sharpening the host persona's voice in this script. The script's arguments, evidence, claim strength, structure, and order are final. Do not change them. Do not add new claims. Do not remove existing claims. Do not change facts. Do not introduce new evidence. Do not reorder sections.
+
+Improve only these things:
+- Word choice: make it sound more like the persona and less like a neutral narrator
+- Sentence rhythm: vary length, add natural burstiness, break symmetrical runs
+- Reactions: sharpen the moments where the persona would visibly react to the material
+- Emotional register: match the host persona document's described register for each type of moment
+- Recognizable persona lines: add 1 to 2 more Meltyisms if natural openings exist, keeping the total across the script at 2 to 4 maximum
+
+WRITING CONSTITUTION FOR THIS PASS
+
+The Host Persona document loaded below is the only governing document for this pass. Read it in full before making any changes.
+
+Self-check before each edit:
+- Does this change make the voice more like the persona?
+- Does this change leave the argument and facts intact?
+- Is the total Meltyism count still 4 or below?
+
+If any answer is no, revert the change.
+
+Output the COMPLETE revised script only. No critique. No preamble. No change log.`;
+
 async function loadGuidanceText(supabase: any, fileTypes: string[]): Promise<{ text: string; chunks: number; truncated: boolean }> {
   const { data: files } = await supabase
     .from("source_files")
@@ -111,7 +135,10 @@ serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const passType: PassType = body.passType === "anti_ai" ? "anti_ai" : "script_writing";
+    const passType: PassType =
+      body.passType === "anti_ai" ? "anti_ai" :
+      body.passType === "melty_voice" ? "melty_voice" :
+      "script_writing";
     const scriptText: string = (body.scriptText || "").toString();
 
     if (!scriptText || scriptText.trim().length < 50) {
@@ -126,8 +153,14 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    const docFileTypes = passType === "anti_ai" ? ["anti_ai_guide"] : ["instructions", "script_strategy"];
-    const docLabel = passType === "anti_ai" ? "Anti AI Writing Instructions" : "Script Writing Instructions";
+    const docFileTypes =
+      passType === "anti_ai" ? ["anti_ai_guide"] :
+      passType === "melty_voice" ? ["host_persona"] :
+      ["instructions", "script_strategy"];
+    const docLabel =
+      passType === "anti_ai" ? "Anti AI Writing Instructions" :
+      passType === "melty_voice" ? "Host Persona" :
+      "Script Writing Instructions";
 
     const guidance = await loadGuidanceText(supabase, docFileTypes);
 
@@ -140,6 +173,10 @@ serve(async (req) => {
       );
     }
 
+    if (guidance.truncated) {
+      console.warn(`WARNING: Guidance document '${docLabel}' truncated at ${GUIDANCE_CHUNK_LIMIT} chunks. Raise GUIDANCE_CHUNK_LIMIT to avoid partial guidance.`);
+    }
+
     console.log("[polish-pass]", JSON.stringify({
       passType,
       docLabel,
@@ -149,7 +186,10 @@ serve(async (req) => {
       scriptChars: scriptText.length,
     }));
 
-    const baseSystem = passType === "anti_ai" ? ANTI_AI_SYSTEM : SCRIPT_WRITING_SYSTEM;
+    const baseSystem =
+      passType === "anti_ai" ? ANTI_AI_SYSTEM :
+      passType === "melty_voice" ? MELTY_VOICE_SYSTEM :
+      SCRIPT_WRITING_SYSTEM;
     const systemPrompt =
       baseSystem +
       `\n\n## ${docLabel.toUpperCase()} (BINDING — primary lens for this pass)\n\n${guidance.text}` +
