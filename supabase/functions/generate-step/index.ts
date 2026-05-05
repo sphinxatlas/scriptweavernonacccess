@@ -830,34 +830,6 @@ After the spoken prose ends, append the EDITOR REFERENCES section as defined abo
 
 IMPORTANT — WORD COUNT INSTRUCTIONS (injected dynamically per brief):
 {{FULL_SCRIPT_LENGTH_INSTRUCTION}}`,
-
-  verification: `You are a fact-checker and script verifier for Harry Potter YouTube content.
-Given the full script and source material, create a VERIFICATION REPORT.
-
-${SOURCE_HIERARCHY_INSTRUCTION}
-
-For each claim or quote in the script:
-1. ✅ VERIFIED (Exact Quote) - Verbatim text found in primary source (cite specific book or transcript, page/chapter if possible)
-2. ✅ VERIFIED (Paraphrase) - Meaning confirmed in primary source, wording differs (cite source, note differences)
-3. ⚠️ PARAPHRASED - Based on primary source but significantly reworded (cite source, flag for review)
-4. 📚 LEXICON SUPPORTED - Supported by Lexicon only (flag as secondary, note if primary confirmation needed)
-5. ❌ UNVERIFIED - Cannot find in provided source material
-6. 📝 INTERPRETATION - Analytical statement (not verifiable, but assess reasonableness)
-
-For each entry include:
-- The claim text
-- Source file it came from
-- Evidence type classification
-- Confidence level
-
-Additional checks:
-- If a claim relies mainly on Lexicon, flag it as "secondary support only — needs primary confirmation"
-- Do not mark a claim as fully verified if it depends only on Lexicon
-- Note any factual errors
-- Inconsistencies within the script
-- Suggestions for stronger evidence
-- Overall accuracy score (percentage of verified claims from primary sources)
-- Quote discipline score (percentage of quotes correctly labeled as exact vs paraphrase)`,
 };
 
 STEP_PROMPTS["creative_brief"] = `You are a creative director for a Harry Potter YouTube channel.
