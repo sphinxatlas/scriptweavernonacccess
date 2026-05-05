@@ -428,7 +428,8 @@ ARGUMENT REQUIREMENTS
 EVIDENCE REQUIREMENTS
 - Each beat must name the specific canon anchor (book chapter, film scene). No vague references.
 - Evidence is paraphrased into the beat prose. No raw quotes in the beat plan. Quotes are reserved for the Full Script.
-- Secondary sources (other YouTube commentary, fan wikis) are not evidence. Book and film canon only.
+- Secondary sources (other YouTube commentary, fan wikis, Reddit, Quora, blog posts) are not canon evidence. Factual/canon anchors must come from book and film canon only — never from secondary sources.
+- SSA-derived audience signals (Audience Objections, Recurring Fan Signals, Expected Surface Answers, Underdeveloped Opportunities) are required inputs for shaping rehooks, escalation rungs, and at least one pre-emption beat where relevant. Use them to design the argument's audience-facing moves, not to supply canon proof.
 
 // BANNED CONSTRUCTIONS — keep in sync with full_script BANNED
 // CONSTRUCTIONS block. If one is updated, update both.
