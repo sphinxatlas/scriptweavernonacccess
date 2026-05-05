@@ -605,39 +605,32 @@ FORBIDDEN IN OUTPUT:
 - No [CLAIM], [B-ROLL], [CUT TO], [GRAPHIC] or any other production annotations
 - No long pasted quotes or multi-sentence excerpts
 
-EDITOR TAG RULE (MANDATORY — keep voiceover clean):
-- Maximum ONE editor/source tag per evidence paragraph. Do NOT attach a tag after every sentence.
-- Editor tags are metadata only — bracketed, on their own line, NOT spoken, NOT part of the voiceover.
-- Editor tags must NOT contain exact quotes.
-- The voiceover itself must not feel like a research document; tags exist for the editor, not the listener.
-- Tag formats:
-  [BOOK: filename | chapter if available]
-  [FILM: filename | timestamp hh:mm:ss to hh:mm:ss]
-  [LEXICON: filename | summary of what it supports]
+EDITOR REFERENCES
+
+Editor information does not appear inside the spoken script. After the script ends, add one section titled exactly EDITOR REFERENCES. Below that heading, list one bullet per beat with the source backing it (book chapter, film scene, lexicon page).
+
+The voiceover above must contain zero bracket tags, zero source labels, zero markdown. The EDITOR REFERENCES section is the only place editor information lives.
 
 SO-WHAT RULE (MANDATORY):
 - After every major evidence moment, include a clear interpretive takeaway in natural narration.
 - The script must NEVER stop at "this happened." It must answer: "So what does this change?"
 - The takeaway is part of the spoken narration (not a label, not a bracket) and should sit right after the evidence paragraph and its single editor tag.
 
-OUTPUT STRUCTURE:
-Each section should look like this:
+OUTPUT FORMAT
 
-## Section Title
+The output is a voiceover script. It will be read aloud as-is. The output must be continuous spoken prose, broken only into paragraphs where the speaker would naturally pause or shift thought.
 
-In Order of the Phoenix, Harry's anger lands on Dumbledore first — the one person he trusted to keep the world steady. That collapse changes how he reads every adult around him for the rest of the book.
+Example of the correct shape (do not copy the content, copy the shape):
 
-[BOOK: book5_order_of_phoenix.txt | Chapter 37]
+Harry walks into the Department of Mysteries believing Sirius is alive. The book makes it obvious he has been steered there. Every clue, every push, every false memory, all engineered. The film softens this into a rescue mission, and that single softening changes who the trap is really about.
 
-The fifth film leans into this even harder. Watch how Harry pulls away during the office scene; the body language carries more weight than any line of dialogue, and it tells us the trust is already gone.
+Because in the book, the point is not that Harry walks into danger. The point is that he was made to. Dumbledore knew enough to prevent it. He stayed silent. By the time Harry figures this out, Sirius is gone and the person who could have stopped it is the one Harry is supposed to trust most.
 
-[FILM: movie5_transcript.txt | 01:42:00 to 01:44:30]
+[continues in this register for the full script]
 
-- Include natural transitions between sections
-- Start with a compelling hook
-- End with a strong call to action
-- The script must be CLEAN: headings + short VO paragraphs + editor tags only
-- Every evidence paragraph must name its installment in the spoken text
+Notice what is not there: no headings, no bracket tags, no labels, no timestamps, no word counts, no bullets. Just spoken prose.
+
+After the spoken prose ends, append the EDITOR REFERENCES section as defined above. That is the only place editor metadata may appear.
 
 IMPORTANT — WORD COUNT INSTRUCTIONS (injected dynamically per brief):
 {{FULL_SCRIPT_LENGTH_INSTRUCTION}}`,
