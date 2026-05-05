@@ -12,7 +12,6 @@ import {
 } from "@/lib/api";
 import { toast } from "sonner";
 import { SourceDetailModal } from "@/components/SourceDetailModal";
-import { SourceIntelligenceLine } from "@/components/SourceIntelligenceLine";
 
 interface FileUploadCardProps {
   fileType: "book" | "transcript" | "instructions" | "lexicon" | "competitor_analysis" | "host_persona" | "anti_ai_guide";
@@ -174,16 +173,6 @@ export function FileUploadCard({ fileType, title, description, accept = ".txt,.m
                     {file.file_size ? `${(file.file_size / 1024).toFixed(0)}KB` : ""}
                   </span>
                 </div>
-                {fileType === "competitor_analysis" && (
-                  <SourceIntelligenceLine
-                    table="source_files"
-                    id={file.id}
-                    charCount={(file as any).char_count}
-                    estimatedTokens={(file as any).estimated_tokens}
-                    scriptStrength={(file as any).script_strength}
-                    onAnalyzed={onRefresh}
-                  />
-                )}
               </div>
               <Button
                 size="icon"
