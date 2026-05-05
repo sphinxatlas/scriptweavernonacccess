@@ -542,6 +542,16 @@ For each beat in the Beat Plan, write one paragraph in plain prose. Number each 
 2. The canon evidence woven into prose, not listed. Write it the way a writer would recall it: the book chapter, the film scene, the specific moment, paraphrased into natural language. The writer should be able to narrate from this without referring back to the original source.
 3. Any single direct quote worth considering verbatim, in quotation marks. Maximum one quote per beat. Most beats should have zero.
 4. Any meaningful contradiction between book and film worth noting in narration, in one sentence.
+5. Function: state in one short sentence whether this beat proves, complicates, reveals, rehooks, or pays off. Name what specifically it proves / complicates / reveals / rehooks / pays off.
+6. Hook/payoff relation: state in one short sentence how this beat keeps the opening hook question alive, complicates it, or moves toward paying it off.
+7. Anti-repetition note: compare this beat's function to all prior beats in the Pack. If a prior beat already does the same job without escalation, flag the pair as a merge or cut candidate and recommend which one to keep. If the function repeats but escalates, name the new layer this beat adds.
+
+Write items 5, 6, and 7 as natural writer-facing sentences inside the same paragraph. Do not turn the beat into a table. Do not add markdown headings or labels like "Function:" inside the paragraph — embed the information in prose the writer can read in one pass.
+
+ENFORCEMENT (structural, runs before the Full Script step):
+- If two beats share the same function without escalation, the Pack must say so explicitly and recommend a fix (merge, cut, or re-aim one beat).
+- If a beat does not help sustain, complicate, or pay off the opening hook tension established in the Creative Brief, the Pack must flag it as weak or optional and explain why.
+- The purpose of these notes is to stop repeated evidence functions before Full Script generation and to preserve the hook-to-payoff route end to end.
 
 EXAMPLE FORMAT (copy this shape, not this content):
 
@@ -829,6 +839,17 @@ BEAT PLAN FIDELITY
 
 The Full Script must follow the beat order and argument moves established in the Beat Plan. Each beat in the Beat Plan corresponds to one movement in the script.
 
+STRUCTURAL ENFORCEMENT (binding — applies in addition to BEAT PLAN FIDELITY)
+
+- The opening must confirm the title promise quickly. The viewer should recognize within the first few sentences that this is the video they clicked for.
+- The opening must start with pressure — a concrete moment, contradiction, scene, or tension. Not broad context, not biography, not polite setup.
+- The hook must create an open loop: surface the central question or tension without giving away the full answer. The payoff is not spent in the hook.
+- No repeated thesis restatement unless it escalates. Restating the same claim in different words across sections is a structural failure. If a paragraph restates the thesis, it must add a new layer, complication, or stake.
+- No section ending that merely summarizes. Every major section ending must rehook, escalate, complicate, or create forward motion that pulls the viewer into the next section.
+- Every major section must move from surface description to deeper implication. The section may not stop at "this happened"; it must reach what this changes, exposes, or implies.
+- The final payoff must reinterpret the opening tension, not just restate the thesis. The viewer should leave seeing the opening moment differently than they did at the start.
+- The script must sound like performable voiceover, not an expanded outline. No section labels, no narrated structure, no meta-commentary about the script itself.
+
 The Full Script does not copy the Beat Plan's wording. The Beat Plan is neutral planning prose. The Full Script rewrites each beat as Melty's spoken voice.
 
 If the Beat Plan has 10 beats, the Full Script has 10 corresponding movements. Beat order is fixed unless the user requests a structural revision.
@@ -939,6 +960,19 @@ Additional checks:
 STEP_PROMPTS["creative_brief"] = `You are a creative director for a Harry Potter YouTube channel.
 
 Your job: take the video title, angle note, format reference transcript(s), and any brief-specific HP topic transcripts provided, and generate a structured Creative Brief that will guide every subsequent step of the script pipeline.
+
+WRITING CONSTITUTION FOR CREATIVE BRIEF
+
+The Script Writing Instructions loaded under SCRIPT_WRAPPER govern the structure of this step. They control hook strength, title promise, viewer click logic, opening pressure, central contention, emotional tension, argument route, escalation logic, repetition control, rehooks, and what the script must avoid repeating.
+
+The Creative Brief must not only fill fields. It must produce a usable argument engine and hook engine for downstream steps (Beat Plan, Script Evidence Pack, Full Script).
+
+- The hook direction must be specific enough for the Full Script to open with pressure, not broad context. Name the concrete moment, contradiction, scene, or tension the hook should land on.
+- The hook must confirm the title promise quickly without giving away the full answer.
+- The hook must create an open loop that the script can pay off later.
+- The Creative Brief must make explicit what the script must avoid repeating across sections, so downstream steps can prevent circular argumentation.
+
+The inline format below is a summary. If anything inline conflicts with the Script Writing Instructions, the Script Writing Instructions win.
 
 ${VIDEO_RETENTION_STRUCTURE_INSTRUCTION}
 
