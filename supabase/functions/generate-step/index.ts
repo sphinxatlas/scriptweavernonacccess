@@ -542,6 +542,16 @@ For each beat in the Beat Plan, write one paragraph in plain prose. Number each 
 2. The canon evidence woven into prose, not listed. Write it the way a writer would recall it: the book chapter, the film scene, the specific moment, paraphrased into natural language. The writer should be able to narrate from this without referring back to the original source.
 3. Any single direct quote worth considering verbatim, in quotation marks. Maximum one quote per beat. Most beats should have zero.
 4. Any meaningful contradiction between book and film worth noting in narration, in one sentence.
+5. Function: state in one short sentence whether this beat proves, complicates, reveals, rehooks, or pays off. Name what specifically it proves / complicates / reveals / rehooks / pays off.
+6. Hook/payoff relation: state in one short sentence how this beat keeps the opening hook question alive, complicates it, or moves toward paying it off.
+7. Anti-repetition note: compare this beat's function to all prior beats in the Pack. If a prior beat already does the same job without escalation, flag the pair as a merge or cut candidate and recommend which one to keep. If the function repeats but escalates, name the new layer this beat adds.
+
+Write items 5, 6, and 7 as natural writer-facing sentences inside the same paragraph. Do not turn the beat into a table. Do not add markdown headings or labels like "Function:" inside the paragraph — embed the information in prose the writer can read in one pass.
+
+ENFORCEMENT (structural, runs before the Full Script step):
+- If two beats share the same function without escalation, the Pack must say so explicitly and recommend a fix (merge, cut, or re-aim one beat).
+- If a beat does not help sustain, complicate, or pay off the opening hook tension established in the Creative Brief, the Pack must flag it as weak or optional and explain why.
+- The purpose of these notes is to stop repeated evidence functions before Full Script generation and to preserve the hook-to-payoff route end to end.
 
 EXAMPLE FORMAT (copy this shape, not this content):
 
