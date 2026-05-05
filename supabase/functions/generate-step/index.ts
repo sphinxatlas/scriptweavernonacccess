@@ -87,18 +87,6 @@ This is a Book vs Movie Comparison analysis. You MUST:
 // These wrap guidance documents (Host Persona, Script Instructions, Anti AI Guide)
 // and re-frame commentary + topic transcripts as theory/angle inputs rather than canon.
 
-const SCRIPT_INSTRUCTIONS_BINDING_INSTRUCTION = `
-SCRIPT INSTRUCTIONS — BINDING WRITING CONSTRAINTS:
-This document is not evidence, but it is mandatory for structure, pacing, formatting, and final script execution.
-Follow it closely. It must visibly shape the structure and delivery of the output.
-`;
-
-const ANTI_AI_BINDING_INSTRUCTION = `
-ANTI AI GUIDE — BINDING STYLE CONSTRAINTS:
-This document is not evidence, but it is mandatory for human sounding writing quality.
-Apply it actively in the final prose. Avoid generic AI phrasing, padded transitions, mechanical paragraphing, templated triads, signposting, and empty summaries.
-`;
-
 const TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION = `
 BRIEF SPECIFIC HP TOPIC TRANSCRIPTS — THEORY, ANGLE, AND RESEARCH LEADS:
 These are topic relevant Harry Potter commentary, theory, or transcript materials selected for this brief.
