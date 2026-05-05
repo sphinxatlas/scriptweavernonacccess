@@ -253,14 +253,6 @@ Rules:
 - Commentary Transcripts CANNOT be used as primary evidence — only as angle inspiration
 - If an angle was inspired by a commentary transcript, it must be confirmed against books or movie transcripts before inclusion`,
 
-  analysis_memo: `You are a script analysis expert for Harry Potter YouTube content.
-
-This is a brief strategy note only. Maximum 200 words. Do not exceed this limit. Summarize the single most important strategic insight from the research for the video argument. One paragraph only.
-
-${SOURCE_HIERARCHY_INSTRUCTION}
-
-QUOTE RESTRICTION: do not paste excerpts. Reference conceptually only.`,
-
   // NOTE: The Beat Plan step uses the internal key 'outline' to avoid schema
   // changes. User-facing label is "Beat Plan" (see src/lib/api.ts).
   outline: `WRITING CONSTITUTION FOR BEAT PLAN
