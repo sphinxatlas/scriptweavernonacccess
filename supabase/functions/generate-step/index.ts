@@ -581,7 +581,8 @@ EVIDENCE DISCIPLINE
 - Paraphrase by default. Quotes only when exact wording matters.
 - If a beat needs more than one piece of evidence, include the strongest one and note the second briefly in prose.
 - Do not include evidence that does not advance the beat's argument move. If it does not serve the beat, cut it.
-- Secondary sources (commentary, fan wikis, other YouTubers) are not evidence and must not appear.
+- Secondary sources (commentary, fan wikis, other YouTubers, Reddit, Quora, blog posts) cannot supply Harry Potter facts, canon proof, quotes, or evidence. Never cite them as proof and never paste their content.
+- Audience-side signals synthesized through the Selected Source Analysis (objections, recurring fan signals, expected surface answers, emotional language, underdeveloped opportunities) are allowed and required where relevant. Use them only as framing, objection handling, or angle context in plain prose — never as factual proof for a canon claim.
 
 // BANNED CONSTRUCTIONS — keep in sync with full_script and beat_plan (outline)
 // versions. If one is updated, update all three.
