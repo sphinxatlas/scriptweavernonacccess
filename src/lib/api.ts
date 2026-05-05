@@ -7,14 +7,11 @@ export type PipelineOutput = Tables<"pipeline_outputs">;
 export type PipelineStepType =
   | "creative_brief"
   | "six_category_extraction"
-  | "retrieval"
   | "selected_source_analysis"
   | "evidence_table"
-  | "analysis_memo"
   | "outline"
   | "script_evidence_pack"
-  | "full_script"
-  | "verification";
+  | "full_script";
 
 export const PIPELINE_STEPS: {
   type: PipelineStepType;
@@ -64,9 +61,6 @@ export const PIPELINE_STEPS: {
     description: "Complete voiceover script with editor tags.",
     visible: true,
   },
-  { type: "retrieval", label: "Retrieval", description: "", visible: false },
-  { type: "analysis_memo", label: "Analysis Memo", description: "", visible: false },
-  { type: "verification", label: "Verification", description: "", visible: false },
 ];
 
 export async function uploadSourceFile(file: File, fileType: "book" | "transcript" | "instructions" | "lexicon" | "competitor_analysis" | "host_persona" | "anti_ai_guide") {
@@ -379,7 +373,7 @@ export async function streamGenerateStep(
   stepType: PipelineStepType,
   onDelta: (text: string) => void,
   onDone: () => void,
-  options?: { revisionFeedback?: string; previousFullScript?: string; finalVoicePass?: boolean; hookDirection?: string },
+  options?: { revisionFeedback?: string; previousFullScript?: string; hookDirection?: string },
 ) {
   const resp = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-step`,
@@ -394,7 +388,6 @@ export async function streamGenerateStep(
         stepType,
         revisionFeedback: options?.revisionFeedback,
         previousFullScript: options?.previousFullScript,
-        finalVoicePass: options?.finalVoicePass,
         hookDirection: options?.hookDirection,
       }),
     }

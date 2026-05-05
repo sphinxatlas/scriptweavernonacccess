@@ -12,7 +12,6 @@ function getModelForStep(stepType: string) {
       "creative_brief",
       "six_category_extraction",
       "selected_source_analysis",
-      "analysis_memo",
       "outline",
       "script_evidence_pack",
       "full_script",
@@ -186,66 +185,6 @@ I. SOURCE INTEGRATION RULE
 `;
 
 const STEP_PROMPTS: Record<string, string> = {
-  retrieval: `You are a retrieval layer for a source-grounded Harry Potter research engine.
-Use ONLY the uploaded and indexed source files provided below.
-Use the provided retrieval query pack (compact derived queries), not full brief prose, as search intent.
-Search across the full uploaded primary corpus by default: all books, all movie transcripts.
-Use Lexicon only as secondary support.
-Do NOT use general Harry Potter knowledge.
-Do NOT invent examples.
-Do NOT fabricate retrieval output.
-If no indexed matches are found, return a failure report instead of placeholder evidence.
-
-${SOURCE_HIERARCHY_INSTRUCTION}
-
-If source material IS provided below, format the report as:
-## Retrieval Summary
-- Total sources found
-- Breakdown by type (Books, Transcripts, Lexicon)
-- Both books AND movie transcripts are ALWAYS searched for every brief
-
-## Book Evidence (PRIMARY)
-For each relevant passage:
-- **Source**: [filename]
-- **Evidence Type**: exact quote / paraphrase / summary
-- **Content**: [the passage]
-- **Relevance**: [why this matters to the topic]
-
-## Movie Evidence (PRIMARY)
-[Same format — movie transcripts are always searched, not just in comparison mode]
-
-## Possible Contrast Pairs
-Where book and movie evidence address similar scenes or themes, present them as contrast pairs:
-- **Book**: [source + content]
-- **Movie**: [source + content]
-- **Contrast Note**: [what differs]
-
-## Lexicon Support (SECONDARY)
-[Same format, clearly marked as secondary]
-
-## Commentary Angles (Secondary — Needs Canon Confirmation)
-For each relevant commentary passage:
-- **Source**: [filename]
-- **Content**: [the passage]
-- **Potential Angle**: [what angle or framing this suggests]
-- **Canon Confirmation Needed**: [what must be verified against books/movie transcripts]
-Note: These are from YouTube commentary transcripts. They may inspire angles but are NOT canon evidence. All factual claims must be confirmed against Tier 1 sources.
-
-## Retrieval Gaps
-- What evidence is missing?
-- What should be searched for manually?
-- Which claims lack primary source support?
-
-If NO source material is provided below, return ONLY:
-## Retrieval Failure Report
-- **Status**: No indexed matches found for the derived query pack
-- **Source types searched**: [list]
-- **Filters applied**: [list]
-- **Primary query**: [primary compact query]
-- **Compact queries used**: [list]
-- **Likely reason**: [assessment of why no matches were found]
-Do NOT generate placeholder evidence. Do NOT proceed based on general knowledge.`,
-
   evidence_table: `You are a research assistant curating the strongest evidence for a YouTube script about Harry Potter.
 Given the topic brief, retrieval results, and source material excerpts, create a CURATED EVIDENCE TABLE.
 
@@ -313,14 +252,6 @@ Rules:
 - If a point is only weakly related to the thesis, exclude it entirely
 - Commentary Transcripts CANNOT be used as primary evidence — only as angle inspiration
 - If an angle was inspired by a commentary transcript, it must be confirmed against books or movie transcripts before inclusion`,
-
-  analysis_memo: `You are a script analysis expert for Harry Potter YouTube content.
-
-This is a brief strategy note only. Maximum 200 words. Do not exceed this limit. Summarize the single most important strategic insight from the research for the video argument. One paragraph only.
-
-${SOURCE_HIERARCHY_INSTRUCTION}
-
-QUOTE RESTRICTION: do not paste excerpts. Reference conceptually only.`,
 
   // NOTE: The Beat Plan step uses the internal key 'outline' to avoid schema
   // changes. User-facing label is "Beat Plan" (see src/lib/api.ts).
@@ -899,34 +830,6 @@ After the spoken prose ends, append the EDITOR REFERENCES section as defined abo
 
 IMPORTANT — WORD COUNT INSTRUCTIONS (injected dynamically per brief):
 {{FULL_SCRIPT_LENGTH_INSTRUCTION}}`,
-
-  verification: `You are a fact-checker and script verifier for Harry Potter YouTube content.
-Given the full script and source material, create a VERIFICATION REPORT.
-
-${SOURCE_HIERARCHY_INSTRUCTION}
-
-For each claim or quote in the script:
-1. ✅ VERIFIED (Exact Quote) - Verbatim text found in primary source (cite specific book or transcript, page/chapter if possible)
-2. ✅ VERIFIED (Paraphrase) - Meaning confirmed in primary source, wording differs (cite source, note differences)
-3. ⚠️ PARAPHRASED - Based on primary source but significantly reworded (cite source, flag for review)
-4. 📚 LEXICON SUPPORTED - Supported by Lexicon only (flag as secondary, note if primary confirmation needed)
-5. ❌ UNVERIFIED - Cannot find in provided source material
-6. 📝 INTERPRETATION - Analytical statement (not verifiable, but assess reasonableness)
-
-For each entry include:
-- The claim text
-- Source file it came from
-- Evidence type classification
-- Confidence level
-
-Additional checks:
-- If a claim relies mainly on Lexicon, flag it as "secondary support only — needs primary confirmation"
-- Do not mark a claim as fully verified if it depends only on Lexicon
-- Note any factual errors
-- Inconsistencies within the script
-- Suggestions for stronger evidence
-- Overall accuracy score (percentage of verified claims from primary sources)
-- Quote discipline score (percentage of quotes correctly labeled as exact vs paraphrase)`,
 };
 
 STEP_PROMPTS["creative_brief"] = `You are a creative director for a Harry Potter YouTube channel.
@@ -1146,12 +1049,9 @@ const STEP_ORDER = [
   "six_category_extraction",
   "selected_source_analysis",
   "evidence_table",
-  "analysis_memo",
   "outline",
   "script_evidence_pack",
   "full_script",
-  "verification",
-  "retrieval",
 ];
 
 type SearchSourceType = "book" | "transcript" | "lexicon" | "competitor_analysis";
@@ -1389,7 +1289,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { briefId, stepType, revisionFeedback, previousFullScript, finalVoicePass, hookDirection } = await req.json();
+    const { briefId, stepType, revisionFeedback, previousFullScript, hookDirection } = await req.json();
     if (!briefId || !stepType) throw new Error("briefId and stepType are required");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -1493,14 +1393,10 @@ serve(async (req) => {
       six_category_extraction:     { script: "medium",  antiAi: "light",   persona: "light"   },
       selected_source_analysis:    { script: "medium",  antiAi: "light",   persona: "light"   },
       evidence_table:              { script: "medium",  antiAi: "light",   persona: "light"   },
-      analysis_memo:               { script: "strong",  antiAi: "medium",  persona: "medium"  },
       outline:                     { script: "highest", antiAi: "strong",  persona: "strong"  },
       script_evidence_pack:        { script: "strong",  antiAi: "strong",  persona: "medium"  },
       full_script:                 { script: "highest", antiAi: "highest", persona: "highest" },
       full_script_revision:        { script: "highest", antiAi: "highest", persona: "highest" },
-      final_voice_pass:            { script: "medium",  antiAi: "highest", persona: "highest" },
-      verification:                { script: "light",   antiAi: "none",    persona: "none"    },
-      retrieval:                   { script: "none",    antiAi: "none",    persona: "none"    },
     };
 
     const SCRIPT_WRAPPER = (text: string, intensity: Intensity) =>
@@ -1859,112 +1755,6 @@ Generate the Creative Brief now.`;
       }
 
       return new Response(wrapStreamWithWarnings(response.body!), {
-        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
-      });
-    }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // FINAL VOICE PASS — EARLY EXIT (skip all retrieval and large source loading)
-    //
-    // Final Pass is a lightweight voice/pacing/rhythm polish on an existing
-    // full script. It must NOT trigger canon retrieval, query packs, source
-    // excerpt assembly, secondary source bundling, or previous-output
-    // concatenation. It only needs:
-    //   - the previous full script
-    //   - Topic Brief minimal fields
-    //   - Master Guide (writing constitution)
-    //   - Anti AI Guide
-    //   - Host Persona
-    //   - the FINAL VOICE PASS instructions
-    // ─────────────────────────────────────────────────────────────────────
-    if (stepType === "full_script" && finalVoicePass && !(typeof revisionFeedback === "string" && revisionFeedback.trim().length > 0)) {
-      // Load only the lean writing-guidance layers.
-      const masterGuideText = await loadMasterGuideContext();
-
-      const { data: antiAiFilesFP } = await supabase
-        .from("source_files")
-        .select("id")
-        .eq("file_type", "anti_ai_guide");
-      let antiAiTextFP = "";
-      if (antiAiFilesFP && antiAiFilesFP.length > 0) {
-        const { data } = await supabase
-          .from("file_chunks")
-          .select("content")
-          .in("file_id", antiAiFilesFP.map((f: any) => f.id))
-          .order("chunk_index")
-          .limit(20);
-        antiAiTextFP = (data || []).map((c: any) => c.content).join("\n\n");
-      }
-
-      // Pull previous Full Script if not provided by client.
-      let prevScriptFP = (previousFullScript || "").toString();
-      if (!prevScriptFP) {
-        const { data: prevOut } = await supabase
-          .from("pipeline_outputs")
-          .select("content")
-          .eq("brief_id", briefId)
-          .eq("step_type", "full_script")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        prevScriptFP = prevOut?.content || "";
-      }
-
-      let fpSystem = STEP_PROMPTS["full_script"]
-        .replace("{{FULL_SCRIPT_LENGTH_INSTRUCTION}}",
-          `Preserve the original word count of the script you are polishing within ±10%.`);
-
-      if (masterGuideText) {
-        fpSystem += `\n\n${MASTER_GUIDE_HIGHEST_PRIORITY_HEADER}${masterGuideText}`;
-      }
-      if (antiAiTextFP) {
-        fpSystem += `\n\nANTI AI LANGUAGE GUIDE (MANDATORY — apply these rules strictly):\n${antiAiTextFP}`;
-      }
-      // Append unified guidance block (Final Voice Pass intensity: anti-AI + persona highest, script medium)
-      fpSystem += buildGuidanceBlock("final_voice_pass", guidanceLayers);
-      fpSystem +=
-        `\n\nFINAL VOICE PASS MODE (BINDING):\n` +
-        `You are performing a FINAL VOICE PASS on an existing full script.\n` +
-        `This is not a full rewrite, not a research step, and not a new generation.\n` +
-        `- Preserve the existing argument, structure, section order, evidence, source tags, editor tags, and core canon claims.\n` +
-        `- Do NOT introduce new factual or canon claims. Do NOT re-research.\n` +
-        `- Reapply the Master Guide and Host Persona more strongly without making the voice feel forced.\n` +
-        `- Improve pacing, rhythm, transitions, re-hooks, clarity, and human delivery.\n` +
-        `- Remove generic AI phrasing, repetitive triads, flat transitions, and overly academic wording.\n` +
-        `- Keep the Lexicon mention ban and editor tag discipline intact.\n` +
-        `- Do NOT change the title promise or core thesis.\n` +
-        `- Output ONLY the revised full script. No preamble, no changelog, no diff.\n`;
-
-      const fpUser =
-        `## Topic Brief\nTitle: ${brief.title}\nAngle: ${brief.angle_note || brief.description || ""}\n\n` +
-        `## Current Full Script (this is what you are polishing — do not regenerate from sources)\n${prevScriptFP || "(No previous Full Script available.)"}\n\n` +
-        `## Final Voice Pass Task\nApply a light voice-and-pacing polish following the FINAL VOICE PASS MODE rules. Do not reload sources, evidence, or transcripts. Output ONLY the revised full script.`;
-
-      console.log("FINAL_PASS_LEAN_MODE: skipping retrieval, secondary sources, and previous pipeline outputs.");
-
-      const fpResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: getModelForStep("full_script"),
-          messages: [
-            { role: "system", content: fpSystem },
-            { role: "user", content: fpUser },
-          ],
-          stream: true,
-        }),
-      });
-
-      if (!fpResponse.ok) {
-        if (fpResponse.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        if (fpResponse.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        const t = await fpResponse.text();
-        throw new Error(`AI gateway error: ${fpResponse.status} ${t}`);
-      }
-      return new Response(wrapStreamWithWarnings(fpResponse.body!), {
         headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
       });
     }
@@ -2456,9 +2246,6 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
       typeof revisionFeedback === "string" &&
       revisionFeedback.trim().length > 0;
 
-    const isFinalVoicePass =
-      stepType === "full_script" && !!finalVoicePass && !isFullScriptRevision;
-
     if (isFullScriptRevision) {
       systemPromptFinal +=
         `\n\nFULL SCRIPT REVISION MODE (BINDING):\n` +
@@ -2469,33 +2256,6 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
         `- Reuse the full pipeline context (Topic Brief, Creative Brief, Insights & Research, Evidence Table, Outline, source excerpts, Script Writing Instructions, Anti AI Guide, Host Persona, HP topic transcripts, commentary transcripts).\n` +
         `- Maintain target word count, editor tags after evidence paragraphs, source specificity, quote discipline, and the Lexicon mention ban.\n` +
         `- Output ONLY the revised Full Script. Do not include an explanation of changes, a diff, a changelog, or commentary about the revision.\n`;
-    }
-
-    if (isFinalVoicePass) {
-      systemPromptFinal +=
-        `\n\nFINAL VOICE PASS MODE (BINDING):\n` +
-        `You are performing a FINAL VOICE PASS on an existing full script.\n` +
-        `This is not a full rewrite and not a new script generation.\n\n` +
-        `Your job:\n` +
-        `- Preserve the existing argument, structure, section order, evidence, source tags, editor tags, and core canon claims.\n` +
-        `- Reapply the Script Writing Guide and Host Persona more strongly.\n` +
-        `- Make the script sound more like the intended host voice without making it feel forced.\n` +
-        `- Improve pacing, rhythm, tension, emotional movement, transitions, and punch.\n` +
-        `- Remove generic AI phrasing, repetitive phrasing, flat transitions, and overly academic wording.\n` +
-        `- Add small moments to breathe where the argument or emotion needs space.\n` +
-        `- Strengthen re-hooks and section endings only where they are currently weak.\n` +
-        `- Make the script feel more YouTube-native and spoken aloud.\n` +
-        `- Keep canon claims and evidence discipline intact.\n` +
-        `- Do not add major new arguments unless a missing connective sentence is needed.\n` +
-        `- Do not introduce new unsupported canon claims.\n` +
-        `- Do not change the title promise.\n` +
-        `- Do not over-do the host voice. The voice should feel natural, not like a character performance.\n\n` +
-        `Use the Host Persona as an invisible voice guide.\n` +
-        `Do not name the host.\n` +
-        `Do not summarize the persona.\n` +
-        `Do not mention the Script Writing Guide.\n` +
-        `Do not explain your changes. No preamble, no changelog, no diff.\n` +
-        `Output ONLY the revised full script.\n`;
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -2591,8 +2351,8 @@ ${sourceContext}
 
 Mine all six categories now. Rank everything by surprise value, specificity, and argument usefulness. Be precise about sources.`;
     } else {
-      // Generic generation step (e.g. evidence_table, analysis_memo, outline,
-      // full_script). Guidance is injected via buildGuidanceBlock() below;
+      // Generic generation step (e.g. evidence_table, outline, full_script).
+      // Guidance is injected via buildGuidanceBlock() below;
       // legacy Master-Guide framing append removed to avoid double injection.
 
       userMessage = `## Topic Brief
@@ -2625,35 +2385,6 @@ Please generate the ${stepType.replace(/_/g, " ")} based on the above informatio
       }
 
       userMessage += `\n\n## Previous Full Script\n${prevScript || "(No previous Full Script available.)"}\n\n## User Revision Feedback\n${revisionFeedback.trim()}\n\n## Revision Task\nRevise the previous Full Script using the user feedback. Do not simply patch a few sentences. Rebuild the script where necessary while preserving the strongest material. Use the full pipeline context again, including the Topic Brief, Creative Brief, Insights & Research, Evidence Table, Outline, source excerpts, Script Writing Instructions, Anti AI Guide, Host Persona, HP topic transcripts, and commentary transcripts where relevant.\n\nThe revised script must directly address the feedback and produce a cleaner, stronger, less repetitive, more source-grounded, more host-voiced final script.\n\nOutput only the revised Full Script.`;
-    }
-
-    if (isFinalVoicePass) {
-      let prevScript = (previousFullScript || "").toString();
-      if (!prevScript) {
-        const { data: prevOut } = await supabase
-          .from("pipeline_outputs")
-          .select("content")
-          .eq("brief_id", briefId)
-          .eq("step_type", "full_script")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        prevScript = prevOut?.content || "";
-      }
-
-      // Final Voice Pass is a light polish — do NOT re-inject the entire pipeline
-      // context (sources, transcripts, evidence). The system prompt already carries
-      // the Script Writing Guide, Anti AI Guide, and Host Persona. Sending the full
-      // context blew past the 272k token limit. Override userMessage with a slim payload.
-      userMessage =
-        `## Topic Brief\nTitle: ${brief.title}\nAngle: ${brief.angle_note || brief.description || ""}\n\n` +
-        `## Current Full Script (this is what you are polishing)\n${prevScript || "(No previous Full Script available.)"}\n\n` +
-        `## Final Voice Pass Task\n` +
-        `Apply a light voice-and-pacing polish to the Current Full Script above, following the FINAL VOICE PASS MODE rules in the system prompt. ` +
-        `Preserve argument, structure, section order, evidence, source tags, editor tags, and canon claims. ` +
-        `Improve only voice, pacing, rhythm, transitions, re-hooks, clarity, and non-generic phrasing. ` +
-        `Do not introduce new unsupported claims. Do not mention the Script Writing Guide or the Host Persona. ` +
-        `Output ONLY the revised full script.`;
     }
 
     // Call Lovable AI
