@@ -388,7 +388,7 @@ export async function streamGenerateStep(
   stepType: PipelineStepType,
   onDelta: (text: string) => void,
   onDone: () => void,
-  options?: { revisionFeedback?: string; previousFullScript?: string; finalVoicePass?: boolean },
+  options?: { revisionFeedback?: string; previousFullScript?: string; finalVoicePass?: boolean; hookDirection?: string },
 ) {
   const resp = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-step`,
@@ -404,6 +404,7 @@ export async function streamGenerateStep(
         revisionFeedback: options?.revisionFeedback,
         previousFullScript: options?.previousFullScript,
         finalVoicePass: options?.finalVoicePass,
+        hookDirection: options?.hookDirection,
       }),
     }
   );
