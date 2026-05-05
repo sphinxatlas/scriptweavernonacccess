@@ -14,6 +14,7 @@ function getModelForStep(stepType: string) {
       "selected_source_analysis",
       "analysis_memo",
       "outline",
+      "script_evidence_pack",
       "full_script",
     ].includes(stepType)
   ) {
