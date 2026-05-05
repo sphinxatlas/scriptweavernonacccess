@@ -186,43 +186,6 @@ I. SOURCE INTEGRATION RULE
 `;
 
 const STEP_PROMPTS: Record<string, string> = {
-  competitor_format_analysis: `You are a YouTube format analyst. Given competitor scripts pasted by the creator, analyze their STRUCTURE and FORMAT ONLY.
-
-STRICT RULES:
-- Competitor scripts must NEVER be used as factual sources and must NEVER be quoted.
-- Do NOT reuse any unique lines, jokes, names, examples, or arguments from competitor scripts.
-- Use competitor scripts ONLY to learn structure, pacing, hook shape, and section order.
-- All content in the final video must come only from primary sources (books and movie transcripts) plus secondary references where allowed.
-
-Analyze the competitor scripts and produce this EXACT output format:
-
-## Competitor Format Summary
-[Brief overview of what these scripts have in common structurally]
-
-## Hook Patterns That Win
-[List the hook structures used — e.g., question-based, bold claim, myth-busting, emotional setup]
-
-## Intro Patterns That Win
-[How do they transition from hook to body? What do the first 30-60 seconds accomplish?]
-
-## Section Structure Blueprint
-[How are the scripts divided? How many sections? What's the typical flow?]
-
-## Rehooks and Pacing Devices
-[Mid-video retention techniques — pattern interrupts, mini-hooks, cliffhangers, tonal shifts]
-
-## CTA and Closing Structure
-[How do they end? What call-to-action patterns work?]
-
-## Language Tone Notes
-[Conversational vs formal? First-person? Rhetorical questions? Humor style?]
-
-## What to Avoid Copying
-[Specific patterns or phrases that feel derivative or overused across competitors]
-
-## Abstracted Structure Template for Our Video
-[A clean, abstracted template we can follow without copying any specific content]`,
-
   retrieval: `You are a retrieval layer for a source-grounded Harry Potter research engine.
 Use ONLY the uploaded and indexed source files provided below.
 Use the provided retrieval query pack (compact derived queries), not full brief prose, as search intent.
