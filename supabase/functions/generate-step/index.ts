@@ -128,23 +128,6 @@ Use them to discover interesting angles, framings, and argument patterns.
 - Never copy commentary wording, structure, or phrasing into the script.
 `;
 
-const DUAL_HIERARCHY_INSTRUCTION = `
-DUAL HIERARCHY — THE FINAL SCRIPT MUST OBEY BOTH AT ONCE:
-
-Evidence hierarchy:
-- Tier 1 books and movie transcripts prove canon claims.
-- Lexicon can support background understanding but cannot be mentioned in narration.
-- Commentary and HP topic transcripts can inspire theories, angles, and interpretations, but cannot prove canon facts.
-- Guidance documents are not evidence.
-
-Writing hierarchy:
-- Host Persona is mandatory for first person voice.
-- Script Instructions are mandatory for structure and execution.
-- Anti AI Guide is mandatory for style and human writing quality.
-
-The final script must not merely include these documents in the prompt. It must visibly apply them in the writing.
-`;
-
 const VIDEO_RETENTION_STRUCTURE_INSTRUCTION = `
 VIDEO RETENTION & ESCALATION LAYER (BINDING — applies to Creative Brief, Outline, and Full Script):
 
@@ -369,25 +352,12 @@ Rules:
 - If an angle was inspired by a commentary transcript, it must be confirmed against books or movie transcripts before inclusion`,
 
   analysis_memo: `You are a script analysis expert for Harry Potter YouTube content.
-Given the topic brief, evidence table, and source material, write an ANALYSIS MEMO.
+
+This is a brief strategy note only. Maximum 200 words. Do not exceed this limit. Summarize the single most important strategic insight from the research for the video argument. One paragraph only.
 
 ${SOURCE_HIERARCHY_INSTRUCTION}
 
-The memo should:
-- Synthesize the evidence into key themes and arguments
-- Identify patterns, contradictions, and interesting angles
-- Suggest the strongest narrative thread for a YouTube script
-- Note any gaps in evidence that need addressing
-- Clearly distinguish between claims grounded in primary sources vs secondary Lexicon support
-- For each major claim, note the evidence type (exact quote, paraphrase, summary, interpretation)
-- Flag any claims that rely solely on Lexicon as "needs primary confirmation"
-- Be 800-1500 words
-
-QUOTE RESTRICTION (CRITICAL):
-- You may DISCUSS and REFERENCE quotes conceptually (e.g. "Dumbledore's line about choices captures...")
-- You must NOT paste long excerpts or multi-sentence quotes into the memo
-- Keep the memo analytical and argument-focused, not excerpt-heavy
-- If you reference a specific quote, keep it under 12 words or paraphrase it`,
+QUOTE RESTRICTION: do not paste excerpts. Reference conceptually only.`,
 
   // NOTE: The Beat Plan step uses the internal key 'outline' to avoid schema
   // changes. User-facing label is "Beat Plan" (see src/lib/api.ts).
@@ -761,14 +731,6 @@ ${TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION}
 ${COMMENTARY_TRANSCRIPTS_FRAMING_INSTRUCTION}
 
 ${VIDEO_RETENTION_STRUCTURE_INSTRUCTION}
-
-## CANONICAL GUIDANCE PRECEDENCE LADDER (single source of truth — overrides any other ladder)
-1. Source evidence / canon hierarchy (highest)
-2. Script Writing Instructions (binding — structure, retention, escalation, payoff)
-3. Anti AI Writing Instructions (binding — wording, rhythm, sentence shape)
-4. Host Persona: Melty (binding — voice layer only; never overrides facts or structure)
-5. User step request and revision feedback (within all of the above)
-The full text of layers 2–4 is appended to this prompt. Do not request or fabricate other versions.
 
 HOOK VALIDATION RULE (MANDATORY — run before writing the body):
 - Before writing the full script, compare the opening 2–3 sentences against the brief's Title, Title Promise, Viewer Click Question, and central contention from the outline.
@@ -1384,7 +1346,7 @@ serve(async (req) => {
     // or factual claims. Returns text + provenance metadata so we can log
     // chunks read vs total and surface truncation warnings.
     // ────────────────────────────────────────────────────────────────────────
-    const GUIDANCE_CHUNK_LIMIT = 40;
+    const GUIDANCE_CHUNK_LIMIT = 100;
 
     type LayerMeta = {
       text: string;
@@ -1526,10 +1488,20 @@ serve(async (req) => {
       if (layers.scriptInstructions.truncated) trunc.push("script_instructions");
       if (layers.antiAiInstructions.truncated) trunc.push("anti_ai");
       if (layers.hostPersona.truncated)        trunc.push("host_persona");
+      const docNames: Record<string, string> = {
+        script_instructions: "Script Writing Instructions",
+        anti_ai: "Anti-AI Writing Instructions",
+        host_persona: "Host Persona",
+      };
+      const totals: Record<string, number> = {
+        script_instructions: layers.scriptInstructions.totalChunks,
+        anti_ai: layers.antiAiInstructions.totalChunks,
+        host_persona: layers.hostPersona.totalChunks,
+      };
       for (const t of trunc) {
         const w = `guidance_truncated:${t}`;
         warnings.push(w);
-        console.warn(`[guidance] TRUNCATED ${t} for step=${stepType} (chunk limit ${GUIDANCE_CHUNK_LIMIT})`);
+        console.warn(`WARNING: Guidance document '${docNames[t] || t}' truncated at ${GUIDANCE_CHUNK_LIMIT} chunks. Full document has ${totals[t] ?? "?"} chunks. Raise GUIDANCE_CHUNK_LIMIT to avoid partial guidance.`);
       }
       console.log("[guidance]", JSON.stringify({
         stepType,
@@ -1549,15 +1521,6 @@ serve(async (req) => {
       `## SCRIPTWRITER ENGINE MASTER GUIDE\n\n` +
       `MANDATORY FRAMING GUIDE — use this to decide which insights are structurally useful for a YouTube script. Prioritize evidence and ideas that can create curiosity, escalation, tension, rehooks, emotional movement, originality, and payoff.\n\n` +
       `This guide is not evidence and must never be cited.\n\n`;
-
-    const PRECEDENCE_LADDER =
-      `\n\n## GUIDANCE PRECEDENCE LADDER\n` +
-      `1. Source hierarchy controls factual evidence.\n` +
-      `2. Scriptwriter Engine Master Guide controls structure, retention, argument shape, pacing, rehooks, and payoff.\n` +
-      `3. Anti AI Guide acts as a hard filter for wording, phrasing, and style problems.\n` +
-      `4. Host Persona controls voice, attitude, rhythm, and point of view, but should never override factual accuracy or structure.\n` +
-      `5. Retention and escalation instructions support the Master Guide. If they conflict, follow the Master Guide.\n` +
-      `6. Commentary transcripts, topic transcripts, competitor transcripts, and alternative sources provide audience signals, theories, framing possibilities, and inspiration, but must not be copied or treated as canon.\n`;
 
     // Get the topic brief
     const { data: brief, error: briefError } = await supabase
@@ -1851,7 +1814,6 @@ serve(async (req) => {
       if (cbMasterGuide) {
         systemPrompt += `\n\n${MASTER_GUIDE_HIGHEST_PRIORITY_HEADER}${cbMasterGuide}`;
       }
-      systemPrompt += PRECEDENCE_LADDER;
       systemPrompt += layeredGuidanceBlock;
 
       const userMessage = `## Video Title
@@ -1950,7 +1912,6 @@ Generate the Creative Brief now.`;
       if (masterGuideText) {
         fpSystem += `\n\n${MASTER_GUIDE_HIGHEST_PRIORITY_HEADER}${masterGuideText}`;
       }
-      fpSystem += PRECEDENCE_LADDER;
       if (antiAiTextFP) {
         fpSystem += `\n\nANTI AI LANGUAGE GUIDE (MANDATORY — apply these rules strictly):\n${antiAiTextFP}`;
       }
@@ -2423,7 +2384,6 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     if (isScriptStep && instructionContext) {
       // Master Guide injected as the highest-priority writing constitution.
       systemPrompt += `\n\n${MASTER_GUIDE_HIGHEST_PRIORITY_HEADER}${instructionContext}`;
-      systemPrompt += PRECEDENCE_LADDER;
     }
 
     // Inject Anti AI Language Guide enforcement into system prompt for script steps
@@ -2598,7 +2558,6 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
       if (instructionContext) {
         systemPromptFinal += `\n\n${MASTER_GUIDE_FRAMING_HEADER}${instructionContext}`;
       }
-      systemPromptFinal += PRECEDENCE_LADDER;
 
       userMessage = `## Topic Brief
 Title: ${brief.title}
@@ -2633,7 +2592,6 @@ Now produce the Selected Source Analysis in the exact format specified. Be hones
       if (instructionContext) {
         systemPromptFinal += `\n\n${MASTER_GUIDE_FRAMING_HEADER}${instructionContext}`;
       }
-      systemPromptFinal += PRECEDENCE_LADDER;
 
       userMessage = `## Creative Brief
 ${creativeBriefContent || `Title: ${brief.title}\nAngle: ${brief.angle_note || brief.description || ""}`}
@@ -2656,7 +2614,6 @@ Mine all six categories now. Rank everything by surprise value, specificity, and
       // didn't receive it yet.)
       if (!isScriptStep && instructionContext) {
         systemPromptFinal += `\n\n${MASTER_GUIDE_FRAMING_HEADER}${instructionContext}`;
-        systemPromptFinal += PRECEDENCE_LADDER;
       }
 
       userMessage = `## Topic Brief

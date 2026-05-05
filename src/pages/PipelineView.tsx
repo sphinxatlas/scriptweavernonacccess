@@ -31,9 +31,10 @@ import {
   Sparkles,
   FileCheck2,
   ShieldCheck,
+  Mic,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type ActiveStep = PipelineStepType | "clip_quote_finder";
 
@@ -47,6 +48,7 @@ export default function PipelineView() {
   const [revisionFeedback, setRevisionFeedback] = useState("");
   const [lastPassLabel, setLastPassLabel] = useState<string | null>(null);
   const [runningPass, setRunningPass] = useState<PolishPassType | null>(null);
+  const [showAdvancedPolish, setShowAdvancedPolish] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const { data: brief, refetch: refetchBrief } = useQuery({
@@ -237,8 +239,11 @@ export default function PipelineView() {
       toast.error("Generate a Full Script first.");
       return;
     }
-    const docLabelForConfirm =
-      passType === "anti_ai" ? "Anti AI Writing Instructions" : "Script Writing Instructions";
+    const passLabel =
+      passType === "anti_ai" ? "Anti AI Writing Instructions" :
+      passType === "melty_voice" ? "Melty Voice (Host Persona)" :
+      "Script Writing Instructions";
+    const docLabelForConfirm = passLabel;
     const confirmed = window.confirm(
       `Run ${docLabelForConfirm} pass?\n\nThis will overwrite the current Full Script with the revised version. Make sure any manual edits have been saved first.`,
     );
@@ -247,8 +252,7 @@ export default function PipelineView() {
     setGenerating(true);
     setStreamContent("");
     let accumulated = "";
-    const docLabel =
-      passType === "anti_ai" ? "Anti AI Writing Instructions" : "Script Writing Instructions";
+    const docLabel = passLabel;
     toast.message(`${docLabel} pass started — this will replace the current Full Script when complete.`);
     try {
       await streamPolishPass(
@@ -331,26 +335,7 @@ export default function PipelineView() {
                   </Button>
                 </>
               )}
-              {activeStep === "full_script" && currentOutput && !generating && (
-                <TooltipProvider delayDuration={150}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleFinalVoicePass}
-                        className="gap-1.5 text-xs"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        Final Voice Pass
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="max-w-xs text-xs">
-                      Lightly refines the current script using the Script Writing Guide and Melty persona. Keeps the argument, structure, sources, and evidence intact.
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
+              {/* Final Voice Pass moved into Advanced options below */}
               <Button size="sm" onClick={() => handleGenerate()} disabled={generating} className="gap-1.5">
                 {generating ? (
                   <>
@@ -488,6 +473,46 @@ export default function PipelineView() {
                           )}
                           Run Anti AI Pass
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRunPolishPass("melty_voice")}
+                          disabled={generating}
+                          className="gap-1.5"
+                        >
+                          {runningPass === "melty_voice" ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Mic className="w-3.5 h-3.5" />
+                          )}
+                          Melty Voice Polish
+                        </Button>
+                      </div>
+                      <div className="mt-3">
+                        <button
+                          type="button"
+                          onClick={() => setShowAdvancedPolish((v) => !v)}
+                          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <ChevronDown
+                            className={`w-3 h-3 transition-transform ${showAdvancedPolish ? "rotate-180" : ""}`}
+                          />
+                          Advanced options
+                        </button>
+                        {showAdvancedPolish && (
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleFinalVoicePass}
+                              disabled={generating}
+                              className="gap-1.5 text-xs"
+                            >
+                              <Sparkles className="w-3.5 h-3.5" />
+                              Final Voice Pass (legacy)
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
 
