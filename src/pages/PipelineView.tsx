@@ -635,8 +635,7 @@ export default function PipelineView() {
               </div>
             )}
           </div>
-            </>
-          )}
+          </>
         </div>
       </div>
 
