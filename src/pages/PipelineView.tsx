@@ -25,6 +25,8 @@ import {
   streamGenerateStep,
   streamPolishPass,
   updateBriefCreativeBriefFields,
+  generateHookOptions,
+  type HookOption,
   type PipelineStepType,
 } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +40,7 @@ import {
   ThumbsUp,
   Sparkles,
   Wand2,
+  Lightbulb,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -57,6 +60,11 @@ export default function PipelineView() {
   const [passageFeedback, setPassageFeedback] = useState("");
   const [passageRunning, setPassageRunning] = useState(false);
   const [passageOutput, setPassageOutput] = useState("");
+  // ── Hook Options (transient UI state only — never persisted) ──
+  const [hookFeedback, setHookFeedback] = useState("");
+  const [hookOptions, setHookOptions] = useState<HookOption[]>([]);
+  const [hookOptionsLoading, setHookOptionsLoading] = useState(false);
+  const [selectedHookDirection, setSelectedHookDirection] = useState("");
   const contentRef = useRef<HTMLDivElement>(null);
 
   const { data: brief, refetch: refetchBrief } = useQuery({
@@ -112,10 +120,26 @@ export default function PipelineView() {
           setGenerating(false);
           toast.success(`${PIPELINE_STEPS.find((s) => s.type === step)?.label} generated`);
         },
+        step === "full_script" && selectedHookDirection.trim()
+          ? { hookDirection: selectedHookDirection.trim() }
+          : undefined,
       );
     } catch (err: any) {
       setGenerating(false);
       toast.error(err.message || "Generation failed");
+    }
+  };
+
+  const handleGenerateHookOptions = async () => {
+    if (!briefId) return;
+    setHookOptionsLoading(true);
+    try {
+      const { hooks } = await generateHookOptions(briefId, hookFeedback);
+      setHookOptions(hooks);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate hook options");
+    } finally {
+      setHookOptionsLoading(false);
     }
   };
 
