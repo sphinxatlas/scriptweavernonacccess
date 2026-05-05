@@ -423,6 +423,7 @@ ARGUMENT REQUIREMENTS
 - The final beat must reframe the opening tension and give the viewer a new lens on the Contention stated at the top.
 - The hook beat (Beat 1) must confirm the title promise and open a curiosity loop without giving away the full answer.
 - Every beat must change the viewer's understanding. A beat that only adds information without shifting understanding is weak and must be strengthened or cut.
+- When Selected Source Analysis appears in previous context, use its Audience Objections, Recurring Fan Signals, and Underdeveloped Opportunities to shape rehooks, escalation rungs, and at least one beat that pre-empts a likely fan objection. Do not treat secondary-source claims as canon proof.
 
 EVIDENCE REQUIREMENTS
 - Each beat must name the specific canon anchor (book chapter, film scene). No vague references.
@@ -547,6 +548,8 @@ For each beat in the Beat Plan, write one paragraph in plain prose. Number each 
 7. Anti-repetition note: compare this beat's function to all prior beats in the Pack. If a prior beat already does the same job without escalation, flag the pair as a merge or cut candidate and recommend which one to keep. If the function repeats but escalates, name the new layer this beat adds.
 
 Write items 5, 6, and 7 as natural writer-facing sentences inside the same paragraph. Do not turn the beat into a table. Do not add markdown headings or labels like "Function:" inside the paragraph — embed the information in prose the writer can read in one pass.
+
+When a beat responds to a Selected Source Analysis Audience Objection, Recurring Fan Signal, or Underdeveloped Opportunity, surface that in plain prose inside the existing Function, Hook/payoff relation, or Anti-repetition note sentences. Do not add a new format field. Do not treat secondary-source claims as canon proof.
 
 Do not write beat functions, hook payoff relation, or anti repetition notes using mechanical contrast formulas such as "not X, but Y," "the problem is not X, the problem is Y," or "this is not X, this is Y." These upstream phrases leak into Full Script. Use concrete function language instead, such as "This beat proves," "This beat reveals," "This beat escalates," "This beat makes the audience question," or "This beat pays off."
 
@@ -991,6 +994,12 @@ HP TOPIC TRANSCRIPT RULES:
 - Use to understand: what angles exist, what claims have been made, what canon moments are relevant
 - Identify specific scenes or moments to verify against primary canon (books and movie transcripts)
 - Do NOT treat as proof of canon facts
+
+ALTERNATIVE SOURCES (SECONDARY) RULES:
+- The block titled "## Alternative Sources (SECONDARY, NON-CANON)" contains pasted Reddit threads, forum comments, blog posts, fan articles, wiki extracts, and similar non-canon material the creator selected for this brief.
+- Mine this block for: fan debate signals, repeated viewer complaints, audience emotional language, common objections, the expected surface answer most viewers assume, the surprising deeper answer fans rarely reach, underdeveloped angles, and what fans already say too often (so the video can avoid repeating it).
+- Use those signals when filling: Viewer Click Question, Expected Answer, Surprising Actual Answer, Hook Shape, What To Avoid, Fairness Move, Emotional Arc, and Video Engine. The Creative Brief should feel sharpened by real audience tension, not floating in a vacuum.
+- Alternative sources cannot supply Harry Potter facts. Any factual claim about canon must come from books, film transcripts, or other approved primary/canon sources. Fan claims from alternative sources can inspire angles or objections, but must be verified against primary canon before being treated as evidence.
 
 Generate the Creative Brief in this EXACT format:
 
