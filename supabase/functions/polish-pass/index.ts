@@ -186,7 +186,8 @@ serve(async (req) => {
     const scope: PassScope = body.scope === "passage" ? "passage" : "full_script";
     const userFeedback: string = (body.userFeedback || "").toString().trim();
 
-    if (!scriptText || scriptText.trim().length < 50) {
+    const minLen = scope === "passage" ? 10 : 50;
+    if (!scriptText || scriptText.trim().length < minLen) {
       const minMsg = scope === "passage"
         ? "Passage is too short. Paste at least a sentence or two."
         : "Script text is too short. Generate or paste a full script first.";
