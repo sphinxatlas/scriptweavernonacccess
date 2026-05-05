@@ -421,6 +421,120 @@ export default function PipelineView() {
 
                 {isFullScriptStep && !generating && (
                   <div className="mt-10 border-t border-border pt-6 max-w-3xl space-y-8">
+                    {/* Hook Options (optional) — transient UI state only, never persisted */}
+                    <div className="space-y-4 p-4 rounded-md border border-border bg-secondary/30">
+                      <div>
+                        <h3 className="font-mono text-sm font-bold text-foreground flex items-center gap-2">
+                          <Lightbulb className="w-4 h-4 text-primary" />
+                          Hook Options (optional)
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Generates three distinct opening hooks from the saved Creative Brief and Script Evidence Pack.
+                          Pick one to seed the Full Script. Not saved — refresh discards.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs">Selected Hook / Opening Direction</Label>
+                        <Textarea
+                          value={selectedHookDirection}
+                          onChange={(e) => setSelectedHookDirection(e.target.value)}
+                          rows={5}
+                          placeholder="Pick a hook below, or write your own opening direction here. Leave blank to keep current Full Script behavior."
+                          className="bg-background border-border resize-none text-sm"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs">Hook Feedback (optional)</Label>
+                        <Textarea
+                          value={hookFeedback}
+                          onChange={(e) => setHookFeedback(e.target.value)}
+                          rows={2}
+                          placeholder='e.g. "make it darker", "more canon-led", "less jokey", "more fan-debate driven"'
+                          className="bg-background border-border resize-none text-sm"
+                        />
+                      </div>
+
+                      <Button
+                        size="sm"
+                        onClick={handleGenerateHookOptions}
+                        disabled={hookOptionsLoading}
+                        className="gap-1.5"
+                      >
+                        {hookOptionsLoading ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            Generating hooks...
+                          </>
+                        ) : (
+                          <>
+                            <Lightbulb className="w-3.5 h-3.5" />
+                            {hookOptions.length ? "Regenerate Hook Options" : "Generate Hook Options"}
+                          </>
+                        )}
+                      </Button>
+
+                      {hookOptions.length > 0 && (
+                        <div className="grid grid-cols-1 gap-3 mt-2">
+                          {hookOptions.map((h, i) => {
+                            const directionText = `${h.hook_label}\n\n${h.hook_text}`;
+                            const isActive =
+                              selectedHookDirection.trim() === directionText.trim();
+                            return (
+                              <div
+                                key={i}
+                                className={`rounded-md border p-3 bg-background space-y-2 ${
+                                  isActive ? "border-primary" : "border-border"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-sm font-semibold text-foreground">
+                                      {h.hook_label}
+                                    </span>
+                                    <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-secondary text-foreground/70 border border-border">
+                                      {h.angle_route}
+                                    </span>
+                                    {isActive && (
+                                      <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/30">
+                                        Selected
+                                      </span>
+                                    )}
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant={isActive ? "secondary" : "default"}
+                                    onClick={() => setSelectedHookDirection(directionText)}
+                                    className="h-7 text-xs"
+                                  >
+                                    Use this hook
+                                  </Button>
+                                </div>
+                                <p className="text-sm text-foreground/85 whitespace-pre-wrap">
+                                  {h.hook_text}
+                                </p>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-muted-foreground">
+                                  <div>
+                                    <span className="font-semibold text-foreground/70">Why it works: </span>
+                                    {h.why_it_works}
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold text-foreground/70">Open loop: </span>
+                                    {h.open_loop}
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold text-foreground/70">Risk: </span>
+                                    {h.risk_or_weakness}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
                     <div>
                       <h3 className="font-mono text-sm font-bold text-foreground flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-primary" />
