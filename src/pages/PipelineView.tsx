@@ -17,7 +17,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { PipelineSidebar } from "@/components/pipeline/PipelineSidebar";
-import { ClipQuoteFinderPanel } from "@/components/pipeline/ClipQuoteFinderPanel";
 import {
   PIPELINE_STEPS,
   getPipelineOutputs,
@@ -44,7 +43,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-type ActiveStep = PipelineStepType | "clip_quote_finder";
+type ActiveStep = PipelineStepType;
 
 export default function PipelineView() {
   const { briefId } = useParams<{ briefId: string }>();
@@ -90,17 +89,14 @@ export default function PipelineView() {
   const getStepOutput = (step: PipelineStepType) =>
     outputs.find((o) => o.step_type === step);
 
-  const isClipFinder = activeStep === "clip_quote_finder";
-  const currentOutput = isClipFinder ? undefined : getStepOutput(activeStep as PipelineStepType);
+  const currentOutput = getStepOutput(activeStep as PipelineStepType);
   const displayContent = generating ? streamContent : currentOutput?.content || "";
 
   const handleGenerate = async (
     overrideStep?: PipelineStepType,
   ) => {
     if (!briefId) return;
-    const step: PipelineStepType =
-      overrideStep || (activeStep === "clip_quote_finder" ? "full_script" : (activeStep as PipelineStepType));
-    if (activeStep === "clip_quote_finder" && !overrideStep) return;
+    const step: PipelineStepType = overrideStep || (activeStep as PipelineStepType);
     setGenerating(true);
     setStreamContent("");
 
@@ -284,26 +280,7 @@ export default function PipelineView() {
         />
 
         <div className="flex-1 flex flex-col">
-          {isClipFinder ? (
-            <>
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-                <div>
-                  <h2 className="font-mono text-sm font-bold text-foreground">Clip & Quote Finder</h2>
-                  <p className="text-xs text-muted-foreground">
-                    Editor-only utility — does not affect the pipeline.
-                  </p>
-                </div>
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <ClipQuoteFinderPanel
-                  briefId={briefId}
-                  briefTitle={brief?.title}
-                  initialScript={fullScriptContent}
-                />
-              </div>
-            </>
-          ) : (
-            <>
+          <>
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-border">
             <div>
