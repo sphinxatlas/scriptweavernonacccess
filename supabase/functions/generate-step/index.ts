@@ -455,6 +455,8 @@ Example:
 IMPORTANT — WORD BUDGET INSTRUCTIONS (injected dynamically per brief):
 {{OUTLINE_LENGTH_INSTRUCTION}}`,
 
+  // NOTE: The BANNED CONSTRUCTIONS block inside this prompt must be kept
+  // in sync with the Beat Plan step prompt when that step is added.
   full_script: `You are a professional YouTube scriptwriter specializing in Harry Potter analysis content.
 Given the topic brief, evidence, analysis, and outline, write a FULL SCRIPT.
 
