@@ -474,6 +474,46 @@ export default function PipelineView() {
                           )}
                           Run Anti AI Pass
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRunPolishPass("melty_voice")}
+                          disabled={generating}
+                          className="gap-1.5"
+                        >
+                          {runningPass === "melty_voice" ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Mic className="w-3.5 h-3.5" />
+                          )}
+                          Melty Voice Polish
+                        </Button>
+                      </div>
+                      <div className="mt-3">
+                        <button
+                          type="button"
+                          onClick={() => setShowAdvancedPolish((v) => !v)}
+                          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <ChevronDown
+                            className={`w-3 h-3 transition-transform ${showAdvancedPolish ? "rotate-180" : ""}`}
+                          />
+                          Advanced options
+                        </button>
+                        {showAdvancedPolish && (
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleFinalVoicePass}
+                              disabled={generating}
+                              className="gap-1.5 text-xs"
+                            >
+                              <Sparkles className="w-3.5 h-3.5" />
+                              Final Voice Pass (legacy)
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
 
