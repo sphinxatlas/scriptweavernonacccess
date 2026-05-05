@@ -2016,16 +2016,6 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
       sourceContext = sections.join("\n\n========\n\n");
     }
 
-    const instructionContext = instructionChunks.length > 0
-      ? instructionChunks.map(c => c.content).join("\n\n")
-      : "";
-
-    // Anti AI Language Guide — injected into outline (optional) and full_script (mandatory)
-    const isScriptStep = ["outline", "full_script"].includes(stepType);
-    const antiAiContext = isScriptStep && antiAiChunks.length > 0
-      ? antiAiChunks.map(c => c.content).join("\n\n")
-      : "";
-
     // Per-entry cap on previous pipeline outputs to prevent cumulative bloat
     // in late steps (Outline, Full Script, Revision). The SSA output is the
     // distilled gateway for selected secondary sources, so we let it through
