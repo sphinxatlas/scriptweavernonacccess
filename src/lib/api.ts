@@ -4,8 +4,6 @@ import type { Tables } from "@/integrations/supabase/types";
 export type SourceFile = Tables<"source_files">;
 export type TopicBrief = Tables<"topic_briefs">;
 export type PipelineOutput = Tables<"pipeline_outputs">;
-export type ImprovedScript = Tables<"improved_scripts">;
-
 export type PipelineStepType =
   | "creative_brief"
   | "six_category_extraction"
