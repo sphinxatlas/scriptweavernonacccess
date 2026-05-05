@@ -1152,7 +1152,6 @@ const STEP_ORDER = [
   "full_script",
   "verification",
   "retrieval",
-  "competitor_format_analysis",
 ];
 
 type SearchSourceType = "book" | "transcript" | "lexicon" | "competitor_analysis";
