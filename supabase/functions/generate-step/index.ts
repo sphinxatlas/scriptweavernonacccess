@@ -2175,23 +2175,6 @@ Generate the Creative Brief now.`;
       antiAiChunks = data || [];
     }
 
-    // Get Commentary Transcript chunks (secondary commentary — angle discovery, never evidence)
-    const { data: competitorFiles } = await supabase
-      .from("source_files")
-      .select("id")
-      .eq("file_type", "competitor_analysis");
-
-    let competitorChunks: any[] = [];
-    if (competitorFiles && competitorFiles.length > 0) {
-      const { data } = await supabase
-        .from("file_chunks")
-        .select("content")
-        .in("file_id", competitorFiles.map(f => f.id))
-        .order("chunk_index")
-        .limit(15);
-      competitorChunks = data || [];
-    }
-
     // Get previous pipeline outputs for this brief
     const stepIndex = STEP_ORDER.indexOf(stepType);
     const previousSteps = STEP_ORDER.slice(0, stepIndex);
