@@ -1366,13 +1366,6 @@ serve(async (req) => {
       return { scriptInstructions, antiAiInstructions, hostPersona };
     }
 
-    // Backwards-compatible helper used by older code paths that only need the
-    // Master Guide (Script Writing Instructions) text.
-    async function loadMasterGuideContext(): Promise<string> {
-      const layer = await loadLayer(["instructions", "script_strategy"], "instructions");
-      return layer.text;
-    }
-
     // ── Step-level guidance intensity configuration ────────────────────────
     type Intensity = "none" | "light" | "medium" | "strong" | "highest";
     type StepGuidanceConfig = { script: Intensity; antiAi: Intensity; persona: Intensity };
