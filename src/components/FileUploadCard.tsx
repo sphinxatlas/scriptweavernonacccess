@@ -12,7 +12,6 @@ import {
 } from "@/lib/api";
 import { toast } from "sonner";
 import { SourceDetailModal } from "@/components/SourceDetailModal";
-import { SourceIntelligenceLine } from "@/components/SourceIntelligenceLine";
 
 interface FileUploadCardProps {
   fileType: "book" | "transcript" | "instructions" | "lexicon" | "competitor_analysis" | "host_persona" | "anti_ai_guide";
