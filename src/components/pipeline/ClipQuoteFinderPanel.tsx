@@ -134,7 +134,7 @@ export function ClipQuoteFinderPanel({ briefId, briefTitle, initialScript }: Pro
           Clip & Quote Finder
         </h2>
         <p className="text-xs text-muted-foreground mt-1 max-w-3xl">
-          Editor-only utility. Paste your final or near-final script and get clip, timestamp, quote, and B-roll recommendations grounded in this brief's pipeline context and uploaded sources. This does not modify your script, outline, evidence table, or any pipeline output.
+          Editor-only utility. Paste your final or near-final script and get clip, timestamp, quote, and B-roll recommendations grounded in this brief's pipeline context and uploaded sources. This does not modify your script, beat plan, evidence table, or any pipeline output.
         </p>
       </div>
 
