@@ -1454,16 +1454,6 @@ serve(async (req) => {
       }));
     }
 
-    const MASTER_GUIDE_HIGHEST_PRIORITY_HEADER =
-      `## SCRIPTWRITER ENGINE MASTER GUIDE\n\n` +
-      `HIGHEST PRIORITY WRITING CONSTITUTION — apply these rules when shaping the video blueprint, viewer question, hook logic, escalation, argument structure, section progression, retention strategy, emotional arc, and final payoff.\n\n` +
-      `This guide is not evidence. Do not cite it. Do not summarize it. Use it to shape the creative and structural decisions of the brief.\n\n`;
-
-    const MASTER_GUIDE_FRAMING_HEADER =
-      `## SCRIPTWRITER ENGINE MASTER GUIDE\n\n` +
-      `MANDATORY FRAMING GUIDE — use this to decide which insights are structurally useful for a YouTube script. Prioritize evidence and ideas that can create curiosity, escalation, tension, rehooks, emotional movement, originality, and payoff.\n\n` +
-      `This guide is not evidence and must never be cited.\n\n`;
-
     // Get the topic brief
     const { data: brief, error: briefError } = await supabase
       .from("topic_briefs")
