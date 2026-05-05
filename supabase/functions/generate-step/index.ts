@@ -1393,14 +1393,10 @@ serve(async (req) => {
       six_category_extraction:     { script: "medium",  antiAi: "light",   persona: "light"   },
       selected_source_analysis:    { script: "medium",  antiAi: "light",   persona: "light"   },
       evidence_table:              { script: "medium",  antiAi: "light",   persona: "light"   },
-      analysis_memo:               { script: "strong",  antiAi: "medium",  persona: "medium"  },
       outline:                     { script: "highest", antiAi: "strong",  persona: "strong"  },
       script_evidence_pack:        { script: "strong",  antiAi: "strong",  persona: "medium"  },
       full_script:                 { script: "highest", antiAi: "highest", persona: "highest" },
       full_script_revision:        { script: "highest", antiAi: "highest", persona: "highest" },
-      final_voice_pass:            { script: "medium",  antiAi: "highest", persona: "highest" },
-      verification:                { script: "light",   antiAi: "none",    persona: "none"    },
-      retrieval:                   { script: "none",    antiAi: "none",    persona: "none"    },
     };
 
     const SCRIPT_WRAPPER = (text: string, intensity: Intensity) =>
