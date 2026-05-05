@@ -4,8 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { PipelineSidebar } from "@/components/pipeline/PipelineSidebar";
 import { ClipQuoteFinderPanel } from "@/components/pipeline/ClipQuoteFinderPanel";
 import {
@@ -13,8 +11,6 @@ import {
   getPipelineOutputs,
   savePipelineOutput,
   streamGenerateStep,
-  streamPolishPass,
-  type PolishPassType,
   updateBriefCreativeBriefFields,
   type PipelineStepType,
 } from "@/lib/api";
@@ -27,12 +23,6 @@ import {
   Copy,
   Download,
   ThumbsUp,
-  Wand2,
-  Sparkles,
-  FileCheck2,
-  ShieldCheck,
-  Mic,
-  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -45,10 +35,6 @@ export default function PipelineView() {
   const [streamContent, setStreamContent] = useState("");
   const [feedbackText, setFeedbackText] = useState("");
   const [approving, setApproving] = useState(false);
-  const [revisionFeedback, setRevisionFeedback] = useState("");
-  const [lastPassLabel, setLastPassLabel] = useState<string | null>(null);
-  const [runningPass, setRunningPass] = useState<PolishPassType | null>(null);
-  const [showAdvancedPolish, setShowAdvancedPolish] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const { data: brief, refetch: refetchBrief } = useQuery({
@@ -80,10 +66,8 @@ export default function PipelineView() {
 
   const handleGenerate = async (
     overrideStep?: PipelineStepType,
-    revisionOpts?: { revisionFeedback?: string; previousFullScript?: string; finalVoicePass?: boolean },
   ) => {
     if (!briefId) return;
-    setLastPassLabel(null);
     const step: PipelineStepType =
       overrideStep || (activeStep === "clip_quote_finder" ? "full_script" : (activeStep as PipelineStepType));
     if (activeStep === "clip_quote_finder" && !overrideStep) return;
@@ -104,73 +88,13 @@ export default function PipelineView() {
           await savePipelineOutput(briefId, step, accumulated);
           refetchOutputs();
           setGenerating(false);
-          if (revisionOpts?.finalVoicePass) {
-            toast.success("Final Voice Pass complete");
-          } else {
-            toast.success(`${PIPELINE_STEPS.find((s) => s.type === step)?.label} generated`);
-          }
-          if (revisionOpts?.revisionFeedback) setRevisionFeedback("");
+          toast.success(`${PIPELINE_STEPS.find((s) => s.type === step)?.label} generated`);
         },
-        revisionOpts
-          ? {
-              revisionFeedback: revisionOpts.revisionFeedback,
-              previousFullScript: revisionOpts.previousFullScript,
-              finalVoicePass: revisionOpts.finalVoicePass,
-            }
-          : undefined,
       );
     } catch (err: any) {
       setGenerating(false);
       toast.error(err.message || "Generation failed");
     }
-  };
-
-  const handleReviseFullScript = () => {
-    const fb = revisionFeedback.trim();
-    if (!fb) {
-      toast.error("Please add revision feedback before regenerating.");
-      return;
-    }
-    const prev = (currentOutput?.content || "").toString();
-    handleGenerate("full_script", { revisionFeedback: fb, previousFullScript: prev });
-  };
-
-  const handleFinalVoicePass = () => {
-    const prev = (currentOutput?.content || "").toString();
-    if (!prev.trim()) {
-      toast.error("Generate a Full Script first.");
-      return;
-    }
-    handleGenerate("full_script", { previousFullScript: prev, finalVoicePass: true });
-  };
-
-  const REVISION_CHIPS: { label: string; append: string }[] = [
-    { label: "Reduce repetition", append: "Reduce repetition and remove points that are being made more than once. Keep the strongest version of each idea." },
-    { label: "Sharpen the argument", append: "Make the central argument sharper and more decisive. Cut hedging and tighten the logic." },
-    { label: "Add more canon evidence", append: "Add more specific canon evidence from the books and movie transcripts to support the key claims." },
-    { label: "More book/movie contrast", append: "Use more direct book vs movie contrast where the adaptation choices reveal something meaningful." },
-    { label: "More personality / Melty-driven", append: "Make the voice feel more personality-driven and host-led, not detached or generic." },
-    { label: "Stronger hook", append: "Rewrite the hook so it lands harder in the first 15 seconds and earns the watch." },
-    { label: "Improve pacing", append: "Improve pacing — speed up slow stretches, add rehooks, and remove sections that drag." },
-    { label: "Stronger ending", append: "Make the ending stronger, with a sharper payoff and a more memorable closing line." },
-    { label: "Add more context", append: "Add more context where the argument assumes the viewer already knows the setup." },
-    { label: "Less generic", append: "Make the writing less generic. Replace vague phrasing with specific scenes, lines, and moments." },
-    { label: "More emotionally engaging", append: "Make it more emotionally engaging — name the feeling, not just the fact." },
-    { label: "More plausible theory", append: "Make any theories feel more plausible by grounding them more clearly in canon detail." },
-    { label: "Less academic", append: "Make the script less academic and more YouTube-spoken — like a creator talking, not an essay being read." },
-    { label: "Add 'so what' after evidence", append: "After every evidence beat, add a clear 'so what' — the takeaway or interpretation, not just the fact." },
-    { label: "Smoother transitions", append: "Smooth out the transitions between sections so the script flows as one continuous argument." },
-    { label: "More YouTube-native", append: "Make it more YouTube-native: conversational, opinionated, and built for retention." },
-    { label: "Strengthen the conclusion", append: "Strengthen the conclusion so the thesis lands with weight and the viewer feels the argument was proven." },
-    { label: "Keep title/angle present", append: "Keep the title and core angle visibly present throughout the script, not just in the hook and outro." },
-  ];
-
-  const appendChip = (text: string) => {
-    setRevisionFeedback((prev) => {
-      const trimmed = prev.trim();
-      if (!trimmed) return text;
-      return trimmed + "\n\n" + text;
-    });
   };
 
   const handleApproveCreativeBrief = async () => {
@@ -223,59 +147,6 @@ export default function PipelineView() {
   const creativeBriefFeedback = brief && (brief as any).creative_brief_feedback;
   const showCreativeBriefReview = isCreativeBrief && currentOutput && !generating && !creativeBriefApproved;
   const showCreativeBriefApproved = isCreativeBrief && currentOutput && !generating && creativeBriefApproved;
-  const showFullScriptRevision =
-    activeStep === "full_script" && !!currentOutput && !generating;
-
-  const handleRunPolishPass = async (passType: PolishPassType) => {
-    if (!briefId) return;
-    // A1: Always pull the freshest saved Full Script from the DB so any prior
-    // pass / revision / save is included. This matches the same source of
-    // truth that savePipelineOutput writes to.
-    const fresh = await refetchOutputs();
-    const freshFullScript =
-      (fresh.data || outputs).find((o) => o.step_type === "full_script")?.content || "";
-    const scriptText = (freshFullScript || currentOutput?.content || "").toString();
-    if (!scriptText.trim()) {
-      toast.error("Generate a Full Script first.");
-      return;
-    }
-    const passLabel =
-      passType === "anti_ai" ? "Anti AI Writing Instructions" :
-      passType === "melty_voice" ? "Melty Voice (Host Persona)" :
-      "Script Writing Instructions";
-    const docLabelForConfirm = passLabel;
-    const confirmed = window.confirm(
-      `Run ${docLabelForConfirm} pass?\n\nThis will overwrite the current Full Script with the revised version. Make sure any manual edits have been saved first.`,
-    );
-    if (!confirmed) return;
-    setRunningPass(passType);
-    setGenerating(true);
-    setStreamContent("");
-    let accumulated = "";
-    const docLabel = passLabel;
-    toast.message(`${docLabel} pass started — this will replace the current Full Script when complete.`);
-    try {
-      await streamPolishPass(
-        { passType, scriptText },
-        (delta) => {
-          accumulated += delta;
-          setStreamContent(accumulated);
-        },
-        async () => {
-          await savePipelineOutput(briefId, "full_script", accumulated);
-          await refetchOutputs();
-          setGenerating(false);
-          setRunningPass(null);
-          setLastPassLabel(`Revised with ${docLabel}`);
-          toast.success(`${docLabel} pass complete`);
-        },
-      );
-    } catch (err: any) {
-      setGenerating(false);
-      setRunningPass(null);
-      toast.error(err.message || "Polish pass failed");
-    }
-  };
 
   const fullScriptContent =
     (outputs.find((o) => o.step_type === "full_script")?.content as string | undefined) || "";
