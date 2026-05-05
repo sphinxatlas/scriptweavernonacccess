@@ -2459,10 +2459,11 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
         );
       }
       const parts: string[] = [];
+      // Order matters: SEP is the controlling source; Creative Brief is directional only.
+      parts.push(`### SCRIPT EVIDENCE PACK (CONTROLLING SOURCE — argument route, evidence, beat sequence, source-grounded claims, fan objections, repetition control, hook/payoff execution)\n${capPreviousOutput("script_evidence_pack", packEntry.content)}`);
       if (cbEntry?.content) {
-        parts.push(`### CREATIVE BRIEF\n${capPreviousOutput("creative_brief", cbEntry.content)}`);
+        parts.push(`### CREATIVE BRIEF (DIRECTIONAL ONLY — title promise, thesis direction, tone, emotional arc, intended payoff)\n${capPreviousOutput("creative_brief", cbEntry.content)}`);
       }
-      parts.push(`### SCRIPT EVIDENCE PACK\n${capPreviousOutput("script_evidence_pack", packEntry.content)}`);
       // Optional Hook Direction — only injected for full_script. No other step reads this.
       const hd = typeof hookDirection === "string" ? hookDirection.trim() : "";
       if (hd) {
@@ -2513,6 +2514,11 @@ Before finalizing your output, silently self-check:
 4. Does this feel like Melty's original take, not a remix of other creators?
 5. Are selected sources being used as audience intelligence rather than as substituted substance?
 If any answer reveals overreliance, revise toward a more original, canon-grounded argument before producing the final output. Do not mention this self-check in the output.`;
+    }
+
+    // Full Script source precedence: SEP controls; Creative Brief is directional only.
+    if (stepType === "full_script") {
+      systemPrompt += `\n\nSOURCE PRECEDENCE (BINDING): The Script Evidence Pack is the CONTROLLING source for argument route, beat sequence, evidence, source-grounded claims, fan objections, repetition control, and hook/payoff execution. The Creative Brief is DIRECTIONAL ONLY: title promise, thesis direction, tone, emotional arc, intended payoff. If they conflict, follow the Script Evidence Pack. Do not import Creative Brief sentences verbatim. Do not restate the thesis using Creative Brief phrasing more than once. Treat the Creative Brief as a compass, not as script copy.`;
     }
 
     // Add comparison mode instruction if enabled
