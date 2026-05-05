@@ -1228,10 +1228,12 @@ serve(async (req) => {
 
     const PERSONA_WRAPPER = (text: string, intensity: Intensity) =>
       intensity === "none" || !text ? "" :
-      `\n\n## HOST PERSONA: MELTY (${intensity.toUpperCase()} BINDING — voice layer only)\n` +
-      `Governs voice, humour, fandom-native reactions, personality, and commentary flavour.\n` +
-      `Does NOT control structure, facts, evidence, canon meaning, or claim strength.\n` +
-      `Apply invisibly. Do not name the host unless the persona requires it.\n\n${text}`;
+      `\n\n## PERSONA_WRAPPER (operating voice, mandatory)\n` +
+      `The host persona below is the voice speaking the entire script. Every sentence must sound like this person. Their reactions, rhythm, judgment, humor, and emotional register are the medium of the script, not decoration. The viewer should know who is talking by the second sentence without being told.\n\n` +
+      `The persona does not introduce themselves unless the script genuinely needs it. They do not say 'hey guys' or 'what is up'. Their presence is felt through word choice, sentence rhythm, what they react to, when they get blunt, when they get quiet.\n\n` +
+      `Use 2 to 4 recognizable persona-specific lines per script maximum. Do not overload. Do not invent new catchphrases. Pull from the persona document only.\n\n` +
+      `The persona does not override canon. If canon and the persona's instinct disagree, canon wins and the persona narrates the disagreement.\n\n` +
+      `PERSONA DOCUMENT FOLLOWS:\n\n${text}`;
 
     function buildGuidanceBlock(stepType: string, layers: GuidanceLayers): string {
       const cfg = STEP_GUIDANCE[stepType] || { script: "none", antiAi: "none", persona: "none" };
