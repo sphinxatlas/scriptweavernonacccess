@@ -21,7 +21,6 @@ import {
 import { Plus, Trash2, Eye, Download } from "lucide-react";
 import { toast } from "sonner";
 import { SourceDetailModal } from "@/components/SourceDetailModal";
-import { SourceIntelligenceLine } from "@/components/SourceIntelligenceLine";
 
 type Section = "format" | "topic";
 
@@ -189,16 +188,6 @@ function TranscriptSection({ section }: { section: Section }) {
                   <TableCell className="font-medium align-top">{item.channel_name}</TableCell>
                   <TableCell className="align-top">
                     <div>{item.video_title}</div>
-                    {section === "topic" && (
-                      <SourceIntelligenceLine
-                        table="brief_topic_transcripts"
-                        id={item.id}
-                        charCount={item.char_count}
-                        estimatedTokens={item.estimated_tokens}
-                        scriptStrength={item.script_strength}
-                        onAnalyzed={() => refetch()}
-                      />
-                    )}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {new Date(item.created_at).toLocaleDateString()}
@@ -463,14 +452,6 @@ function AlternativeSourcesSection() {
                 <TableRow key={item.id}>
                   <TableCell className="font-medium align-top">
                     <div>{item.title}</div>
-                    <SourceIntelligenceLine
-                      table="alternative_sources"
-                      id={item.id}
-                      charCount={(item as any).char_count}
-                      estimatedTokens={(item as any).estimated_tokens}
-                      scriptStrength={(item as any).script_strength}
-                      onAnalyzed={() => refetch()}
-                    />
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {item.source_type || "—"}
