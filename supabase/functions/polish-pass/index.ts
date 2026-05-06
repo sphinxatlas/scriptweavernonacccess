@@ -322,14 +322,15 @@ serve(async (req) => {
 ${userFeedback ? `## USER FEEDBACK\n${userFeedback}\n\n` : ""}## PASSAGE
 ${scriptText}`;
     } else {
-      // Full-script polish pass — unchanged behavior (single-doc lens).
+      // Full-script polish pass — single-doc lens, EXCEPT melty_voice loads
+      // both Host Persona and the Melty Voice Pass instructions.
       const docFileTypes =
         passType === "anti_ai" ? ["anti_ai_guide"] :
-        passType === "melty_voice" ? ["host_persona"] :
+        passType === "melty_voice" ? ["host_persona", "melty_voice_pass"] :
         ["instructions", "script_strategy"];
       const docLabel =
         passType === "anti_ai" ? "Anti AI Writing Instructions" :
-        passType === "melty_voice" ? "Host Persona" :
+        passType === "melty_voice" ? "Melty Voice Pass" :
         "Script Writing Instructions";
 
       const guidance = await loadGuidanceText(supabase, docFileTypes);

@@ -55,6 +55,8 @@ export default function PipelineView() {
   const [antiAiRunning, setAntiAiRunning] = useState(false);
   const [antiAiStream, setAntiAiStream] = useState("");
   const [confirmAntiAiOpen, setConfirmAntiAiOpen] = useState(false);
+  const [meltyRunning, setMeltyRunning] = useState(false);
+  const [meltyStream, setMeltyStream] = useState("");
   const [passageInput, setPassageInput] = useState("");
   const [passageFeedback, setPassageFeedback] = useState("");
   const [passageRunning, setPassageRunning] = useState(false);
@@ -195,11 +197,17 @@ export default function PipelineView() {
   const fullScriptContent =
     (outputs.find((o) => o.step_type === "full_script")?.content as string | undefined) || "";
 
+  const meltyVoicePassContent =
+    (outputs.find((o) => (o.step_type as string) === "melty_voice_pass")?.content as string | undefined) || "";
+
+  // Anti-AI prefers the Melty Voice Pass output when it exists, otherwise falls back to the raw Full Script.
+  const antiAiInput = meltyVoicePassContent || fullScriptContent;
+
   const isFullScriptStep = activeStep === "full_script";
 
   const runFullScriptAntiAi = async () => {
     if (!briefId) return;
-    if (!fullScriptContent || fullScriptContent.trim().length < 50) {
+    if (!antiAiInput || antiAiInput.trim().length < 50) {
       toast.error("Generate a Full Script first.");
       return;
     }
@@ -209,7 +217,7 @@ export default function PipelineView() {
     let acc = "";
     try {
       await streamPolishPass(
-        { passType: "anti_ai", scope: "full_script", scriptText: fullScriptContent },
+        { passType: "anti_ai", scope: "full_script", scriptText: antiAiInput },
         (delta) => {
           acc += delta;
           setAntiAiStream(acc);
@@ -230,6 +238,41 @@ export default function PipelineView() {
     } catch (err: any) {
       setAntiAiRunning(false);
       toast.error(err.message || "Anti AI cleanup failed");
+    }
+  };
+
+  const runFullScriptMelty = async () => {
+    if (!briefId) return;
+    if (!fullScriptContent || fullScriptContent.trim().length < 50) {
+      toast.error("Generate a Full Script first.");
+      return;
+    }
+    setMeltyRunning(true);
+    setMeltyStream("");
+    let acc = "";
+    try {
+      await streamPolishPass(
+        { passType: "melty_voice", scope: "full_script", scriptText: fullScriptContent },
+        (delta) => {
+          acc += delta;
+          setMeltyStream(acc);
+        },
+        async () => {
+          if (!acc.trim()) {
+            setMeltyRunning(false);
+            toast.error("Melty Voice Pass returned no content.");
+            return;
+          }
+          await savePipelineOutput(briefId, "melty_voice_pass" as PipelineStepType, acc);
+          await refetchOutputs();
+          setMeltyRunning(false);
+          setMeltyStream("");
+          toast.success("Melty Voice Pass saved. It will now feed the Anti AI Cleanup.");
+        },
+      );
+    } catch (err: any) {
+      setMeltyRunning(false);
+      toast.error(err.message || "Melty Voice Pass failed");
     }
   };
 
@@ -586,19 +629,74 @@ export default function PipelineView() {
                       </p>
                     </div>
 
-                    {/* Tool 1 — Full Script Anti AI Cleanup */}
+                    {/* Tool 1a — Melty Voice Pass (runs before Anti AI Cleanup) */}
                     <div className="space-y-3 p-4 rounded-md border border-border bg-secondary/30">
                       <div>
-                        <h4 className="text-sm font-semibold text-foreground">Full Script Anti AI Cleanup</h4>
+                        <h4 className="text-sm font-semibold text-foreground">
+                          Melty Voice Pass
+                          <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-foreground">
+                            Step 1 of 2
+                          </span>
+                        </h4>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Runs the entire saved Full Script through the Anti AI document. Overwrites the
-                          saved Full Script after you confirm and the run completes.
+                          Injects Melty's personality, reactive beats, and fan-coded voice into the
+                          full script draft. Saved separately; the Anti AI Cleanup below will use this
+                          output as its input once it exists.
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={runFullScriptMelty}
+                        disabled={meltyRunning || !fullScriptContent}
+                        className="gap-1.5"
+                      >
+                        {meltyRunning ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            Running Melty Voice Pass...
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-3.5 h-3.5" />
+                            {meltyVoicePassContent ? "Re-run Melty Voice Pass" : "Run Melty Voice Pass"}
+                          </>
+                        )}
+                      </Button>
+                      {meltyRunning && meltyStream && (
+                        <div className="mt-2 max-h-64 overflow-auto rounded border border-border bg-background p-3 text-xs whitespace-pre-wrap text-foreground/80">
+                          {meltyStream}
+                          <div className="flex items-center gap-2 mt-2 text-primary">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                            Streaming Melty Voice Pass... will save when complete.
+                          </div>
+                        </div>
+                      )}
+                      {!meltyRunning && meltyVoicePassContent && (
+                        <p className="text-[11px] text-muted-foreground">
+                          Melty Voice Pass output is saved and will feed the Anti AI Cleanup below.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Tool 1b — Full Script Anti AI Cleanup */}
+                    <div className="space-y-3 p-4 rounded-md border border-border bg-secondary/30">
+                      <div>
+                        <h4 className="text-sm font-semibold text-foreground">
+                          Full Script Anti AI Cleanup
+                          <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-foreground">
+                            Step 2 of 2
+                          </span>
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Runs the {meltyVoicePassContent ? "saved Melty Voice Pass" : "saved Full Script"}{" "}
+                          through the Anti AI document. Overwrites the saved Full Script after you
+                          confirm and the run completes.
                         </p>
                       </div>
                       <Button
                         size="sm"
                         onClick={() => setConfirmAntiAiOpen(true)}
-                        disabled={antiAiRunning || !fullScriptContent}
+                        disabled={antiAiRunning || !antiAiInput}
                         className="gap-1.5"
                       >
                         {antiAiRunning ? (
