@@ -17,6 +17,7 @@ export default function SourceLibrary() {
   const antiAiGuide = files.filter((f) => f.file_type === "anti_ai_guide");
   const competitorAnalysis = files.filter((f) => f.file_type === "competitor_analysis");
   const hostPersona = files.filter((f) => f.file_type === "host_persona");
+  const meltyVoicePass = files.filter((f) => f.file_type === "melty_voice_pass");
 
   const indexedCount = files.filter((f) => f.status === "indexed").length;
 
@@ -104,6 +105,18 @@ export default function SourceLibrary() {
             onRefresh={refetch}
             badge="Reference Only — Not Used in Generation"
           />
+
+          <div className="ml-4 border-l-2 border-border pl-4">
+            <FileUploadCard
+              fileType={"melty_voice_pass" as any}
+              title="🎤 Melty Voice Pass Instructions"
+              description="Upload the MELTY_VOICE_PASS_V1.txt document. Used together with the Host Persona during the Melty Voice Pass on the Full Script."
+              accept=".txt,.md"
+              files={meltyVoicePass}
+              onRefresh={refetch}
+              badge="Used by Melty Voice Pass"
+            />
+          </div>
         </div>
       </div>
     </Layout>
