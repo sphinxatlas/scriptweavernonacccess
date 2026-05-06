@@ -629,19 +629,74 @@ export default function PipelineView() {
                       </p>
                     </div>
 
-                    {/* Tool 1 — Full Script Anti AI Cleanup */}
+                    {/* Tool 1a — Melty Voice Pass (runs before Anti AI Cleanup) */}
                     <div className="space-y-3 p-4 rounded-md border border-border bg-secondary/30">
                       <div>
-                        <h4 className="text-sm font-semibold text-foreground">Full Script Anti AI Cleanup</h4>
+                        <h4 className="text-sm font-semibold text-foreground">
+                          Melty Voice Pass
+                          <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-foreground">
+                            Step 1 of 2
+                          </span>
+                        </h4>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Runs the entire saved Full Script through the Anti AI document. Overwrites the
-                          saved Full Script after you confirm and the run completes.
+                          Injects Melty's personality, reactive beats, and fan-coded voice into the
+                          full script draft. Saved separately; the Anti AI Cleanup below will use this
+                          output as its input once it exists.
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={runFullScriptMelty}
+                        disabled={meltyRunning || !fullScriptContent}
+                        className="gap-1.5"
+                      >
+                        {meltyRunning ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            Running Melty Voice Pass...
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-3.5 h-3.5" />
+                            {meltyVoicePassContent ? "Re-run Melty Voice Pass" : "Run Melty Voice Pass"}
+                          </>
+                        )}
+                      </Button>
+                      {meltyRunning && meltyStream && (
+                        <div className="mt-2 max-h-64 overflow-auto rounded border border-border bg-background p-3 text-xs whitespace-pre-wrap text-foreground/80">
+                          {meltyStream}
+                          <div className="flex items-center gap-2 mt-2 text-primary">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                            Streaming Melty Voice Pass... will save when complete.
+                          </div>
+                        </div>
+                      )}
+                      {!meltyRunning && meltyVoicePassContent && (
+                        <p className="text-[11px] text-muted-foreground">
+                          Melty Voice Pass output is saved and will feed the Anti AI Cleanup below.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Tool 1b — Full Script Anti AI Cleanup */}
+                    <div className="space-y-3 p-4 rounded-md border border-border bg-secondary/30">
+                      <div>
+                        <h4 className="text-sm font-semibold text-foreground">
+                          Full Script Anti AI Cleanup
+                          <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-foreground">
+                            Step 2 of 2
+                          </span>
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Runs the {meltyVoicePassContent ? "saved Melty Voice Pass" : "saved Full Script"}{" "}
+                          through the Anti AI document. Overwrites the saved Full Script after you
+                          confirm and the run completes.
                         </p>
                       </div>
                       <Button
                         size="sm"
                         onClick={() => setConfirmAntiAiOpen(true)}
-                        disabled={antiAiRunning || !fullScriptContent}
+                        disabled={antiAiRunning || !antiAiInput}
                         className="gap-1.5"
                       >
                         {antiAiRunning ? (
