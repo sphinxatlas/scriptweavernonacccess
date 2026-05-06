@@ -197,13 +197,15 @@ MANDATORY PERSONALITY BEAT QUOTA
 
 Before revising, count the total word count of the input script. Divide by 300 and round down. That number is your MINIMUM required personality beat count for this pass.
 
+HOOK AUDIT (mandatory, runs first): Read the opening paragraph. It must open with pressure, a specific tension, a sharp claim, or a fan-coded observation. It must not open with a warm-up, a generic YouTube intro, or a scene-setting sentence. If the opening is weak, rewrite it before doing anything else. Log the original opening and the revised version.
+
 THREE MANDATORY TECHNIQUES — these are required in every script regardless of beat count. Log them separately before outputting the revised script. The pass is incomplete without all three.
 
-PARENTHETICAL ASIDE (mandatory): Find one analytical or evidence sentence and embed a reactive one-liner between dashes. The aside must be shorter than the sentence. It adds a reaction, not information. Example: "Ron stands up on a broken leg and tells Sirius Black, who he believes is a mass murderer, to go through him first — the films gave that line to Hermione."
+PARENTHETICAL ASIDE (mandatory): Find one analytical or evidence sentence and embed a reactive one-liner between dashes. The aside must be shorter than the sentence. It adds a reaction, not information. The target quality is a reaction that reveals something, not a label that categorizes something. Compare: "a classic case of adaptation malpractice" (label — avoid) vs. "the films gave that line to Hermione" (reaction — correct). The aside should make the reader feel something just shifted, not that they've been told what to think. Example: "Ron stands up on a broken leg and tells Sirius Black, who he believes is a mass murderer, to go through him first — the films gave that line to Hermione."
 
 MOCK FORMAL REGISTER (mandatory if script covers adaptation choices, studio decisions, Hogwarts logic, or institutional behavior): Use one brief ceremonious phrase to name an absurdity, then drop immediately to normal voice. Example: "The Ministry, in its infinite wisdom, issues Harry a warning for magic he didn't perform." Never use on trauma or serious emotional beats.
 
-I VS WE AUDIT (mandatory): Scan the entire script for "we" used as Melty's narrator voice. Every instance of "we'd say," "we think," "we know," or "we could" expressing Melty's opinion must be rewritten as first person singular. Log each change.
+I VS WE AUDIT (mandatory): Scan for "we" used as Melty hedging his own opinion — "we'd say," "we think," "we believe," "we could argue." These must be rewritten as first person singular. "We" is correct and should be kept when it pulls the viewer into shared experience ("we all grew up with this," "we've been arguing about this for years," "we know how this ends") or acknowledges genuine fandom consensus. The test: if removing "we" and replacing with "I" makes the sentence more honest and direct, fix it. If "we" genuinely includes the audience in something shared, keep it. Log every change made.
 
 A "personality beat" is exactly one of the following:
 - a reactive interjection (the host visibly reacting to the material)
@@ -234,13 +236,14 @@ Do NOT output the revised script until the log is complete AND the total beat co
 If you cannot reach the minimum count without forcing a beat that feels unearned or damages a serious moment, add a section at the end of the log titled "RESISTED SECTIONS" and, for each such section, name it (using its heading or first few words) and explain in one or two sentences why it resisted injection. Only then output the revised script with whatever beat count you were able to reach honestly.
 
 OUTPUT ORDER (strict):
-  1. "PERSONALITY BEAT LOG" with numbered entries.
-  2. (If applicable) "RESISTED SECTIONS" notes.
-  3. "PARENTHETICAL ASIDE LOG"
-  4. "MOCK FORMAL REGISTER LOG"
-  5. "I VS WE AUDIT LOG"
-  6. A line containing only: ---
-  7. The COMPLETE revised script.
+  1. "HOOK AUDIT LOG" — original opening and (if rewritten) revised opening.
+  2. "PERSONALITY BEAT LOG" with numbered entries.
+  3. (If applicable) "RESISTED SECTIONS" notes.
+  4. "PARENTHETICAL ASIDE LOG"
+  5. "MOCK FORMAL REGISTER LOG"
+  6. "I VS WE AUDIT LOG"
+  7. A line containing only: ---
+  8. The COMPLETE revised script.
 
 FINAL ANTI-AI SELF-AUDIT BEFORE OUTPUT
 
