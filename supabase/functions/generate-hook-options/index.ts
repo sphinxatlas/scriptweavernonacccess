@@ -134,17 +134,45 @@ serve(async (req) => {
     ]);
 
     const guidanceBlock = [
-      scriptInstructions.text
-        ? `## SCRIPT WRITING INSTRUCTIONS (binding)\n${scriptInstructions.text}`
-        : "",
+      hostPersona.text ? `## HOST PERSONA (binding — voice, humor, rhythm, attitude)\n${hostPersona.text}` : "",
       antiAi.text ? `## ANTI AI WRITING INSTRUCTIONS (binding, harsh)\n${antiAi.text}` : "",
-      hostPersona.text ? `## HOST PERSONA — MELTY (voice and attitude)\n${hostPersona.text}` : "",
+      scriptInstructions.text
+        ? `## SCRIPT WRITING INSTRUCTIONS (binding — includes hook rules)\n${scriptInstructions.text}`
+        : "",
     ]
       .filter(Boolean)
       .join("\n\n");
 
+    const HOOK_VOICE_INSTRUCTION = `The hooks you generate must sound like they were written by the specific host described in the Host Persona document. Apply all voice, humor, rhythm, and anti-AI rules from the Anti-AI document and all hook rules from the Script Writing Instructions.
+
+Specifically:
+
+Do not open with a warm-up, a rhetorical question, a generic scene-setting sentence, or any of the banned opening patterns from the Anti-AI document.
+
+Do not use banned vocabulary from the Anti-AI document.
+
+Do not use contrast formulas from the Anti-AI document.
+
+Open with pressure, contradiction, consequence, or a specific tension the viewer already recognizes.
+
+Confirm the title promise immediately.
+
+Create an open loop — the viewer should understand the tension without being given the full answer.
+
+Sound like the specific host persona described in the Host Persona document: sharp, fan-coded, emotionally present, occasionally petty, never a neutral explainer.
+
+Each hook must feel like it could only have been written for this specific video about this specific topic, not reused for any other Harry Potter video.`;
+
+    // Guidance documents + voice instruction must precede the taxonomy and
+    // output format instructions in the system prompt.
+    const guidanceHeader = [guidanceBlock, `## HOOK VOICE & STYLE (binding)\n${HOOK_VOICE_INSTRUCTION}`]
+      .filter(Boolean)
+      .join("\n\n");
+
     const systemPrompt = isRefine
-      ? `You are REFINING ONE existing opening HOOK for a long-form YouTube Harry Potter commentary script written in the Melty voice.
+      ? `${guidanceHeader}
+
+You are REFINING ONE existing opening HOOK for a long-form YouTube Harry Potter commentary script written in the Melty voice.
 
 SOURCE PRIORITY (BINDING):
 - The Script Evidence Pack is the CONTROLLING input. The refined hook must be grounded in what the Pack actually contains.
@@ -175,10 +203,10 @@ ANTI AI RULES (binding, harsh — do NOT weaken):
 
 MELTY PERSONA: voice, rhythm, judgment, specificity. The hook should sound like Melty already mid-thought, not like a host introducing himself.
 
-Return exactly one hook record with: hook_label, hook_text, angle_route, why_it_works, open_loop, risk_or_weakness.
+Return exactly one hook record with: hook_label, hook_text, angle_route, why_it_works, open_loop, risk_or_weakness.`
+      : `${guidanceHeader}
 
-${guidanceBlock}`
-      : `You are generating three opening HOOK OPTIONS for a long-form YouTube Harry Potter commentary script written in the Melty voice.
+You are generating three opening HOOK OPTIONS for a long-form YouTube Harry Potter commentary script written in the Melty voice.
 
 SOURCE PRIORITY (BINDING):
 - The Script Evidence Pack is the CONTROLLING input. Hooks must be grounded in what the Pack actually contains.
@@ -221,9 +249,7 @@ Each hook record must include:
 - angle_route: one of [scene contradiction, character wound, fan debate, canon irony, cold open mystery]
 - why_it_works: one or two sentences on why this route opens the argument cleanly
 - open_loop: the explicit unresolved question or tension this hook leaves dangling
-- risk_or_weakness: one honest sentence on where this route could fail or feel weak
-
-${guidanceBlock}`;
+- risk_or_weakness: one honest sentence on where this route could fail or feel weak`;
 
     const userMessage = isRefine
       ? `## Creative Brief (DIRECTIONAL ONLY — title promise, thesis direction, tone, intended emotional payoff)
