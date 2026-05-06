@@ -55,6 +55,8 @@ export default function PipelineView() {
   const [antiAiRunning, setAntiAiRunning] = useState(false);
   const [antiAiStream, setAntiAiStream] = useState("");
   const [confirmAntiAiOpen, setConfirmAntiAiOpen] = useState(false);
+  const [meltyRunning, setMeltyRunning] = useState(false);
+  const [meltyStream, setMeltyStream] = useState("");
   const [passageInput, setPassageInput] = useState("");
   const [passageFeedback, setPassageFeedback] = useState("");
   const [passageRunning, setPassageRunning] = useState(false);
@@ -195,11 +197,17 @@ export default function PipelineView() {
   const fullScriptContent =
     (outputs.find((o) => o.step_type === "full_script")?.content as string | undefined) || "";
 
+  const meltyVoicePassContent =
+    (outputs.find((o) => (o.step_type as string) === "melty_voice_pass")?.content as string | undefined) || "";
+
+  // Anti-AI prefers the Melty Voice Pass output when it exists, otherwise falls back to the raw Full Script.
+  const antiAiInput = meltyVoicePassContent || fullScriptContent;
+
   const isFullScriptStep = activeStep === "full_script";
 
   const runFullScriptAntiAi = async () => {
     if (!briefId) return;
-    if (!fullScriptContent || fullScriptContent.trim().length < 50) {
+    if (!antiAiInput || antiAiInput.trim().length < 50) {
       toast.error("Generate a Full Script first.");
       return;
     }
@@ -209,7 +217,7 @@ export default function PipelineView() {
     let acc = "";
     try {
       await streamPolishPass(
-        { passType: "anti_ai", scope: "full_script", scriptText: fullScriptContent },
+        { passType: "anti_ai", scope: "full_script", scriptText: antiAiInput },
         (delta) => {
           acc += delta;
           setAntiAiStream(acc);
@@ -230,6 +238,41 @@ export default function PipelineView() {
     } catch (err: any) {
       setAntiAiRunning(false);
       toast.error(err.message || "Anti AI cleanup failed");
+    }
+  };
+
+  const runFullScriptMelty = async () => {
+    if (!briefId) return;
+    if (!fullScriptContent || fullScriptContent.trim().length < 50) {
+      toast.error("Generate a Full Script first.");
+      return;
+    }
+    setMeltyRunning(true);
+    setMeltyStream("");
+    let acc = "";
+    try {
+      await streamPolishPass(
+        { passType: "melty_voice", scope: "full_script", scriptText: fullScriptContent },
+        (delta) => {
+          acc += delta;
+          setMeltyStream(acc);
+        },
+        async () => {
+          if (!acc.trim()) {
+            setMeltyRunning(false);
+            toast.error("Melty Voice Pass returned no content.");
+            return;
+          }
+          await savePipelineOutput(briefId, "melty_voice_pass" as PipelineStepType, acc);
+          await refetchOutputs();
+          setMeltyRunning(false);
+          setMeltyStream("");
+          toast.success("Melty Voice Pass saved. It will now feed the Anti AI Cleanup.");
+        },
+      );
+    } catch (err: any) {
+      setMeltyRunning(false);
+      toast.error(err.message || "Melty Voice Pass failed");
     }
   };
 
