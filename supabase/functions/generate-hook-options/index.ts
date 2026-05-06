@@ -229,6 +229,34 @@ CLAIM STRENGTH TEST: Read the first sentence of your hook. Ask: would a casual v
 
 Do not open with context. Do not open with a question. Do not open with 'there is something about X worth discussing.' Open with the claim.`;
 
+    const HARD_STOP_CONTRAST_CHECK = `HARD STOP — CONTRAST FORMULA CHECK:
+
+Before outputting any hook, scan every sentence for the following patterns and rewrite any that match:
+
+'That's not just X. It's Y.'
+
+'This isn't just X. It's Y.'
+
+'Not X, but Y.'
+
+'Not with X, but with Y.'
+
+'They didn't just X. They Y.'
+
+'It's not X. It's Y.'
+
+'That's not X. That's Y.'
+
+'X, not Y.'
+
+These are banned. If a sentence uses any of these constructions, rewrite it before outputting. Start the rewrite from the concrete consequence or the active verb — not from the negation.
+
+Example: Banned: 'She earns his trust, not with a crush, but with a scar.' Rewrite: 'She earns his trust by being the one person who knows what possession actually feels like.'
+
+Banned: 'That cut isn't just a time-saver. It's the key that unlocks why Movie Ginny feels wrong.' Rewrite: 'That cut removes the only scene that explains why Harry would ever see Ginny as an equal.'
+
+Do not output a hook that contains any banned pattern. Check every sentence. Rewrite before outputting.`;
+
     // Guidance documents + voice instruction must precede the taxonomy and
     // output format instructions in the system prompt.
     const guidanceHeader = [
@@ -274,7 +302,11 @@ ANTI AI RULES (binding, harsh — do NOT weaken):
 
 MELTY PERSONA: voice, rhythm, judgment, specificity. The hook should sound like Melty already mid-thought, not like a host introducing himself.
 
-Return exactly one hook record with: hook_label, hook_text, angle_route, why_it_works, open_loop, risk_or_weakness.`
+Return exactly one hook record with: hook_label, hook_text, angle_route, why_it_works, open_loop, risk_or_weakness.
+
+============================================================
+${HARD_STOP_CONTRAST_CHECK}
+============================================================`
       : `${guidanceHeader}
 
 You are generating three opening HOOK OPTIONS for a long-form YouTube Harry Potter commentary script written in the Melty voice.
@@ -336,7 +368,11 @@ Each hook record must include:
 - angle_route: one of [scene contradiction, character wound, fan debate, canon irony, cold open mystery]
 - why_it_works: one or two sentences on why this route opens the argument cleanly
 - open_loop: the explicit unresolved question or tension this hook leaves dangling
-- risk_or_weakness: one honest sentence on where this route could fail or feel weak`;
+- risk_or_weakness: one honest sentence on where this route could fail or feel weak
+
+============================================================
+${HARD_STOP_CONTRAST_CHECK}
+============================================================`;
 
     const userMessage = isRefine
       ? `## Creative Brief (DIRECTIONAL ONLY — title promise, thesis direction, tone, intended emotional payoff)
