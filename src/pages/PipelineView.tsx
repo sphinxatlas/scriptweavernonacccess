@@ -494,6 +494,26 @@ export default function PipelineView() {
               </div>
             ) : (
               <div ref={contentRef} className="h-full overflow-auto p-6">
+                {isFullScriptStep && pendingHighRiskCount > 0 && (
+                  <div className="mb-4 flex items-center justify-between gap-3 rounded-md border border-yellow-500/50 bg-yellow-500/10 px-4 py-3">
+                    <div className="flex items-center gap-2 text-sm text-yellow-800 dark:text-yellow-300">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span>
+                        <strong>{pendingHighRiskCount}</strong> high risk evidence point
+                        {pendingHighRiskCount === 1 ? "" : "s"} need review before generating the
+                        Full Script.
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setActiveStep("evidence_table")}
+                      className="h-7 text-xs"
+                    >
+                      Review Evidence Table
+                    </Button>
+                  </div>
+                )}
                 {isEvidenceTableStep && evidencePoints.length > 0 && !generating ? (
                   <EvidenceTableView
                     rows={evidencePoints}
