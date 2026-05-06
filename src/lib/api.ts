@@ -315,6 +315,37 @@ export async function generateHookOptions(
   return { hooks: data.hooks as HookOption[] };
 }
 
+export async function refineHookOption(
+  briefId: string,
+  hook: HookOption,
+  hookFeedback: string,
+): Promise<{ hook: HookOption }> {
+  const { data, error } = await supabase.functions.invoke("generate-hook-options", {
+    body: {
+      briefId,
+      hookFeedback: hookFeedback?.trim() || undefined,
+      refineFromHook: {
+        hook_label: hook.hook_label,
+        hook_text: hook.hook_text,
+        angle_route: hook.angle_route,
+      },
+    },
+  });
+  if (error) {
+    const ctx: any = (error as any).context;
+    let msg: string | undefined;
+    try {
+      const body = await ctx?.json?.();
+      msg = body?.error;
+    } catch { /* ignore */ }
+    throw new Error(msg || error.message || "Failed to refine hook");
+  }
+  if (!data?.hook) {
+    throw new Error("Refined hook response was malformed");
+  }
+  return { hook: data.hook as HookOption };
+}
+
 export async function streamPolishPass(
   input: { passType: PolishPassType; scriptText: string; scope?: "full_script" | "passage"; userFeedback?: string },
   onDelta: (text: string) => void,

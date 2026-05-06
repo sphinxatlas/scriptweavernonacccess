@@ -11,6 +11,15 @@ const corsHeaders = {
 const BodySchema = z.object({
   briefId: z.string().uuid(),
   hookFeedback: z.string().max(4000).optional(),
+  // Refine mode: when provided, return ONE refined hook based on the existing
+  // hook + per-hook feedback, instead of three fresh hook options.
+  refineFromHook: z
+    .object({
+      hook_label: z.string().max(500),
+      hook_text: z.string().max(8000),
+      angle_route: z.string().max(100).optional(),
+    })
+    .optional(),
 });
 
 // TODO: extract shared guidance loader (currently duplicated from generate-step/index.ts)
@@ -73,7 +82,8 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-    const { briefId, hookFeedback } = parsed.data;
+    const { briefId, hookFeedback, refineFromHook } = parsed.data;
+    const isRefine = !!refineFromHook;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -133,7 +143,42 @@ serve(async (req) => {
       .filter(Boolean)
       .join("\n\n");
 
-    const systemPrompt = `You are generating three opening HOOK OPTIONS for a long-form YouTube Harry Potter commentary script written in the Melty voice.
+    const systemPrompt = isRefine
+      ? `You are REFINING ONE existing opening HOOK for a long-form YouTube Harry Potter commentary script written in the Melty voice.
+
+SOURCE PRIORITY (BINDING):
+- The Script Evidence Pack is the CONTROLLING input. The refined hook must be grounded in what the Pack actually contains.
+- The Creative Brief is DIRECTIONAL ONLY: title promise, high-level thesis direction, tone, and intended emotional payoff.
+- If the Creative Brief and the Script Evidence Pack conflict, FOLLOW THE SCRIPT EVIDENCE PACK.
+- Do NOT treat the Creative Brief as evidence.
+
+REFINE MODE (BINDING):
+- You are returning EXACTLY ONE refined version of the provided hook via the structured tool call.
+- Preserve the hook's existing ROUTE (scene contradiction, character wound, fan debate, canon irony, or cold open mystery) unless the user feedback explicitly asks to change route.
+- Preserve the strongest specific images, names, and concrete moments from the original hook unless the feedback asks to swap them.
+- Apply the user's feedback precisely. Do not rewrite parts the feedback does not address.
+- This is a focused edit, not a fresh generation. The output should still feel recognizably like the same hook, only sharper.
+
+The hook should READ like the first 20–40 seconds of a spoken YouTube script — not a summary, not a description, not a teaser blurb. Spoken voiceover only. The hook MUST create a clear OPEN LOOP into the rest of the argument.
+
+SCRIPT WRITING INSTRUCTIONS (binding) govern: hook strength, title promise, opening pressure, open loop, curiosity, and retention. Apply them.
+
+ANTI AI RULES (binding, harsh — do NOT weaken):
+- No generic YouTube intros.
+- No "have you ever wondered."
+- No "in this video / today we're talking about / let's dive in."
+- No "not X but Y" / "it's not X, it's Y" / mechanical contrast formulas.
+- No three-sentence symmetry stacks (no triads).
+- No fake profundity, no greeting-card philosophy.
+- No templated signposting.
+- No citations, no editor tags, no source references inside hook text.
+
+MELTY PERSONA: voice, rhythm, judgment, specificity. The hook should sound like Melty already mid-thought, not like a host introducing himself.
+
+Return exactly one hook record with: hook_label, hook_text, angle_route, why_it_works, open_loop, risk_or_weakness.
+
+${guidanceBlock}`
+      : `You are generating three opening HOOK OPTIONS for a long-form YouTube Harry Potter commentary script written in the Melty voice.
 
 SOURCE PRIORITY (BINDING):
 - The Script Evidence Pack is the CONTROLLING input. Hooks must be grounded in what the Pack actually contains.
@@ -180,7 +225,23 @@ Each hook record must include:
 
 ${guidanceBlock}`;
 
-    const userMessage = `## Creative Brief (DIRECTIONAL ONLY — title promise, thesis direction, tone, intended emotional payoff)
+    const userMessage = isRefine
+      ? `## Creative Brief (DIRECTIONAL ONLY — title promise, thesis direction, tone, intended emotional payoff)
+${cb.content}
+
+## Script Evidence Pack (CONTROLLING SOURCE — refined hook must be grounded here)
+${sep.content}
+
+## Existing Hook to Refine
+**Label:** ${refineFromHook!.hook_label}
+${refineFromHook!.angle_route ? `**Route:** ${refineFromHook!.angle_route}\n` : ""}**Hook text:**
+${refineFromHook!.hook_text}
+
+## User Refinement Feedback (binding — apply precisely)
+${(hookFeedback || "").trim() || "(no specific feedback — tighten the hook, sharpen specificity, remove any AI residue, preserve the route and core image)"}
+
+Return exactly ONE refined hook via the tool call. Preserve the route. Preserve the strongest specific images. Apply the feedback. Spoken voiceover only.`
+      : `## Creative Brief (DIRECTIONAL ONLY — title promise, thesis direction, tone, intended emotional payoff)
 ${cb.content}
 
 ## Script Evidence Pack (CONTROLLING SOURCE — hooks must be grounded here)
@@ -188,7 +249,51 @@ ${sep.content}
 
 ${hookFeedback && hookFeedback.trim() ? `## User Hook Feedback (honor this)\n${hookFeedback.trim()}\n\n` : ""}Now produce exactly three hook options via the tool call. Three DIFFERENT routes from the taxonomy. No rewrites of the same hook. No generic YouTube intro tropes. No triads. No "have you ever wondered." No "in this video." No "not X but Y." Spoken voiceover only.`;
 
-    const tool = {
+    const hookItemSchema = {
+      type: "object",
+      properties: {
+        hook_label: { type: "string" },
+        hook_text: { type: "string" },
+        angle_route: {
+          type: "string",
+          enum: [
+            "scene contradiction",
+            "character wound",
+            "fan debate",
+            "canon irony",
+            "cold open mystery",
+          ],
+        },
+        why_it_works: { type: "string" },
+        open_loop: { type: "string" },
+        risk_or_weakness: { type: "string" },
+      },
+      required: [
+        "hook_label",
+        "hook_text",
+        "angle_route",
+        "why_it_works",
+        "open_loop",
+        "risk_or_weakness",
+      ],
+      additionalProperties: false,
+    };
+
+    const tool = isRefine
+      ? {
+          type: "function",
+          function: {
+            name: "return_refined_hook",
+            description: "Return exactly one refined hook.",
+            parameters: {
+              type: "object",
+              properties: { hook: hookItemSchema },
+              required: ["hook"],
+              additionalProperties: false,
+            },
+          },
+        }
+      : {
       type: "function",
       function: {
         name: "return_hook_options",
@@ -200,35 +305,7 @@ ${hookFeedback && hookFeedback.trim() ? `## User Hook Feedback (honor this)\n${h
               type: "array",
               minItems: 3,
               maxItems: 3,
-              items: {
-                type: "object",
-                properties: {
-                  hook_label: { type: "string" },
-                  hook_text: { type: "string" },
-                  angle_route: {
-                    type: "string",
-                    enum: [
-                      "scene contradiction",
-                      "character wound",
-                      "fan debate",
-                      "canon irony",
-                      "cold open mystery",
-                    ],
-                  },
-                  why_it_works: { type: "string" },
-                  open_loop: { type: "string" },
-                  risk_or_weakness: { type: "string" },
-                },
-                required: [
-                  "hook_label",
-                  "hook_text",
-                  "angle_route",
-                  "why_it_works",
-                  "open_loop",
-                  "risk_or_weakness",
-                ],
-                additionalProperties: false,
-              },
+              items: hookItemSchema,
             },
           },
           required: ["hooks"],
@@ -250,7 +327,10 @@ ${hookFeedback && hookFeedback.trim() ? `## User Hook Feedback (honor this)\n${h
           { role: "user", content: userMessage },
         ],
         tools: [tool],
-        tool_choice: { type: "function", function: { name: "return_hook_options" } },
+        tool_choice: {
+          type: "function",
+          function: { name: isRefine ? "return_refined_hook" : "return_hook_options" },
+        },
       }),
     });
 
@@ -295,6 +375,20 @@ ${hookFeedback && hookFeedback.trim() ? `## User Hook Feedback (honor this)\n${h
         JSON.stringify({ error: "Hook options JSON parse failed. Please regenerate." }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    }
+
+    if (isRefine) {
+      const hook = parsed2?.hook;
+      if (!hook || typeof hook !== "object") {
+        return new Response(
+          JSON.stringify({ error: "Refined hook model returned no hook. Please retry." }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      return new Response(JSON.stringify({ hook }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const hooks = Array.isArray(parsed2?.hooks) ? parsed2.hooks.slice(0, 3) : [];

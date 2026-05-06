@@ -25,6 +25,7 @@ import {
   streamPolishPass,
   updateBriefCreativeBriefFields,
   generateHookOptions,
+  refineHookOption,
   type HookOption,
   type PipelineStepType,
   getEvidencePoints,
@@ -69,12 +70,24 @@ export default function PipelineView() {
   const [passageRunning, setPassageRunning] = useState(false);
   const [passageOutput, setPassageOutput] = useState("");
   // ── Hook Options (transient UI state only — never persisted) ──
-  const [hookFeedback, setHookFeedback] = useState("");
   const [hookOptions, setHookOptions] = useState<HookOption[]>([]);
   const [hookOptionsLoading, setHookOptionsLoading] = useState(false);
-  const [selectedHookDirection, setSelectedHookDirection] = useState("");
+  // Index of the currently selected generated hook (-1 = none, -2 = custom)
+  const [selectedHookIdx, setSelectedHookIdx] = useState<number>(-1);
+  const [refineFeedback, setRefineFeedback] = useState("");
+  const [refining, setRefining] = useState(false);
   const [customHookOpen, setCustomHookOpen] = useState(false);
   const [customHookText, setCustomHookText] = useState("");
+
+  // Resolve the hook text passed to Full Script generation.
+  const selectedHookDirection = (() => {
+    if (selectedHookIdx === -2) return customHookText.trim();
+    if (selectedHookIdx >= 0 && hookOptions[selectedHookIdx]) {
+      const h = hookOptions[selectedHookIdx];
+      return `${h.hook_label}\n\n${h.hook_text}`.trim();
+    }
+    return "";
+  })();
   const contentRef = useRef<HTMLDivElement>(null);
 
   const { data: brief, refetch: refetchBrief } = useQuery({
@@ -164,12 +177,40 @@ export default function PipelineView() {
     if (!briefId) return;
     setHookOptionsLoading(true);
     try {
-      const { hooks } = await generateHookOptions(briefId, hookFeedback);
+      const { hooks } = await generateHookOptions(briefId);
       setHookOptions(hooks);
+      setSelectedHookIdx(-1);
+      setRefineFeedback("");
     } catch (err: any) {
       toast.error(err.message || "Failed to generate hook options");
     } finally {
       setHookOptionsLoading(false);
+    }
+  };
+
+  const handleRefineSelectedHook = async () => {
+    if (!briefId) return;
+    if (selectedHookIdx < 0) return;
+    const current = hookOptions[selectedHookIdx];
+    if (!current) return;
+    if (!refineFeedback.trim()) {
+      toast.error("Add feedback to refine this hook.");
+      return;
+    }
+    setRefining(true);
+    try {
+      const { hook } = await refineHookOption(briefId, current, refineFeedback);
+      setHookOptions((prev) => {
+        const next = [...prev];
+        next[selectedHookIdx] = hook;
+        return next;
+      });
+      setRefineFeedback("");
+      toast.success("Hook refined");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to refine hook");
+    } finally {
+      setRefining(false);
     }
   };
 
@@ -553,30 +594,8 @@ export default function PipelineView() {
                         </h3>
                         <p className="text-xs text-muted-foreground mt-1">
                           Generates three distinct opening hooks from the saved Creative Brief and Script Evidence Pack.
-                          Pick one to seed the Full Script. Not saved — refresh discards.
+                          Pick one — the Full Script will open with it verbatim. Not saved — refresh discards.
                         </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-xs">Selected Hook / Opening Direction</Label>
-                        <Textarea
-                          value={selectedHookDirection}
-                          onChange={(e) => setSelectedHookDirection(e.target.value)}
-                          rows={5}
-                          placeholder="Pick a hook below, or write your own opening direction here. Leave blank to keep current Full Script behavior."
-                          className="bg-background border-border resize-none text-sm"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-xs">Hook Feedback (optional)</Label>
-                        <Textarea
-                          value={hookFeedback}
-                          onChange={(e) => setHookFeedback(e.target.value)}
-                          rows={2}
-                          placeholder='e.g. "make it darker", "more canon-led", "less jokey", "more fan-debate driven"'
-                          className="bg-background border-border resize-none text-sm"
-                        />
                       </div>
 
                       <Button
@@ -593,7 +612,7 @@ export default function PipelineView() {
                         ) : (
                           <>
                             <Lightbulb className="w-3.5 h-3.5" />
-                            {hookOptions.length ? "Regenerate Hook Options" : "Generate Hook Options"}
+                            {hookOptions.length ? "Regenerate hooks" : "Generate Hook Options"}
                           </>
                         )}
                       </Button>
@@ -601,9 +620,7 @@ export default function PipelineView() {
                       {hookOptions.length > 0 && (
                         <div className="grid grid-cols-1 gap-3 mt-2">
                           {hookOptions.map((h, i) => {
-                            const directionText = `${h.hook_label}\n\n${h.hook_text}`;
-                            const isActive =
-                              selectedHookDirection.trim() === directionText.trim();
+                            const isActive = selectedHookIdx === i;
                             return (
                               <div
                                 key={i}
@@ -628,95 +645,105 @@ export default function PipelineView() {
                                   <Button
                                     size="sm"
                                     variant={isActive ? "secondary" : "default"}
-                                    onClick={() => setSelectedHookDirection(directionText)}
+                                    onClick={() => {
+                                      setSelectedHookIdx(i);
+                                      setRefineFeedback("");
+                                    }}
                                     className="h-7 text-xs"
                                   >
-                                    Use this hook
+                                    {isActive ? "Selected" : "Use this hook"}
                                   </Button>
                                 </div>
                                 <p className="text-sm text-foreground/85 whitespace-pre-wrap">
                                   {h.hook_text}
                                 </p>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-muted-foreground">
-                                  <div>
-                                    <span className="font-semibold text-foreground/70">Why it works: </span>
-                                    {h.why_it_works}
+
+                                {isActive && (
+                                  <div className="space-y-2 pt-2 border-t border-border">
+                                    <Label className="text-xs">Refine this hook</Label>
+                                    <Textarea
+                                      value={refineFeedback}
+                                      onChange={(e) => setRefineFeedback(e.target.value)}
+                                      rows={2}
+                                      placeholder='e.g. "tighten the second sentence", "open with the scene instead of the question", "drop the joke"'
+                                      className="bg-background border-border resize-none text-sm"
+                                      disabled={refining}
+                                    />
+                                    <div className="flex justify-end">
+                                      <Button
+                                        size="sm"
+                                        onClick={handleRefineSelectedHook}
+                                        disabled={refining || !refineFeedback.trim()}
+                                        className="h-7 text-xs gap-1.5"
+                                      >
+                                        {refining ? (
+                                          <>
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            Refining...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Wand2 className="w-3.5 h-3.5" />
+                                            Regenerate from feedback
+                                          </>
+                                        )}
+                                      </Button>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <span className="font-semibold text-foreground/70">Open loop: </span>
-                                    {h.open_loop}
-                                  </div>
-                                  <div>
-                                    <span className="font-semibold text-foreground/70">Risk: </span>
-                                    {h.risk_or_weakness}
-                                  </div>
-                                </div>
+                                )}
                               </div>
                             );
                           })}
                         </div>
                       )}
 
-                      {/* Fourth option: paste custom hook */}
-                      {(() => {
-                        const trimmed = customHookText.trim();
-                        const isActive =
-                          trimmed.length > 0 &&
-                          selectedHookDirection.trim() === trimmed;
-                        return (
-                          <div
-                            className={`rounded-md border p-3 bg-background space-y-2 ${
-                              isActive ? "border-primary" : "border-border"
-                            }`}
+                      {/* Custom paste — collapsed text-link entry point */}
+                      <div className="pt-2 border-t border-border">
+                        {!customHookOpen ? (
+                          <button
+                            type="button"
+                            onClick={() => setCustomHookOpen(true)}
+                            className="text-xs text-primary hover:underline"
                           >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-semibold text-foreground">
-                                  Use my own hook
-                                </span>
-                                <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-secondary text-foreground/70 border border-border">
-                                  custom
-                                </span>
-                                {isActive && (
-                                  <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/30">
-                                    Selected
-                                  </span>
-                                )}
-                              </div>
+                            Write my own opening
+                          </button>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-xs">Your own opening</Label>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCustomHookOpen(false);
+                                  if (selectedHookIdx === -2) setSelectedHookIdx(-1);
+                                  setCustomHookText("");
+                                }}
+                                className="text-[11px] text-muted-foreground hover:text-foreground"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                            <Textarea
+                              value={customHookText}
+                              onChange={(e) => setCustomHookText(e.target.value)}
+                              rows={6}
+                              placeholder="Paste or write your own hook. The Full Script will open with it verbatim."
+                              className="bg-background border-border resize-none text-sm"
+                            />
+                            <div className="flex justify-end">
                               <Button
                                 size="sm"
-                                variant="ghost"
-                                onClick={() => setCustomHookOpen((v) => !v)}
+                                variant={selectedHookIdx === -2 ? "secondary" : "default"}
+                                disabled={!customHookText.trim()}
+                                onClick={() => setSelectedHookIdx(-2)}
                                 className="h-7 text-xs"
                               >
-                                {customHookOpen ? "Hide" : "Paste hook"}
+                                {selectedHookIdx === -2 ? "Selected" : "Use this hook"}
                               </Button>
                             </div>
-                            {customHookOpen && (
-                              <div className="space-y-2">
-                                <Textarea
-                                  value={customHookText}
-                                  onChange={(e) => setCustomHookText(e.target.value)}
-                                  rows={6}
-                                  placeholder="Paste your own hook here (one you wrote or saved from a previous run). It will be passed to the Full Script generator the same way as a selected generated hook."
-                                  className="bg-background border-border resize-none text-sm"
-                                />
-                                <div className="flex justify-end">
-                                  <Button
-                                    size="sm"
-                                    variant={isActive ? "secondary" : "default"}
-                                    disabled={trimmed.length === 0}
-                                    onClick={() => setSelectedHookDirection(trimmed)}
-                                    className="h-7 text-xs"
-                                  >
-                                    Use this hook
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
                           </div>
-                        );
-                      })()}
+                        )}
+                      </div>
                     </div>
 
                     <div>
