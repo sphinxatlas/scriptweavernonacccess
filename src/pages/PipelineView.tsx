@@ -27,7 +27,13 @@ import {
   generateHookOptions,
   type HookOption,
   type PipelineStepType,
+  getEvidencePoints,
+  replaceEvidencePoints,
+  setEvidencePointApproval,
+  getSourceFiles,
 } from "@/lib/api";
+import { parseEvidenceTable } from "@/lib/parseEvidenceTable";
+import { EvidenceTableView } from "@/components/pipeline/EvidenceTableView";
 import { supabase } from "@/integrations/supabase/client";
 import {
   CheckCircle2,
@@ -40,6 +46,7 @@ import {
   Sparkles,
   Wand2,
   Lightbulb,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -90,6 +97,18 @@ export default function PipelineView() {
     enabled: !!briefId,
   });
 
+  const { data: evidencePoints = [], refetch: refetchEvidence } = useQuery({
+    queryKey: ["evidence-points", briefId],
+    queryFn: () => getEvidencePoints(briefId!),
+    enabled: !!briefId,
+  });
+
+  const { data: sourceFiles = [] } = useQuery({
+    queryKey: ["source-files-all"],
+    queryFn: getSourceFiles,
+  });
+  const libraryFileNames = sourceFiles.map((f: any) => f.name);
+
   const getStepOutput = (step: PipelineStepType) =>
     outputs.find((o) => o.step_type === step);
 
@@ -116,6 +135,17 @@ export default function PipelineView() {
         },
         async () => {
           await savePipelineOutput(briefId, step, accumulated);
+          if (step === "evidence_table") {
+            try {
+              const drafts = parseEvidenceTable(accumulated);
+              if (drafts.length > 0) {
+                await replaceEvidencePoints(briefId, drafts);
+                await refetchEvidence();
+              }
+            } catch (err) {
+              console.warn("Failed to parse Evidence Table into rows:", err);
+            }
+          }
           refetchOutputs();
           setGenerating(false);
           toast.success(`${PIPELINE_STEPS.find((s) => s.type === step)?.label} generated`);
