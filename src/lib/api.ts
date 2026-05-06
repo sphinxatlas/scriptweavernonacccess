@@ -4,6 +4,7 @@ import type { Tables } from "@/integrations/supabase/types";
 export type SourceFile = Tables<"source_files">;
 export type TopicBrief = Tables<"topic_briefs">;
 export type PipelineOutput = Tables<"pipeline_outputs">;
+export type EvidencePoint = Tables<"evidence_points">;
 export type PipelineStepType =
   | "creative_brief"
   | "six_category_extraction"
@@ -658,5 +659,53 @@ export interface ReferenceHit {
   file_type: string;
   matched_query: string;
   excerpt: string;
+}
+
+// ── Evidence Points (structured rows per Evidence Table) ──
+import type { EvidencePointDraft } from "./parseEvidenceTable";
+
+export async function getEvidencePoints(briefId: string): Promise<EvidencePoint[]> {
+  const { data, error } = await supabase
+    .from("evidence_points")
+    .select("*")
+    .eq("brief_id", briefId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data || []) as EvidencePoint[];
+}
+
+export async function replaceEvidencePoints(
+  briefId: string,
+  drafts: EvidencePointDraft[],
+): Promise<void> {
+  await supabase.from("evidence_points").delete().eq("brief_id", briefId);
+  if (drafts.length === 0) return;
+  const rows = drafts.map((d) => ({
+    brief_id: briefId,
+    claim: d.claim,
+    source_type: d.source_type,
+    source_file: d.source_file,
+    book_evidence: d.book_evidence,
+    movie_evidence: d.movie_evidence,
+    difference_note: d.difference_note,
+    lexicon_support: d.lexicon_support,
+    exact_quote: d.exact_quote,
+    paraphrase: d.paraphrase,
+    confidence: d.confidence,
+    evidence_type: d.evidence_type,
+  }));
+  const { error } = await supabase.from("evidence_points").insert(rows);
+  if (error) throw error;
+}
+
+export async function setEvidencePointApproval(
+  id: string,
+  status: "approved" | "rejected" | null,
+): Promise<void> {
+  const { error } = await supabase
+    .from("evidence_points")
+    .update({ approval_status: status })
+    .eq("id", id);
+  if (error) throw error;
 }
 

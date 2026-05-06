@@ -27,7 +27,13 @@ import {
   generateHookOptions,
   type HookOption,
   type PipelineStepType,
+  getEvidencePoints,
+  replaceEvidencePoints,
+  setEvidencePointApproval,
+  getSourceFiles,
 } from "@/lib/api";
+import { parseEvidenceTable } from "@/lib/parseEvidenceTable";
+import { EvidenceTableView } from "@/components/pipeline/EvidenceTableView";
 import { supabase } from "@/integrations/supabase/client";
 import {
   CheckCircle2,
@@ -40,6 +46,7 @@ import {
   Sparkles,
   Wand2,
   Lightbulb,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -90,6 +97,18 @@ export default function PipelineView() {
     enabled: !!briefId,
   });
 
+  const { data: evidencePoints = [], refetch: refetchEvidence } = useQuery({
+    queryKey: ["evidence-points", briefId],
+    queryFn: () => getEvidencePoints(briefId!),
+    enabled: !!briefId,
+  });
+
+  const { data: sourceFiles = [] } = useQuery({
+    queryKey: ["source-files-all"],
+    queryFn: getSourceFiles,
+  });
+  const libraryFileNames = sourceFiles.map((f: any) => f.name);
+
   const getStepOutput = (step: PipelineStepType) =>
     outputs.find((o) => o.step_type === step);
 
@@ -116,6 +135,17 @@ export default function PipelineView() {
         },
         async () => {
           await savePipelineOutput(briefId, step, accumulated);
+          if (step === "evidence_table") {
+            try {
+              const drafts = parseEvidenceTable(accumulated);
+              if (drafts.length > 0) {
+                await replaceEvidencePoints(briefId, drafts);
+                await refetchEvidence();
+              }
+            } catch (err) {
+              console.warn("Failed to parse Evidence Table into rows:", err);
+            }
+          }
           refetchOutputs();
           setGenerating(false);
           toast.success(`${PIPELINE_STEPS.find((s) => s.type === step)?.label} generated`);
@@ -204,6 +234,44 @@ export default function PipelineView() {
   const antiAiInput = meltyVoicePassContent || fullScriptContent;
 
   const isFullScriptStep = activeStep === "full_script";
+  const isEvidenceTableStep = activeStep === "evidence_table";
+
+  const pendingHighRiskCount = (() => {
+    if (evidencePoints.length === 0) return 0;
+    // Need to import classifier inline; we'll compute via the same logic.
+    let count = 0;
+    // Lazy import not possible here; re-derive minimal logic
+    for (const r of evidencePoints) {
+      const reasons: string[] = [];
+      const lib = libraryFileNames.map((n) => n.toLowerCase());
+      const sf = (r.source_file || "").toLowerCase();
+      const fileMissing =
+        !!r.source_file && !lib.some((l) => l.includes(sf) || sf.includes(l));
+      const conf = (r.confidence || "").toLowerCase();
+      const et = (r.evidence_type || "").toLowerCase();
+      const st = (r.source_type || "").toLowerCase();
+      if (fileMissing && r.source_file) reasons.push("x");
+      if (!r.source_file) reasons.push("x");
+      if (conf === "medium" || conf === "low") reasons.push("x");
+      if (et === "theory" || et === "speculation" || et === "interpretation") reasons.push("x");
+      if (st === "book" && !r.book_evidence) reasons.push("x");
+      if (st === "movie" && !r.movie_evidence) reasons.push("x");
+      if (st === "both" && (!r.book_evidence || !r.movie_evidence)) reasons.push("x");
+      if (st === "commentary" || st === "secondary") reasons.push("x");
+      const isHigh = reasons.length > 0;
+      if (isHigh && !r.approval_status) count++;
+    }
+    return count;
+  })();
+
+  const handleSetApproval = async (id: string, status: "approved" | "rejected") => {
+    try {
+      await setEvidencePointApproval(id, status);
+      await refetchEvidence();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update approval");
+    }
+  };
 
   const runFullScriptAntiAi = async () => {
     if (!briefId) return;
@@ -350,7 +418,14 @@ export default function PipelineView() {
                 </>
               )}
               {/* Final Voice Pass moved into Advanced options below */}
-              <Button size="sm" onClick={() => handleGenerate()} disabled={generating} className="gap-1.5">
+              <Button
+                size="sm"
+                onClick={() => handleGenerate()}
+                disabled={
+                  generating || (isFullScriptStep && pendingHighRiskCount > 0)
+                }
+                className="gap-1.5"
+              >
                 {generating ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -419,7 +494,33 @@ export default function PipelineView() {
               </div>
             ) : (
               <div ref={contentRef} className="h-full overflow-auto p-6">
-                {displayContent ? (
+                {isFullScriptStep && pendingHighRiskCount > 0 && (
+                  <div className="mb-4 flex items-center justify-between gap-3 rounded-md border border-yellow-500/50 bg-yellow-500/10 px-4 py-3">
+                    <div className="flex items-center gap-2 text-sm text-yellow-800 dark:text-yellow-300">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span>
+                        <strong>{pendingHighRiskCount}</strong> high risk evidence point
+                        {pendingHighRiskCount === 1 ? "" : "s"} need review before generating the
+                        Full Script.
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setActiveStep("evidence_table")}
+                      className="h-7 text-xs"
+                    >
+                      Review Evidence Table
+                    </Button>
+                  </div>
+                )}
+                {isEvidenceTableStep && evidencePoints.length > 0 && !generating ? (
+                  <EvidenceTableView
+                    rows={evidencePoints}
+                    libraryFileNames={libraryFileNames}
+                    onSetApproval={handleSetApproval}
+                  />
+                ) : displayContent ? (
                   <MarkdownContent content={displayContent} />
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-center">
