@@ -225,11 +225,31 @@ Do NOT output the revised script until the log is complete AND the total beat co
 
 If you cannot reach the minimum count without forcing a beat that feels unearned or damages a serious moment, add a section at the end of the log titled "RESISTED SECTIONS" and, for each such section, name it (using its heading or first few words) and explain in one or two sentences why it resisted injection. Only then output the revised script with whatever beat count you were able to reach honestly.
 
+MANDATORY TECHNIQUES (separate from and additional to the beat minimum)
+
+Regardless of whether the minimum beat count is met, the following three techniques are MANDATORY and must each appear at least once in every script. They are not optional and do NOT count toward the minimum beat total. Log them separately under their own headings. If any of the three are absent from the revised script, the pass is INCOMPLETE — do not output the revised script until all three are present and logged.
+
+  A. PARENTHETICAL ASIDE (required: at least 1)
+     One reactive one-liner embedded mid-sentence between em dashes inside an analytical sentence. Example shape: "...the adaptation flattens this — and of course it does — into a single line of dialogue."
+     Log under heading "PARENTHETICAL ASIDE LOG" with: location (first few words of host sentence), and exact text of the aside (including the dashes).
+
+  B. MOCK FORMAL REGISTER (required: at least 1)
+     One brief ceremonious / mock-institutional phrase aimed at a studio, adaptation, or institutional absurdity, immediately dropped back to normal register. Example shape: "...by the grace and wisdom of Warner Bros. Discovery, naturally."
+     Log under heading "MOCK FORMAL REGISTER LOG" with: location (first few words of host sentence), and exact text of the phrase.
+
+  C. "WE" CHECK (required: full audit)
+     Confirm that no instance of "we" is used as Melty's narrator voice (Melty speaks as "I", not "we"). Scan the entire revised script. Log every "we" found and its replacement (or justification if it is a quoted/in-text "we" that is not Melty's narrator voice, e.g., dialogue from a book or film).
+     Log under heading "WE CHECK LOG" with a numbered list of: each "we" instance (with surrounding phrase), and the replacement made (or "RETAINED — quoted source" with reason).
+     If no instances of narrator-voice "we" remain after revision, state: "WE CHECK LOG: 0 narrator-voice instances of 'we' remain."
+
 OUTPUT ORDER (strict):
   1. "PERSONALITY BEAT LOG" with numbered entries.
   2. (If applicable) "RESISTED SECTIONS" notes.
-  3. A line containing only: ---
-  4. The COMPLETE revised script.
+  3. "PARENTHETICAL ASIDE LOG"
+  4. "MOCK FORMAL REGISTER LOG"
+  5. "WE CHECK LOG"
+  6. A line containing only: ---
+  7. The COMPLETE revised script.
 
 FINAL ANTI-AI SELF-AUDIT BEFORE OUTPUT
 
