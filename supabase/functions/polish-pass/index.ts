@@ -249,6 +249,10 @@ OUTPUT ORDER (strict):
 
 FINAL ANTI-AI SELF-AUDIT BEFORE OUTPUT
 
+WHAT THE VOICE PASS MUST NOT DO
+
+Do not domesticate informal caps emphasis. If the draft contains a line with deliberate caps for emotional register — for example "She'd go CRAZY" or "The films did the COMPLETE opposite" — preserve the caps. Do not replace with standard prose equivalents like "furious" or "the opposite." Caps emphasis in Melty's voice signals genuine fan reaction energy. Smoothing it into clean prose removes the signal.
+
 Before returning the polished version, silently audit the script for contrast flip formulas (e.g. "That's not X. That's Y.", "It is not X. It is Y.", "Don't call it X. Call it Y.") and three-part symmetry stacks (any run of three or more consecutive sentences with the same structure). Rewrite them only when doing so does not change the argument, facts, or evidence.
 
 WRITING CONSTITUTION FOR THIS PASS
