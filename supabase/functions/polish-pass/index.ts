@@ -197,6 +197,14 @@ MANDATORY PERSONALITY BEAT QUOTA
 
 Before revising, count the total word count of the input script. Divide by 300 and round down. That number is your MINIMUM required personality beat count for this pass.
 
+THREE MANDATORY TECHNIQUES — these are required in every script regardless of beat count. Log them separately before outputting the revised script. The pass is incomplete without all three.
+
+PARENTHETICAL ASIDE (mandatory): Find one analytical or evidence sentence and embed a reactive one-liner between dashes. The aside must be shorter than the sentence. It adds a reaction, not information. Example: "Ron stands up on a broken leg and tells Sirius Black, who he believes is a mass murderer, to go through him first — the films gave that line to Hermione."
+
+MOCK FORMAL REGISTER (mandatory if script covers adaptation choices, studio decisions, Hogwarts logic, or institutional behavior): Use one brief ceremonious phrase to name an absurdity, then drop immediately to normal voice. Example: "The Ministry, in its infinite wisdom, issues Harry a warning for magic he didn't perform." Never use on trauma or serious emotional beats.
+
+I VS WE AUDIT (mandatory): Scan the entire script for "we" used as Melty's narrator voice. Every instance of "we'd say," "we think," "we know," or "we could" expressing Melty's opinion must be rewritten as first person singular. Log each change.
+
 A "personality beat" is exactly one of the following:
 - a reactive interjection (the host visibly reacting to the material)
 - a named Meltyism from the approved list in the Host Persona document
@@ -225,29 +233,12 @@ Do NOT output the revised script until the log is complete AND the total beat co
 
 If you cannot reach the minimum count without forcing a beat that feels unearned or damages a serious moment, add a section at the end of the log titled "RESISTED SECTIONS" and, for each such section, name it (using its heading or first few words) and explain in one or two sentences why it resisted injection. Only then output the revised script with whatever beat count you were able to reach honestly.
 
-MANDATORY TECHNIQUES (separate from and additional to the beat minimum)
-
-Regardless of whether the minimum beat count is met, the following three techniques are MANDATORY and must each appear at least once in every script. They are not optional and do NOT count toward the minimum beat total. Log them separately under their own headings. If any of the three are absent from the revised script, the pass is INCOMPLETE — do not output the revised script until all three are present and logged.
-
-  A. PARENTHETICAL ASIDE (required: at least 1)
-     One reactive one-liner embedded mid-sentence between em dashes inside an analytical sentence. Example shape: "...the adaptation flattens this — and of course it does — into a single line of dialogue."
-     Log under heading "PARENTHETICAL ASIDE LOG" with: location (first few words of host sentence), and exact text of the aside (including the dashes).
-
-  B. MOCK FORMAL REGISTER (required: at least 1)
-     One brief ceremonious / mock-institutional phrase aimed at a studio, adaptation, or institutional absurdity, immediately dropped back to normal register. Example shape: "...by the grace and wisdom of Warner Bros. Discovery, naturally."
-     Log under heading "MOCK FORMAL REGISTER LOG" with: location (first few words of host sentence), and exact text of the phrase.
-
-  C. "WE" CHECK (required: full audit)
-     Confirm that no instance of "we" is used as Melty's narrator voice (Melty speaks as "I", not "we"). Scan the entire revised script. Log every "we" found and its replacement (or justification if it is a quoted/in-text "we" that is not Melty's narrator voice, e.g., dialogue from a book or film).
-     Log under heading "WE CHECK LOG" with a numbered list of: each "we" instance (with surrounding phrase), and the replacement made (or "RETAINED — quoted source" with reason).
-     If no instances of narrator-voice "we" remain after revision, state: "WE CHECK LOG: 0 narrator-voice instances of 'we' remain."
-
 OUTPUT ORDER (strict):
   1. "PERSONALITY BEAT LOG" with numbered entries.
   2. (If applicable) "RESISTED SECTIONS" notes.
   3. "PARENTHETICAL ASIDE LOG"
   4. "MOCK FORMAL REGISTER LOG"
-  5. "WE CHECK LOG"
+  5. "I VS WE AUDIT LOG"
   6. A line containing only: ---
   7. The COMPLETE revised script.
 
