@@ -193,6 +193,35 @@ Improve only these things:
 - Emotional register: match the host persona document's described register for each type of moment
 - Recognizable persona lines: add 1 to 2 more Meltyisms if natural openings exist, keeping the total across the script at 2 to 4 maximum
 
+MANDATORY PERSONALITY BEAT QUOTA
+
+Before revising, count the total word count of the input script. Divide by 300 and round down. That number is your MINIMUM required personality beat count for this pass.
+
+A "personality beat" is exactly one of the following:
+- a reactive interjection (the host visibly reacting to the material)
+- a named Meltyism from the approved list in the Host Persona document
+- a fan-coded aside specific to this script's argument
+- a burst rhythm fragment used for impact (a short punchy line or fragment that breaks the cadence)
+
+Note: this quota OVERRIDES the "2 to 4 Meltyisms maximum" rule above when the two conflict — Meltyisms are only one of four beat types and the broader beat quota is what must be hit. Do not pad the script with Meltyisms specifically; spread beats across all four types.
+
+REQUIRED PRE-OUTPUT LOG
+
+Before outputting the revised script, produce a numbered log titled "PERSONALITY BEAT LOG" listing every beat you added. For each beat, include:
+  1. Location: the first few words of the surrounding sentence in the revised script.
+  2. Beat type: one of [reactive interjection | Meltyism | fan-coded aside | burst rhythm fragment].
+  3. Exact text of the addition.
+
+Do NOT output the revised script until the log is complete AND the total beat count is greater than or equal to the minimum (word count / 300, rounded down).
+
+If you cannot reach the minimum count without forcing a beat that feels unearned or damages a serious moment, add a section at the end of the log titled "RESISTED SECTIONS" and, for each such section, name it (using its heading or first few words) and explain in one or two sentences why it resisted injection. Only then output the revised script with whatever beat count you were able to reach honestly.
+
+OUTPUT ORDER (strict):
+  1. "PERSONALITY BEAT LOG" with numbered entries.
+  2. (If applicable) "RESISTED SECTIONS" notes.
+  3. A line containing only: ---
+  4. The COMPLETE revised script.
+
 FINAL ANTI-AI SELF-AUDIT BEFORE OUTPUT
 
 Before returning the polished version, silently audit the script for contrast flip formulas (e.g. "That's not X. That's Y.", "It is not X. It is Y.", "Don't call it X. Call it Y.") and three-part symmetry stacks (any run of three or more consecutive sentences with the same structure). Rewrite them only when doing so does not change the argument, facts, or evidence.
@@ -204,11 +233,9 @@ The Host Persona document loaded below is the only governing document for this p
 Self-check before each edit:
 - Does this change make the voice more like the persona?
 - Does this change leave the argument and facts intact?
-- Is the total Meltyism count still 4 or below?
+- Is the total Meltyism count still 4 or below? (Reminder: other beat types do not count toward this Meltyism cap.)
 
-If any answer is no, revert the change.
-
-Output the COMPLETE revised script only. No critique. No preamble. No change log.`;
+If any answer is no, revert the change.`;
 
 async function loadGuidanceText(supabase: any, fileTypes: string[]): Promise<{ text: string; chunks: number; truncated: boolean }> {
   const { data: files } = await supabase
