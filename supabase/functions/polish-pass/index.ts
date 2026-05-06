@@ -97,6 +97,10 @@ GOOD: "In three seconds, Ginny does something the films almost never let her do:
 BAD: "That's it. That's the seed."
 GOOD: "The seed is already there: Ginny is good at Harry's favorite thing, and she's already moving before he notices."
 
+Formula: "The frustration isn't about X. It's about Y." — this pattern survives when the Y clause contains a specific concrete detail rather than an abstraction. Test: does Y name something specific? "It's about what fills the minutes she gets" — specific, keep the rewrite direction but ensure Y lands on a concrete image not a category.
+
+Also: do not replace fan-coded setup phrases like "for one simple reason" or "here's the thing" with analytical equivalents like "the reason is specific." These are persona signal. Rewrite the formula shape but preserve the register.
+
 ================================================================
 REPEATED "THAT'S..." PUNCHLINE RULE
 ================================================================
