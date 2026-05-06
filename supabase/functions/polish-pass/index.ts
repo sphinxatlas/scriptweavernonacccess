@@ -205,6 +205,15 @@ A "personality beat" is exactly one of the following:
 
 Note: this quota OVERRIDES the "2 to 4 Meltyisms maximum" rule above when the two conflict — Meltyisms are only one of four beat types and the broader beat quota is what must be hit. Do not pad the script with Meltyisms specifically; spread beats across all four types.
 
+QUALIFYING CRITERIA — a beat ONLY counts toward the minimum if it meets ALL of the following:
+  1. SPECIFICITY: It is specific to THIS script's argument — it could not appear in a generic Harry Potter video. Generic fandom reactions do not count.
+  2. ADDS VALUE: It adds information, sharpens a point, exposes a contradiction, or releases tension. A beat that only adds emphasis ("Literally." / "Full stop." / "And I mean it." / "Period.") does NOT count.
+  3. FAN VOICE, NOT HOST PERFORMANCE: It sounds like a fan who knows the material, not a YouTube host performing energy. No hype-host theatrics.
+  4. NO VIEWER INSTRUCTION: It does NOT instruct the viewer ("Read that again." / "Pay attention here." / "Think about that." / "Let that sink in."). Melty does not direct the audience — he reacts to the material.
+  5. DOES NOT UNDERCUT SERIOUS BEATS: It does not flatten, joke over, or deflate a serious emotional moment.
+
+If a candidate beat fails ANY of these five criteria, replace it with one that passes, or drop it. Do NOT count failing beats toward the minimum. The log must only contain qualifying beats.
+
 REQUIRED PRE-OUTPUT LOG
 
 Before outputting the revised script, produce a numbered log titled "PERSONALITY BEAT LOG" listing every beat you added. For each beat, include:
