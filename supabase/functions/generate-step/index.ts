@@ -2066,6 +2066,42 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
       if (cbEntry?.content) {
         parts.push(`### CREATIVE BRIEF (DIRECTIONAL ONLY — title promise, thesis direction, tone, emotional arc, intended payoff)\n${capPreviousOutput("creative_brief", cbEntry.content)}`);
       }
+
+      // ── APPROVED EVIDENCE POINTS (structured, post-review) ──
+      // Pull rows from public.evidence_points for this brief, excluding any
+      // user-rejected rows. This is the canonical, user-approved set.
+      try {
+        const { data: evRows } = await supabase
+          .from("evidence_points")
+          .select("*")
+          .eq("brief_id", briefId)
+          .order("created_at", { ascending: true });
+        const approved = (evRows || []).filter(
+          (r: any) => r.approval_status !== "rejected",
+        );
+        if (approved.length > 0) {
+          const lines: string[] = [
+            "### APPROVED EVIDENCE POINTS (BINDING WHITELIST — only these claims may be used; rejected points have been removed)",
+          ];
+          approved.forEach((r: any, i: number) => {
+            const block: string[] = [`#${i + 1} Claim: ${r.claim}`];
+            if (r.source_file) block.push(`Source File: ${r.source_file}`);
+            block.push(`Source Type: ${r.source_type}`);
+            block.push(`Confidence: ${r.confidence} | Evidence Type: ${r.evidence_type}`);
+            if (r.book_evidence) block.push(`Book Evidence: ${r.book_evidence}`);
+            if (r.movie_evidence) block.push(`Movie Evidence: ${r.movie_evidence}`);
+            if (r.difference_note) block.push(`Contrast: ${r.difference_note}`);
+            if (r.exact_quote) block.push(`Micro-Quote: ${r.exact_quote}`);
+            if (r.paraphrase) block.push(`Paraphrase: ${r.paraphrase}`);
+            if (r.lexicon_support) block.push(`Lexicon Support: ${r.lexicon_support}`);
+            lines.push(block.join("\n"));
+          });
+          parts.push(lines.join("\n\n"));
+        }
+      } catch (err) {
+        console.warn("Failed to load approved evidence_points:", err);
+      }
+
       // Hook is injected separately below as a top-level user-message section,
       // BEFORE "## Previous Pipeline Steps", so it gets architectural priority
       // over Pack Beat 1.
