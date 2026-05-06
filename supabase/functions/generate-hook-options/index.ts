@@ -215,15 +215,31 @@ SOURCE PRIORITY (BINDING):
 - Do NOT treat the Creative Brief as evidence.
 - Do NOT use raw Evidence Table, raw Beat Plan, Selected Source Analysis, Six Category Extraction, or raw source formatting. They are not provided here, and you must not invent them.
 
-OUTPUT (BINDING):
-You will return exactly three hook options via the structured tool call. The three hooks MUST be meaningfully different ROUTES — not rewrites or restatements of the same hook.
+GENERATION INSTRUCTION (BINDING):
+Read the Creative Brief and Script Evidence Pack carefully. Identify the three sharpest, most specific tensions, contradictions, or revelations available in this exact material. For each one, write a hook that opens on that specific tension — not on a category of tension, but on the actual detail, scene, quote, or gap that makes this video worth watching.
 
-Pick three DIFFERENT routes from this taxonomy:
+Each hook must:
+
+Open with a specific detail, moment, character action, or canon fact from the evidence — not a general statement about the topic
+
+Create an open loop in the first two sentences — the viewer understands something is wrong or unresolved before you explain what
+
+Sound like it was written by the specific host persona in the Host Persona document
+
+Apply all Anti-AI rules — no banned opening patterns, no contrast formulas, no generic scene-setting
+
+Feel like it could only exist for this specific script, not any other Harry Potter video
+
+After generating each hook, tag it with the closest matching route label from the taxonomy below as METADATA ONLY. The route label describes what you made; it does not prescribe what to make. Do NOT start from a route and reverse-engineer a hook to fit it.
+
+Route taxonomy (metadata tags only):
 - scene contradiction (a moment in canon that breaks the surface reading)
 - character wound (the unhealed emotional pressure driving a character)
 - fan debate (a known disagreement among fans, framed honestly)
 - canon irony (a setup/payoff irony hidden in the text)
 - cold open mystery (open with an unresolved question that pulls the viewer in)
+
+Generate three hooks that are genuinely different from each other — different evidence entry points, different emotional registers, different open loops. Do not generate three versions of the same approach. Route labels MAY repeat across the three hooks if the underlying tensions are genuinely distinct, but the hooks themselves must not be variations of one idea.
 
 Each hook should READ like the first 20–40 seconds of a spoken YouTube script — not a summary, not a description, not a teaser blurb. Spoken voiceover only. Each hook MUST create a clear OPEN LOOP into the rest of the argument.
 
@@ -273,7 +289,7 @@ ${cb.content}
 ## Script Evidence Pack (CONTROLLING SOURCE — hooks must be grounded here)
 ${sep.content}
 
-${hookFeedback && hookFeedback.trim() ? `## User Hook Feedback (honor this)\n${hookFeedback.trim()}\n\n` : ""}Now produce exactly three hook options via the tool call. Three DIFFERENT routes from the taxonomy. No rewrites of the same hook. No generic YouTube intro tropes. No triads. No "have you ever wondered." No "in this video." No "not X but Y." Spoken voiceover only.`;
+${hookFeedback && hookFeedback.trim() ? `## User Hook Feedback (honor this)\n${hookFeedback.trim()}\n\n` : ""}Now produce exactly three hook options via the tool call. Start from the sharpest tensions in this specific Pack — not from the route taxonomy. Each hook must open on a specific detail/scene/quote/gap from the evidence. Three genuinely different entry points, emotional registers, and open loops. Tag each with the closest route label as metadata only. No generic YouTube intro tropes. No triads. No "have you ever wondered." No "in this video." No "not X but Y." Spoken voiceover only.`;
 
     const hookItemSchema = {
       type: "object",
