@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { SourceDetailModal } from "@/components/SourceDetailModal";
 
 interface FileUploadCardProps {
-  fileType: "book" | "transcript" | "instructions" | "lexicon" | "competitor_analysis" | "host_persona" | "anti_ai_guide";
+  fileType: "book" | "transcript" | "instructions" | "lexicon" | "competitor_analysis" | "host_persona" | "anti_ai_guide" | "melty_voice_pass";
   title: string;
   description: string;
   accept?: string;
