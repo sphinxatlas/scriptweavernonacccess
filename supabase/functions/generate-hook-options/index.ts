@@ -197,12 +197,45 @@ RIGHT ORDER — universal tension first, HP proof second: "There's a version of 
 
 Test every hook: would someone who has only seen the films and doesn't deeply care about HP still feel a tension worth resolving in the first two sentences? If not, rewrite the opening until they would.`;
 
+    const HOOK_STRUCTURE_AND_EXAMPLES = `HOOK STRUCTURE — what makes a hook work:
+
+A strong hook does three things in order:
+
+Stakes a specific claim or reveals a specific contradiction in the first one to two sentences. The viewer should immediately want to either agree or push back. Not a question — a statement with a point of view.
+
+Provides the specific proof or detail that makes the claim credible. One concrete piece of evidence, a scene, a quote, a moment. Enough to show the claim is real, not enough to resolve it.
+
+Opens a loop that makes the resolution feel necessary. The viewer understands what is at stake and needs to know how it lands.
+
+WORKED EXAMPLES — voice and structure calibration:
+
+Example 1 — plot hole hook: 'There's a plot hole in Harry Potter so huge it should have broken the entire series. In Prisoner of Azkaban, Fred and George Weasley use a map that tracks every single person inside Hogwarts. For years, they never notice that their little brother Ron is sharing a dorm room with a man named Peter Pettigrew. It sounds unbelievable. And before you rush to the comments with "well, they just weren't looking at Ron" — that excuse falls apart the second you look at what the Marauder's Map is actually capable of.'
+
+Example 2 — character reframe hook: 'If Book Ginny Weasley sat down to watch the Harry Potter movies, she wouldn't just roll her eyes at the shoelace scene. She'd be furious. Because what the films do is trap her inside the version of herself she spent years clawing her way out of. The books make her arc about finding her voice. The movies make her quieter, more convenient, always orbiting Harry. They give her the silent treatment and call it a love story.'
+
+What both examples share:
+
+First sentence makes a strong specific claim. Not 'there is something interesting about X.' A real stake.
+
+Second sentence provides the specific proof immediately. No setup, no context dump.
+
+The hook ends on a tension, not a summary. The viewer knows something is wrong and needs to know how wrong.
+
+Short sentences hit hard. Rhythm varies. No filler.
+
+The claim is controversial enough that someone could disagree — that's what makes people watch.
+
+CLAIM STRENGTH TEST: Read the first sentence of your hook. Ask: would a casual viewer either nod and think 'yes exactly' or shake their head and think 'wait that's not right'? If the answer is neither — if they would just think 'okay, interesting' — the claim is not strong enough. Make it stronger or find a different entry point.
+
+Do not open with context. Do not open with a question. Do not open with 'there is something about X worth discussing.' Open with the claim.`;
+
     // Guidance documents + voice instruction must precede the taxonomy and
     // output format instructions in the system prompt.
     const guidanceHeader = [
       guidanceBlock,
       `## HOOK VOICE & STYLE (binding)\n${HOOK_VOICE_INSTRUCTION}`,
       `## AUDIENCE REACH (binding)\n${AUDIENCE_REACH_RULE}`,
+      `## HOOK STRUCTURE & WORKED EXAMPLES (binding)\n${HOOK_STRUCTURE_AND_EXAMPLES}`,
     ]
       .filter(Boolean)
       .join("\n\n");
