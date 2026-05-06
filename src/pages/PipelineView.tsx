@@ -25,6 +25,7 @@ import {
   streamPolishPass,
   updateBriefCreativeBriefFields,
   generateHookOptions,
+  refineHookOption,
   type HookOption,
   type PipelineStepType,
   getEvidencePoints,
@@ -69,12 +70,24 @@ export default function PipelineView() {
   const [passageRunning, setPassageRunning] = useState(false);
   const [passageOutput, setPassageOutput] = useState("");
   // ── Hook Options (transient UI state only — never persisted) ──
-  const [hookFeedback, setHookFeedback] = useState("");
   const [hookOptions, setHookOptions] = useState<HookOption[]>([]);
   const [hookOptionsLoading, setHookOptionsLoading] = useState(false);
-  const [selectedHookDirection, setSelectedHookDirection] = useState("");
+  // Index of the currently selected generated hook (-1 = none, -2 = custom)
+  const [selectedHookIdx, setSelectedHookIdx] = useState<number>(-1);
+  const [refineFeedback, setRefineFeedback] = useState("");
+  const [refining, setRefining] = useState(false);
   const [customHookOpen, setCustomHookOpen] = useState(false);
   const [customHookText, setCustomHookText] = useState("");
+
+  // Resolve the hook text passed to Full Script generation.
+  const selectedHookDirection = (() => {
+    if (selectedHookIdx === -2) return customHookText.trim();
+    if (selectedHookIdx >= 0 && hookOptions[selectedHookIdx]) {
+      const h = hookOptions[selectedHookIdx];
+      return `${h.hook_label}\n\n${h.hook_text}`.trim();
+    }
+    return "";
+  })();
   const contentRef = useRef<HTMLDivElement>(null);
 
   const { data: brief, refetch: refetchBrief } = useQuery({
@@ -164,12 +177,40 @@ export default function PipelineView() {
     if (!briefId) return;
     setHookOptionsLoading(true);
     try {
-      const { hooks } = await generateHookOptions(briefId, hookFeedback);
+      const { hooks } = await generateHookOptions(briefId);
       setHookOptions(hooks);
+      setSelectedHookIdx(-1);
+      setRefineFeedback("");
     } catch (err: any) {
       toast.error(err.message || "Failed to generate hook options");
     } finally {
       setHookOptionsLoading(false);
+    }
+  };
+
+  const handleRefineSelectedHook = async () => {
+    if (!briefId) return;
+    if (selectedHookIdx < 0) return;
+    const current = hookOptions[selectedHookIdx];
+    if (!current) return;
+    if (!refineFeedback.trim()) {
+      toast.error("Add feedback to refine this hook.");
+      return;
+    }
+    setRefining(true);
+    try {
+      const { hook } = await refineHookOption(briefId, current, refineFeedback);
+      setHookOptions((prev) => {
+        const next = [...prev];
+        next[selectedHookIdx] = hook;
+        return next;
+      });
+      setRefineFeedback("");
+      toast.success("Hook refined");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to refine hook");
+    } finally {
+      setRefining(false);
     }
   };
 
