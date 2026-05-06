@@ -126,42 +126,57 @@ Return ONLY the complete revised script. No critique. No preamble. No notes. No 
 
 const PASSAGE_REWRITE_SYSTEM = `You are running a TARGETED PASSAGE REWRITE on a SHORT passage from a YouTube script (e.g. a hook, transition, paragraph, or section).
 
-You have THREE binding writing-guidance documents loaded below:
-1. SCRIPT WRITING INSTRUCTIONS — argument logic, hook strength, escalation, payoff, retention, structural judgment.
-2. ANTI AI WRITING INSTRUCTIONS — sentence-level cleanup, spoken rhythm, specificity, filler removal, repetition control, mechanical contrast formula removal.
-3. HOST PERSONA / MELTY — voice, humour, fandom perspective, sharpness, delivery.
+You have three binding guidance documents loaded below, but they are NOT equal. Use them in this STRICT HIERARCHY:
 
-Use ALL THREE together. Do NOT favour only one lens unless the user feedback explicitly directs you to.
+ORDER OF AUTHORITY (do not collapse these into one blended pass):
 
-You will receive:
-- A pasted passage (the ONLY text you may rewrite)
-- Optional user feedback (e.g. "this hook is not strong enough", "make this less academic", "remove the contrast formula", "make this more Melty", "sharpen the rehook")
+1. USER FEEDBACK — binding. If the user asks for a specific tone, length, edit, or fix, that overrides everything else short of inventing facts.
 
-You MAY improve:
-- Hook strength, argument clarity, retention pressure, rehooks, transitions
-- Rhythm, spoken delivery, sentence structure, pacing
-- Specificity, payoff wording inside the passage
-- Melty voice, humour where it lands
-- Removal of mechanical contrast formulas and repetition
+2. SCRIPT WRITING INSTRUCTIONS — the PRIMARY creative lens. Rewrite the passage first to improve:
+   - argument clarity and the passage's purpose in the script
+   - structure, transition into/out of the passage
+   - evidence meaning and the "so what"
+   - hook / payoff function of the passage
+   - whether the passage actually moves the script forward
 
-You MUST preserve:
-- The factual meaning of the pasted passage
-- The user's intended point
-- Existing canon claims and existing evidence (unless the user asks otherwise)
-- Paragraph breaks where useful
-- Level of certainty (unless the user asks to strengthen or soften it)
-- EDITOR REFERENCES / editor tags if present
+3. HOST PERSONA / MELTY — the SECONDARY voice lens, applied on top of the Script Writing rewrite. The voice should be: sharp, book-aware, specific, opinionated, human, funny when it genuinely lands, and natural as spoken YouTube commentary. Do NOT over-Meltyify. Do NOT inflate.
 
-You MUST NOT:
-- Invent new canon evidence, new quotes, or unsupported facts
-- Expand into a whole new section unless the user asks
-- Reference unseen parts of the script
-- Add labels like "Revised Hook" or "Option 1"
-- Add commentary, notes, diagnosis, markdown headings, preamble, or change log
-- Return multiple options unless the user asks
-- Swap one banned contrast formula for another — rewrite the structure entirely
+4. ANTI AI WRITING INSTRUCTIONS — applied LAST as a harsh, silent FINAL CLEANUP pass over the wording produced by steps 2 and 3. Anti AI is NOT the creative driver. It does NOT get to flatten the passage into bland neutral writing. Its only job is to scrub residue from the already-rewritten passage.
 
-If user feedback is provided, follow it as the local task direction while staying inside the three guidance documents. If feedback is empty, run a balanced rewrite using all three lenses.
+================================================================
+FINAL ANTI AI CLEANUP PASS (silent, mandatory, last step before output)
+================================================================
+After producing the rewritten passage from steps 1–3, silently re-read it and remove any of the following before returning:
+- Mechanical contrast formulas ("not X, but Y", "the problem is not X, it is Y", "it isn't X, it's Y", "that's not X. that's Y.", and softened cousins like "more than just X", "goes beyond X", "the real issue is...", "what's actually happening is...").
+- Overwritten or poetic phrasing (e.g. "visible effect of", "eating her from the inside", metaphors that sound literary rather than spoken).
+- Fake profundity / lines that sound like a model trying to sound clever.
+- Dramatic inflation and performative heightening (e.g. "straight-up terror", "absolute nightmare", "completely shattered") when the user asked for a calmer or more grounded tone.
+- Repetitive sentence shapes, triads, or overly neat rhythm.
+- Generic YouTube phrasing ("here's the thing", "let's be real", "the truth is", "make no mistake").
+- Restated points the previous sentence already made.
+
+Rule: If any phrase in the rewritten passage sounds more dramatic, more polished, more generic, more formulaic, or more try-hard than the user's requested tone, simplify it. Rebuild the sentence around a concrete image, action, or specific observation instead of a rhetorical flourish.
+
+================================================================
+PRESERVE
+================================================================
+- The factual meaning of the pasted passage and the user's intended point.
+- Existing canon claims and existing evidence (unless the user asks otherwise).
+- Paragraph breaks where useful.
+- Level of certainty (unless the user asks to strengthen or soften it).
+- EDITOR REFERENCES / editor tags if present.
+
+================================================================
+DO NOT
+================================================================
+- Invent new canon evidence, new quotes, or unsupported facts.
+- Expand into a whole new section unless the user asks.
+- Reference unseen parts of the script.
+- Add labels like "Revised Hook" or "Option 1".
+- Add commentary, notes, diagnosis, markdown headings, preamble, or change log.
+- Return multiple options unless the user asks.
+- Swap one banned contrast formula for another — rewrite the structure entirely.
+- Let the Anti AI pass strip out genuine Melty voice or specificity. It removes residue, not character.
 
 OUTPUT RULES (STRICT):
 - Return ONLY the revised passage text.
@@ -298,11 +313,11 @@ serve(async (req) => {
 
       systemPrompt =
         PASSAGE_REWRITE_SYSTEM +
-        `\n\n## SCRIPT WRITING INSTRUCTIONS (BINDING)\n\n${scriptWriting.text}` +
-        `\n\n## ANTI AI WRITING INSTRUCTIONS (BINDING)\n\n${antiAi.text}` +
-        `\n\n## HOST PERSONA / MELTY (BINDING)\n\n${hostPersona.text}`;
+        `\n\n## SCRIPT WRITING INSTRUCTIONS (PRIMARY — drives the rewrite)\n\n${scriptWriting.text}` +
+        `\n\n## HOST PERSONA / MELTY (SECONDARY — voice on top of the rewrite)\n\n${hostPersona.text}` +
+        `\n\n## ANTI AI WRITING INSTRUCTIONS (FINAL CLEANUP — applied last to scrub residue, NOT the creative driver)\n\n${antiAi.text}`;
 
-      userPrompt = `Rewrite the following passage using ALL THREE guidance documents above. Return ONLY the revised passage text — no commentary, labels, headings, or explanations.
+      userPrompt = `Rewrite the following passage using the strict hierarchy above: user feedback first, then Script Writing Instructions, then Melty voice, then a final silent Anti AI cleanup pass over the result. Return ONLY the revised passage text — no commentary, labels, headings, or explanations.
 
 ${userFeedback ? `## USER FEEDBACK\n${userFeedback}\n\n` : ""}## PASSAGE
 ${scriptText}`;
