@@ -163,9 +163,47 @@ Sound like the specific host persona described in the Host Persona document: sha
 
 Each hook must feel like it could only have been written for this specific video about this specific topic, not reused for any other Harry Potter video.`;
 
+    const AUDIENCE_REACH_RULE = `AUDIENCE REACH RULE — mandatory for every hook:
+
+The hook must work for two audiences simultaneously:
+
+Harry Potter fans who know the books and canon
+
+Casual viewers or non-fans who have seen the films or have general awareness of Harry Potter
+
+This means the hook cannot open on HP-specific context that requires prior investment. It must open on a universal tension first, then make it specific with HP evidence.
+
+HOW TO FIND THE UNIVERSAL TENSION FOR ANY SCRIPT:
+
+Before writing the hook, identify what kind of video this is and what universal human experience it connects to. Then open on that experience.
+
+If the script is about a character being misrepresented or diminished: Universal tension: someone who fought to become a specific kind of person, and a version of that story that erases the fight Entry point: the gap between who they are and how they get shown
+
+If the script is about an adaptation failing a source: Universal tension: something you loved that turned out to be doing something wrong without you noticing Entry point: the specific moment where the failure is most visible and most felt
+
+If the script is about worldbuilding or lore: Universal tension: something that felt endless and real, and the specific thing that made it start feeling smaller Entry point: the feeling of the world shrinking, not the lore mechanics themselves
+
+If the script is about fandom psychology or nostalgia: Universal tension: loving something that belongs to a specific moment in time that can't be recreated Entry point: what that moment felt like and why it can't be manufactured
+
+If the script is about a character debate or moral argument: Universal tension: someone who is easy to dismiss and genuinely difficult to defend, and why that difficulty is the whole point Entry point: the specific thing that makes them impossible to resolve cleanly
+
+If the script is about a casting, remake, or franchise decision: Universal tension: something built for a specific audience at a specific moment being handed to a studio that needs to monetize it Entry point: what the original had that the replacement structurally cannot replicate
+
+For any other script type, ask: what would someone feel in the first ten seconds of this video if they had never heard of Harry Potter? Build the hook from that feeling, then bring in the HP specifics to prove it.
+
+WRONG ORDER — HP-specific first: "In Chamber of Secrets, Ginny Weasley gets possessed by Voldemort through Tom Riddle's diary..."
+
+RIGHT ORDER — universal tension first, HP proof second: "There's a version of Ginny Weasley in the Harry Potter films who exists mainly to be available when Harry's ready for her. Quiet. Convenient. Orbiting the main character like that's her job. The books spent six years building someone completely different."
+
+Test every hook: would someone who has only seen the films and doesn't deeply care about HP still feel a tension worth resolving in the first two sentences? If not, rewrite the opening until they would.`;
+
     // Guidance documents + voice instruction must precede the taxonomy and
     // output format instructions in the system prompt.
-    const guidanceHeader = [guidanceBlock, `## HOOK VOICE & STYLE (binding)\n${HOOK_VOICE_INSTRUCTION}`]
+    const guidanceHeader = [
+      guidanceBlock,
+      `## HOOK VOICE & STYLE (binding)\n${HOOK_VOICE_INSTRUCTION}`,
+      `## AUDIENCE REACH (binding)\n${AUDIENCE_REACH_RULE}`,
+    ]
       .filter(Boolean)
       .join("\n\n");
 
