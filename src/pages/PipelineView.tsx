@@ -64,6 +64,8 @@ export default function PipelineView() {
   const [hookOptions, setHookOptions] = useState<HookOption[]>([]);
   const [hookOptionsLoading, setHookOptionsLoading] = useState(false);
   const [selectedHookDirection, setSelectedHookDirection] = useState("");
+  const [customHookOpen, setCustomHookOpen] = useState(false);
+  const [customHookText, setCustomHookText] = useState("");
   const contentRef = useRef<HTMLDivElement>(null);
 
   const { data: brief, refetch: refetchBrief } = useQuery({
@@ -510,6 +512,67 @@ export default function PipelineView() {
                           })}
                         </div>
                       )}
+
+                      {/* Fourth option: paste custom hook */}
+                      {(() => {
+                        const trimmed = customHookText.trim();
+                        const isActive =
+                          trimmed.length > 0 &&
+                          selectedHookDirection.trim() === trimmed;
+                        return (
+                          <div
+                            className={`rounded-md border p-3 bg-background space-y-2 ${
+                              isActive ? "border-primary" : "border-border"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-semibold text-foreground">
+                                  Use my own hook
+                                </span>
+                                <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-secondary text-foreground/70 border border-border">
+                                  custom
+                                </span>
+                                {isActive && (
+                                  <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/30">
+                                    Selected
+                                  </span>
+                                )}
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setCustomHookOpen((v) => !v)}
+                                className="h-7 text-xs"
+                              >
+                                {customHookOpen ? "Hide" : "Paste hook"}
+                              </Button>
+                            </div>
+                            {customHookOpen && (
+                              <div className="space-y-2">
+                                <Textarea
+                                  value={customHookText}
+                                  onChange={(e) => setCustomHookText(e.target.value)}
+                                  rows={6}
+                                  placeholder="Paste your own hook here (one you wrote or saved from a previous run). It will be passed to the Full Script generator the same way as a selected generated hook."
+                                  className="bg-background border-border resize-none text-sm"
+                                />
+                                <div className="flex justify-end">
+                                  <Button
+                                    size="sm"
+                                    variant={isActive ? "secondary" : "default"}
+                                    disabled={trimmed.length === 0}
+                                    onClick={() => setSelectedHookDirection(trimmed)}
+                                    className="h-7 text-xs"
+                                  >
+                                    Use this hook
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div>
