@@ -418,7 +418,14 @@ export default function PipelineView() {
                 </>
               )}
               {/* Final Voice Pass moved into Advanced options below */}
-              <Button size="sm" onClick={() => handleGenerate()} disabled={generating} className="gap-1.5">
+              <Button
+                size="sm"
+                onClick={() => handleGenerate()}
+                disabled={
+                  generating || (isFullScriptStep && pendingHighRiskCount > 0)
+                }
+                className="gap-1.5"
+              >
                 {generating ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
