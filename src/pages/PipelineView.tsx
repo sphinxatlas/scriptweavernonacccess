@@ -672,9 +672,28 @@ export default function PipelineView() {
                         </div>
                       )}
                       {!meltyRunning && meltyVoicePassContent && (
-                        <p className="text-[11px] text-muted-foreground">
-                          Melty Voice Pass output is saved and will feed the Anti AI Cleanup below.
-                        </p>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-[11px] text-muted-foreground">
+                              Melty Voice Pass output (saved). Will feed the Anti AI Cleanup below.
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                navigator.clipboard.writeText(meltyVoicePassContent);
+                                toast.success("Copied Melty Voice Pass output");
+                              }}
+                              className="gap-1.5 text-xs h-7"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              Copy
+                            </Button>
+                          </div>
+                          <div className="max-h-96 overflow-auto rounded border border-border bg-background p-3 text-xs whitespace-pre-wrap text-foreground">
+                            {meltyVoicePassContent}
+                          </div>
+                        </div>
                       )}
                     </div>
 
