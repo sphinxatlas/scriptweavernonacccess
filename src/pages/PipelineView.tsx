@@ -234,6 +234,44 @@ export default function PipelineView() {
   const antiAiInput = meltyVoicePassContent || fullScriptContent;
 
   const isFullScriptStep = activeStep === "full_script";
+  const isEvidenceTableStep = activeStep === "evidence_table";
+
+  const pendingHighRiskCount = (() => {
+    if (evidencePoints.length === 0) return 0;
+    // Need to import classifier inline; we'll compute via the same logic.
+    let count = 0;
+    // Lazy import not possible here; re-derive minimal logic
+    for (const r of evidencePoints) {
+      const reasons: string[] = [];
+      const lib = libraryFileNames.map((n) => n.toLowerCase());
+      const sf = (r.source_file || "").toLowerCase();
+      const fileMissing =
+        !!r.source_file && !lib.some((l) => l.includes(sf) || sf.includes(l));
+      const conf = (r.confidence || "").toLowerCase();
+      const et = (r.evidence_type || "").toLowerCase();
+      const st = (r.source_type || "").toLowerCase();
+      if (fileMissing && r.source_file) reasons.push("x");
+      if (!r.source_file) reasons.push("x");
+      if (conf === "medium" || conf === "low") reasons.push("x");
+      if (et === "theory" || et === "speculation" || et === "interpretation") reasons.push("x");
+      if (st === "book" && !r.book_evidence) reasons.push("x");
+      if (st === "movie" && !r.movie_evidence) reasons.push("x");
+      if (st === "both" && (!r.book_evidence || !r.movie_evidence)) reasons.push("x");
+      if (st === "commentary" || st === "secondary") reasons.push("x");
+      const isHigh = reasons.length > 0;
+      if (isHigh && !r.approval_status) count++;
+    }
+    return count;
+  })();
+
+  const handleSetApproval = async (id: string, status: "approved" | "rejected") => {
+    try {
+      await setEvidencePointApproval(id, status);
+      await refetchEvidence();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update approval");
+    }
+  };
 
   const runFullScriptAntiAi = async () => {
     if (!briefId) return;
@@ -449,7 +487,13 @@ export default function PipelineView() {
               </div>
             ) : (
               <div ref={contentRef} className="h-full overflow-auto p-6">
-                {displayContent ? (
+                {isEvidenceTableStep && evidencePoints.length > 0 && !generating ? (
+                  <EvidenceTableView
+                    rows={evidencePoints}
+                    libraryFileNames={libraryFileNames}
+                    onSetApproval={handleSetApproval}
+                  />
+                ) : displayContent ? (
                   <MarkdownContent content={displayContent} />
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-center">
