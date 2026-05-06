@@ -696,6 +696,7 @@ export type Database = {
         | "six_category_extraction"
         | "selected_source_analysis"
         | "script_evidence_pack"
+        | "melty_voice_pass"
       source_file_type:
         | "book"
         | "transcript"
@@ -705,6 +706,7 @@ export type Database = {
         | "competitor_analysis"
         | "host_persona"
         | "anti_ai_guide"
+        | "melty_voice_pass"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -844,6 +846,7 @@ export const Constants = {
         "six_category_extraction",
         "selected_source_analysis",
         "script_evidence_pack",
+        "melty_voice_pass",
       ],
       source_file_type: [
         "book",
@@ -854,6 +857,7 @@ export const Constants = {
         "competitor_analysis",
         "host_persona",
         "anti_ai_guide",
+        "melty_voice_pass",
       ],
     },
   },
