@@ -1299,6 +1299,10 @@ serve(async (req) => {
       testMode,
       testInlineBrief,
       testInlineOutputs,
+      // Optional inline alternative source IDs (test mode only). When
+      // supplied, the function fetches these from alternative_sources by id
+      // and injects them into SSA exactly as the real pipeline does.
+      testInlineAlternativeSourceIds,
     } = await req.json();
     if (!stepType) throw new Error("stepType is required");
     if (!testMode && !briefId) throw new Error("briefId is required");
