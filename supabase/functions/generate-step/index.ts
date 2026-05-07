@@ -2442,6 +2442,68 @@ Please generate the ${stepType.replace(/_/g, " ")} based on the above informatio
     // full_script revisions, use the revision-specific intensity entry.
     const effectiveStepKey = isFullScriptRevision ? "full_script_revision" : stepType;
     systemPromptFinal += buildGuidanceBlock(effectiveStepKey, guidanceLayers);
+
+    // ── PIPELINE TEST MODE — input caps as binding instructions ──
+    // The model still runs each step to real completion; we cap WHAT GOES IN,
+    // not what comes out. These caps match the Pipeline Test spec.
+    if (isTestMode) {
+      const caps: string[] = [];
+      if (stepType === "six_category_extraction") {
+        caps.push("HARD CAP: Output a maximum of 2 items per category. Pick the strongest 2 in each category and stop.");
+      }
+      if (stepType === "evidence_table") {
+        caps.push("HARD CAP: Output a maximum of 6 evidence rows total. Pick the 6 strongest, most argument-useful rows.");
+      }
+      if (stepType === "outline") {
+        caps.push("HARD CAP: Output exactly 4 beats. Beat 1 must be the hook beat. Beat 4 must contain the final payoff. Every beat must still include its full re-hook, function, and hook/payoff relation lines — do not skip the rehook logic.");
+      }
+      if (stepType === "script_evidence_pack") {
+        caps.push("HARD CAP: The Beat Plan you receive is capped at 4 beats. Build the Pack from those 4 beats only. Do not invent additional beats.");
+      }
+      if (stepType === "full_script") {
+        caps.push("HARD CAP: This is a 4-beat script. Write a COMPLETE script that delivers all 4 beats from the Pack and lands a real payoff. Target 650–800 words. Do not truncate. Do not stop mid-beat. Run the hook → 3 body beats → payoff to full completion.");
+      }
+      if (caps.length > 0) {
+        systemPromptFinal +=
+          `\n\n## PIPELINE TEST MODE — INPUT CAPS (BINDING)\n` +
+          `This is a diagnostic test run. Inputs are capped to keep cost low; every step still runs to real completion.\n` +
+          caps.map((c) => `- ${c}`).join("\n");
+      }
+    }
+
+    // Diagnostics SSE comment for the Pipeline Test orchestrator.
+    let diagnosticsSseHeader = "";
+    if (isTestMode) {
+      const diagnostics = {
+        step: stepType,
+        model: getModelForStep(stepType),
+        retrieval: {
+          book: bookChunks.length,
+          transcript: transcriptChunks.length,
+          lexicon: lexiconChunks.length,
+          commentary: commentaryChunks.length,
+          zero_result_queries: matchesPerQuery.filter(
+            (m: any) => (m.book + m.transcript + m.lexicon) === 0,
+          ).length,
+          total_queries: matchesPerQuery.length,
+        },
+        guidance: {
+          script_instructions: {
+            loaded: guidanceLayers.scriptInstructions.chunksRead > 0,
+            truncated: guidanceLayers.scriptInstructions.truncated,
+          },
+          anti_ai: {
+            loaded: guidanceLayers.antiAiInstructions.chunksRead > 0,
+            truncated: guidanceLayers.antiAiInstructions.truncated,
+          },
+          host_persona: {
+            loaded: guidanceLayers.hostPersona.chunksRead > 0,
+            truncated: guidanceLayers.hostPersona.truncated,
+          },
+        },
+      };
+      diagnosticsSseHeader = `: diagnostics ${JSON.stringify(diagnostics)}\n\n`;
+    }
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
