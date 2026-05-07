@@ -1372,6 +1372,57 @@ const getPriorityBoost = (fileName: string, prioritySources: string[]) => {
   return matched ? 0.15 : 0;
 };
 
+// Per-file floor quota: guarantee a minimum number of chunks per priority file
+// (additive on top of the soft boost — does not filter out non-priority files).
+const applyPriorityFloorQuota = (
+  sortedChunks: any[],
+  prioritySources: string[],
+  totalLimit: number,
+  perFileFloor = 3,
+): any[] => {
+  if (!sortedChunks.length || !prioritySources.length || totalLimit <= 0) {
+    return sortedChunks.slice(0, totalLimit);
+  }
+  const tokens = prioritySources
+    .map((s) => PRIORITY_LABEL_TO_TOKEN[s])
+    .filter(Boolean)
+    .map((t) => t.toLowerCase());
+  if (!tokens.length) return sortedChunks.slice(0, totalLimit);
+
+  const matchToken = (fileName: string) => {
+    const lower = (fileName || "").toLowerCase();
+    return tokens.find((t) => lower.includes(t)) || null;
+  };
+
+  // Reserve top-N per priority token (chunks already sorted by score desc)
+  const reservedIds = new Set<string>();
+  const reserved: any[] = [];
+  const perTokenCount: Record<string, number> = {};
+  for (const chunk of sortedChunks) {
+    const token = matchToken(chunk.file_name || "");
+    if (!token) continue;
+    const count = perTokenCount[token] || 0;
+    if (count >= perFileFloor) continue;
+    reserved.push(chunk);
+    reservedIds.add(chunk.id);
+    perTokenCount[token] = count + 1;
+  }
+
+  // Cap reserved at totalLimit (defensive)
+  const reservedCapped = reserved.slice(0, totalLimit);
+  const reservedCappedIds = new Set(reservedCapped.map((c) => c.id));
+
+  const remainingSlots = totalLimit - reservedCapped.length;
+  const filler = remainingSlots > 0
+    ? sortedChunks.filter((c) => !reservedCappedIds.has(c.id)).slice(0, remainingSlots)
+    : [];
+
+  // Merge & re-sort by score so the final list keeps rank order
+  const merged = [...reservedCapped, ...filler];
+  merged.sort((a, b) => b._score - a._score);
+  return merged;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
