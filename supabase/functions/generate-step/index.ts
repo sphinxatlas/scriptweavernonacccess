@@ -2314,26 +2314,32 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
         : "";
 
     if (stepType === "selected_source_analysis") {
-      // Pull the Creative Brief and Insights & Research outputs as upstream context.
-      const { data: cbOut } = await supabase
-        .from("pipeline_outputs")
-        .select("content")
-        .eq("brief_id", briefId)
-        .eq("step_type", "creative_brief")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      const { data: insightsOut } = await supabase
-        .from("pipeline_outputs")
-        .select("content")
-        .eq("brief_id", briefId)
-        .eq("step_type", "six_category_extraction")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      const creativeBriefContent = cbOut?.content || "";
-      const insightsContent = insightsOut?.content || "";
+      // Pull Creative Brief and Insights & Research — inline in test mode.
+      let creativeBriefContent = "";
+      let insightsContent = "";
+      if (isTestMode) {
+        creativeBriefContent = inlineOutputsMap["creative_brief"] || "";
+        insightsContent = inlineOutputsMap["six_category_extraction"] || "";
+      } else {
+        const { data: cbOut } = await supabase
+          .from("pipeline_outputs")
+          .select("content")
+          .eq("brief_id", briefId)
+          .eq("step_type", "creative_brief")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const { data: insightsOut } = await supabase
+          .from("pipeline_outputs")
+          .select("content")
+          .eq("brief_id", briefId)
+          .eq("step_type", "six_category_extraction")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        creativeBriefContent = cbOut?.content || "";
+        insightsContent = insightsOut?.content || "";
+      }
       const hasSelectedSecondary = topicTranscripts.length > 0 || alternativeSources.length > 0;
 
       systemPromptFinal = STEP_PROMPTS["selected_source_analysis"];
@@ -2357,16 +2363,21 @@ ${topicTranscriptUserBlock}${altSourceUserBlock}${buildSecondarySkippedNotice()}
 
 Now produce the Selected Source Analysis in the exact format specified. Be honest about source weight — never promote a secondary-source claim to canon. Surface what's overused, what's underdeveloped, what objections exist, and where original synthesis is possible against the canon extraction above.`;
     } else if (stepType === "six_category_extraction") {
-      // Get creative brief output
-      const { data: creativeBriefOutput } = await supabase
-        .from("pipeline_outputs")
-        .select("content")
-        .eq("brief_id", briefId)
-        .eq("step_type", "creative_brief")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      const creativeBriefContent = creativeBriefOutput?.content || "";
+      // Get creative brief output — inline in test mode.
+      let creativeBriefContent = "";
+      if (isTestMode) {
+        creativeBriefContent = inlineOutputsMap["creative_brief"] || "";
+      } else {
+        const { data: creativeBriefOutput } = await supabase
+          .from("pipeline_outputs")
+          .select("content")
+          .eq("brief_id", briefId)
+          .eq("step_type", "creative_brief")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        creativeBriefContent = creativeBriefOutput?.content || "";
+      }
 
       systemPromptFinal = STEP_PROMPTS["six_category_extraction"];
       // Guidance injected via buildGuidanceBlock() below — no legacy append.
