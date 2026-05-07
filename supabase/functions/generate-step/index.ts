@@ -1614,6 +1614,16 @@ serve(async (req) => {
         .filter(Boolean);
     }
 
+    // In test mode, allow the orchestrator to pass alternative source IDs
+    // directly so SSA receives the same inputs as a real run.
+    if (isTestMode && Array.isArray(testInlineAlternativeSourceIds) && testInlineAlternativeSourceIds.length > 0) {
+      const { data: altRows } = await supabase
+        .from("alternative_sources")
+        .select("title, source_type, source_author, url, content")
+        .in("id", testInlineAlternativeSourceIds);
+      alternativeSources = (altRows || []).filter(Boolean);
+    }
+
     // ─────────────────────────────────────────────────────────────────────
     // SECONDARY SOURCE TOKEN BUDGETS
     //
