@@ -1280,8 +1280,28 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { briefId, stepType, revisionFeedback, previousFullScript, hookDirection } = await req.json();
-    if (!briefId || !stepType) throw new Error("briefId and stepType are required");
+    const {
+      briefId,
+      stepType,
+      revisionFeedback,
+      previousFullScript,
+      hookDirection,
+      // ── TEST MODE (Pipeline Test tab) ──
+      // When testMode === true, the function:
+      //   - never touches topic_briefs / pipeline_outputs / evidence_points
+      //   - uses the supplied inline brief + inline previous outputs
+      //   - applies per-step input caps (see TEST_MODE_INSTRUCTIONS below)
+      //   - halves SSA secondary budgets
+      //   - emits a `: diagnostics {json}` SSE header with retrieval +
+      //     guidance counts for the orchestrator to assemble its report
+      // No schema changes, no DB writes, no impact on normal runs.
+      testMode,
+      testInlineBrief,
+      testInlineOutputs,
+    } = await req.json();
+    if (!stepType) throw new Error("stepType is required");
+    if (!testMode && !briefId) throw new Error("briefId is required");
+    const isTestMode = testMode === true;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
