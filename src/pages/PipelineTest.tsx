@@ -11,7 +11,15 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { MultiSelectChips, type MultiSelectOption } from "@/components/MultiSelectChips";
-import { ChevronDown, FlaskConical, Loader2, Clock, GitCompare, Copy } from "lucide-react";
+import { ChevronDown, FlaskConical, Loader2, Clock, GitCompare, Copy, History, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   streamGenerateStep,
   streamPolishPass,
@@ -122,6 +130,38 @@ function wordCount(s: string): number {
   return s.trim().split(/\s+/).filter(Boolean).length;
 }
 
+const HISTORY_KEY = "pipeline-test-history";
+const HISTORY_MAX = 10;
+
+type HistoryEntry = {
+  timestamp: string;
+  form: CreateBriefInput;
+  selectedFormatIds: string[];
+  selectedTopicIds: string[];
+  selectedAltIds: string[];
+};
+
+function loadHistory(): HistoryEntry[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistoryEntry(entry: HistoryEntry) {
+  const existing = loadHistory();
+  const next = [entry, ...existing].slice(0, HISTORY_MAX);
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+  } catch {
+    // ignore quota errors
+  }
+}
+
 function statusIcon(s: StepResult["status"]) {
   if (s === "pass") return "✅ PASS";
   if (s === "fail") return "❌ FAIL";
@@ -141,6 +181,7 @@ export default function PipelineTest() {
   const [results, setResults] = useState<Record<StepKey, StepResult>>(() =>
     Object.fromEntries(STEP_ORDER.map((k) => [k, { status: "pending", output: "", notes: "", warnings: [] }])) as any,
   );
+  const [history, setHistory] = useState<HistoryEntry[]>(() => loadHistory());
 
   const { data: formatRefs = [] } = useQuery({
     queryKey: ["format-references"],
@@ -215,6 +256,18 @@ export default function PipelineTest() {
     setRunning(true);
     setStartedAt(new Date().toISOString());
     reset();
+
+    // Save inputs to localStorage history
+    const entry: HistoryEntry = {
+      timestamp: new Date().toISOString(),
+      form: { ...form },
+      selectedFormatIds: [...selectedFormatIds],
+      selectedTopicIds: [...selectedTopicIds],
+      selectedAltIds: [...selectedAltIds],
+    };
+    saveHistoryEntry(entry);
+    setHistory(loadHistory());
+
     const outputs: Partial<Record<StepKey, string>> = {};
     let firstFailedAt: StepKey | null = null;
 
@@ -460,14 +513,69 @@ export default function PipelineTest() {
   return (
     <Layout>
       <div className="p-8 max-w-4xl">
-        <div className="mb-8 flex items-center gap-3">
-          <FlaskConical className="w-6 h-6 text-primary" />
-          <div>
-            <h1 className="text-2xl font-mono font-bold text-foreground">Pipeline Test</h1>
-            <p className="text-sm text-muted-foreground">
-              Diagnostic full-pipeline run with capped inputs (4-beat cap). Nothing is saved.
-            </p>
+        <div className="mb-8 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <FlaskConical className="w-6 h-6 text-primary" />
+            <div>
+              <h1 className="text-2xl font-mono font-bold text-foreground">Pipeline Test</h1>
+              <p className="text-sm text-muted-foreground">
+                Diagnostic full-pipeline run with capped inputs (4-beat cap). Nothing is saved.
+              </p>
+            </div>
           </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <History className="w-4 h-4 mr-2" />
+                History {history.length > 0 ? `(${history.length})` : ""}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-96 max-h-96 overflow-y-auto">
+              <DropdownMenuLabel>Recent Runs (localStorage)</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {history.length === 0 && (
+                <div className="px-2 py-4 text-xs text-muted-foreground text-center">
+                  No saved runs yet.
+                </div>
+              )}
+              {history.map((h, i) => (
+                <DropdownMenuItem
+                  key={i}
+                  onClick={() => {
+                    setForm(h.form);
+                    setSelectedFormatIds(h.selectedFormatIds || []);
+                    setSelectedTopicIds(h.selectedTopicIds || []);
+                    setSelectedAltIds(h.selectedAltIds || []);
+                    toast.success("Form populated from history");
+                  }}
+                  className="flex flex-col items-start gap-1 cursor-pointer"
+                >
+                  <span className="text-sm font-medium truncate w-full">
+                    {h.form.title || "(untitled)"}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    {new Date(h.timestamp).toLocaleString()}
+                  </span>
+                </DropdownMenuItem>
+              ))}
+              {history.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => {
+                      localStorage.removeItem(HISTORY_KEY);
+                      setHistory([]);
+                      toast.success("History cleared");
+                    }}
+                    className="text-destructive cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Clear history
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className="border border-primary/30 rounded-lg p-5 mb-6 bg-card">
