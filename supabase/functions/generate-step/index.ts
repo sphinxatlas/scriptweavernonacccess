@@ -1541,12 +1541,15 @@ serve(async (req) => {
     const guidanceSseHeader = guidanceWarnings.length > 0
       ? `: guidance_warnings ${JSON.stringify(guidanceWarnings)}\n\n`
       : "";
+    // Captured by closure; assigned later in test mode just before the AI call.
+    let __diagnosticsHeader = "";
     const wrapStreamWithWarnings = (upstream: ReadableStream<Uint8Array>) => {
-      if (!guidanceSseHeader) return upstream;
+      const header = guidanceSseHeader + __diagnosticsHeader;
+      if (!header) return upstream;
       const encoder = new TextEncoder();
       return new ReadableStream<Uint8Array>({
         async start(controller) {
-          controller.enqueue(encoder.encode(guidanceSseHeader));
+          controller.enqueue(encoder.encode(header));
           const reader = upstream.getReader();
           try {
             while (true) {
