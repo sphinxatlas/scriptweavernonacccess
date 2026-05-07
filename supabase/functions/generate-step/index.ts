@@ -1372,6 +1372,57 @@ const getPriorityBoost = (fileName: string, prioritySources: string[]) => {
   return matched ? 0.15 : 0;
 };
 
+// Per-file floor quota: guarantee a minimum number of chunks per priority file
+// (additive on top of the soft boost — does not filter out non-priority files).
+const applyPriorityFloorQuota = (
+  sortedChunks: any[],
+  prioritySources: string[],
+  totalLimit: number,
+  perFileFloor = 3,
+): any[] => {
+  if (!sortedChunks.length || !prioritySources.length || totalLimit <= 0) {
+    return sortedChunks.slice(0, totalLimit);
+  }
+  const tokens = prioritySources
+    .map((s) => PRIORITY_LABEL_TO_TOKEN[s])
+    .filter(Boolean)
+    .map((t) => t.toLowerCase());
+  if (!tokens.length) return sortedChunks.slice(0, totalLimit);
+
+  const matchToken = (fileName: string) => {
+    const lower = (fileName || "").toLowerCase();
+    return tokens.find((t) => lower.includes(t)) || null;
+  };
+
+  // Reserve top-N per priority token (chunks already sorted by score desc)
+  const reservedIds = new Set<string>();
+  const reserved: any[] = [];
+  const perTokenCount: Record<string, number> = {};
+  for (const chunk of sortedChunks) {
+    const token = matchToken(chunk.file_name || "");
+    if (!token) continue;
+    const count = perTokenCount[token] || 0;
+    if (count >= perFileFloor) continue;
+    reserved.push(chunk);
+    reservedIds.add(chunk.id);
+    perTokenCount[token] = count + 1;
+  }
+
+  // Cap reserved at totalLimit (defensive)
+  const reservedCapped = reserved.slice(0, totalLimit);
+  const reservedCappedIds = new Set(reservedCapped.map((c) => c.id));
+
+  const remainingSlots = totalLimit - reservedCapped.length;
+  const filler = remainingSlots > 0
+    ? sortedChunks.filter((c) => !reservedCappedIds.has(c.id)).slice(0, remainingSlots)
+    : [];
+
+  // Merge & re-sort by score so the final list keeps rank order
+  const merged = [...reservedCapped, ...filler];
+  merged.sort((a, b) => b._score - a._score);
+  return merged;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -2004,9 +2055,9 @@ Generate the Creative Brief now.`;
     const transcriptLimit = isTestMode ? 10 : (isComparison ? 20 : 20);
     const lexiconLimit = isTestMode ? 10 : (isComparison ? 5 : 10);
 
-    const bookChunks = Array.from(mergedByType.book.values())
-      .sort((a, b) => b._score - a._score)
-      .slice(0, bookLimit);
+    const bookChunksSorted = Array.from(mergedByType.book.values())
+      .sort((a, b) => b._score - a._score);
+    const bookChunks = applyPriorityFloorQuota(bookChunksSorted, prioritySources, bookLimit, 3);
 
     // For transcripts: filter out chunks where target character has zero mentions (unless very few results)
     const allTranscriptChunks = Array.from(mergedByType.transcript.values())
@@ -2014,8 +2065,8 @@ Generate the Creative Brief now.`;
     const relevantTranscripts = allTranscriptChunks.filter((c) => c._char_mentions > 0);
     const droppedTranscripts = allTranscriptChunks.length - relevantTranscripts.length;
     // Use relevant ones if we have enough, otherwise fall back to all
-    const transcriptChunks = (relevantTranscripts.length >= 3 ? relevantTranscripts : allTranscriptChunks)
-      .slice(0, transcriptLimit);
+    const transcriptPool = relevantTranscripts.length >= 3 ? relevantTranscripts : allTranscriptChunks;
+    const transcriptChunks = applyPriorityFloorQuota(transcriptPool, prioritySources, transcriptLimit, 3);
 
     const lexiconChunks = Array.from(mergedByType.lexicon.values())
       .sort((a, b) => b._score - a._score)
@@ -2062,7 +2113,7 @@ Generate the Creative Brief now.`;
       filters_applied: {
         source_types_searched: ["book", "transcript", "lexicon"],
         instructions_excluded_from_evidence: true,
-        priority_sources_mode: "soft_boost_ranking_only",
+        priority_sources_mode: "soft_boost_plus_floor_quota",
         priority_sources_value: prioritySources,
         strict_source_filter: false,
       },
@@ -2141,7 +2192,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 - Book matches: ${bookChunks.length}
 - Transcript matches: ${transcriptChunks.length}
 - Lexicon matches: ${lexiconChunks.length}
-- Priority sources mode: soft boost ranking only
+- Priority sources mode: soft boost + floor quota (min 3 per priority file)
 - Transcript chunks indexed: ${transcriptChunkCount}
 - Transcript overwhelmed by books: ${transcriptChunks.length === 0 && bookChunks.length > 5 ? "YES — WARNING" : "No"}`);
 
