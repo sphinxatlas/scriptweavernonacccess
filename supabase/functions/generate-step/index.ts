@@ -2129,8 +2129,8 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
       // ── APPROVED EVIDENCE POINTS (structured, post-review) ──
       // Pull rows from public.evidence_points for this brief, excluding any
-      // user-rejected rows. This is the canonical, user-approved set.
-      try {
+      // user-rejected rows. Skipped entirely in test mode.
+      if (!isTestMode) try {
         const { data: evRows } = await supabase
           .from("evidence_points")
           .select("*")
