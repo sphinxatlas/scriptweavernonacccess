@@ -1570,32 +1570,35 @@ serve(async (req) => {
       hostPersonaContext = (personaChunks || []).map((c: any) => c.content).join("\n\n");
     }
 
-    // Fetch format reference transcripts linked to this brief
-    const { data: formatRefLinks } = await supabase
-      .from("brief_format_reference_links")
-      .select("transcript_id, format_reference_transcripts(channel_name, video_title, transcript)")
-      .eq("brief_id", briefId);
-    const formatRefs = (formatRefLinks || [])
-      .map((r: any) => r.format_reference_transcripts)
-      .filter(Boolean);
+    // Fetch format/topic/alt links — skipped entirely in test mode.
+    let formatRefs: any[] = [];
+    let topicTranscripts: any[] = [];
+    let alternativeSources: any[] = [];
+    if (!isTestMode) {
+      const { data: formatRefLinks } = await supabase
+        .from("brief_format_reference_links")
+        .select("transcript_id, format_reference_transcripts(channel_name, video_title, transcript)")
+        .eq("brief_id", briefId);
+      formatRefs = (formatRefLinks || [])
+        .map((r: any) => r.format_reference_transcripts)
+        .filter(Boolean);
 
-    // Fetch brief-specific HP topic transcripts linked to this brief
-    const { data: topicTranscriptLinks } = await supabase
-      .from("brief_topic_transcript_links")
-      .select("transcript_id, brief_topic_transcripts(channel_name, video_title, transcript)")
-      .eq("brief_id", briefId);
-    const topicTranscripts = (topicTranscriptLinks || [])
-      .map((r: any) => r.brief_topic_transcripts)
-      .filter(Boolean);
+      const { data: topicTranscriptLinks } = await supabase
+        .from("brief_topic_transcript_links")
+        .select("transcript_id, brief_topic_transcripts(channel_name, video_title, transcript)")
+        .eq("brief_id", briefId);
+      topicTranscripts = (topicTranscriptLinks || [])
+        .map((r: any) => r.brief_topic_transcripts)
+        .filter(Boolean);
 
-    // Fetch alternative sources (secondary, non-canon) linked to this brief
-    const { data: altSourceLinks } = await supabase
-      .from("brief_alternative_source_links")
-      .select("alternative_source_id, alternative_sources(title, source_type, source_author, url, content)")
-      .eq("brief_id", briefId);
-    const alternativeSources = (altSourceLinks || [])
-      .map((r: any) => r.alternative_sources)
-      .filter(Boolean);
+      const { data: altSourceLinks } = await supabase
+        .from("brief_alternative_source_links")
+        .select("alternative_source_id, alternative_sources(title, source_type, source_author, url, content)")
+        .eq("brief_id", briefId);
+      alternativeSources = (altSourceLinks || [])
+        .map((r: any) => r.alternative_sources)
+        .filter(Boolean);
+    }
 
     // ─────────────────────────────────────────────────────────────────────
     // SECONDARY SOURCE TOKEN BUDGETS
