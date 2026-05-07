@@ -1765,7 +1765,10 @@ serve(async (req) => {
       const parts: string[] = [];
       let skipped = 0;
       for (const s of alternativeSources) {
-        const raw = (s.content || "").toString();
+        // Expand HP installment abbreviations (PS/CoS/HBP/OotP/DH/...) in
+        // the source body before the per-item cap. The original text is
+        // preserved verbatim; expansions are appended in a trailing note.
+        const raw = expandHpAbbreviations((s.content || "").toString());
         let capped = raw;
         if (raw.length > perItem) {
           capped = raw.slice(0, perItem) +
