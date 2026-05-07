@@ -1,0 +1,1 @@
+CREATE POLICY "Public update source files" ON storage.objects FOR UPDATE USING (bucket_id = 'source-files') WITH CHECK (bucket_id = 'source-files');
