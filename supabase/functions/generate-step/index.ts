@@ -1241,6 +1241,14 @@ const deriveRetrievalQueryPack = (brief: any): QueryPack => {
 
   const allQueries = dedupeStrings([primaryQuery, ...trimmedSubqueries, ...transcriptQueries, ...comparisonQueries], 30);
 
+  // Additive HP abbreviation expansion. If a query string contains an HP
+  // installment abbreviation (PS, CoS, HBP, OotP, DH2, ...), append a
+  // companion query with the abbreviation expanded to its full title so
+  // FTS can match canon filenames and chunk text. Originals are kept so
+  // we never lose existing matches.
+  const expandedAll = expandHpAbbreviationsInQueries(allQueries);
+  const finalAll = dedupeStrings([...allQueries, ...expandedAll], 60);
+
   return {
     primaryQuery,
     subqueries: trimmedSubqueries,
@@ -1248,7 +1256,7 @@ const deriveRetrievalQueryPack = (brief: any): QueryPack => {
     themeQueries,
     comparisonQueries,
     transcriptQueries,
-    allQueries,
+    allQueries: finalAll,
     targetCharacter,
   };
 };
