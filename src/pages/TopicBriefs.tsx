@@ -37,7 +37,31 @@ const blankForm = (): CreateBriefInput => ({
   target_min_words: 1400,
   target_max_words: 1600,
   comparison_mode: false,
+  characters: [],
+  focus_areas: [],
+  priority_sources: [],
 });
+
+const BOOK_OPTIONS = [
+  "Book 1: Philosopher's Stone",
+  "Book 2: Chamber of Secrets",
+  "Book 3: Prisoner of Azkaban",
+  "Book 4: Goblet of Fire",
+  "Book 5: Order of the Phoenix",
+  "Book 6: Half-Blood Prince",
+  "Book 7: Deathly Hallows",
+];
+
+const MOVIE_OPTIONS = [
+  "Movie 1: Philosopher's Stone",
+  "Movie 2: Chamber of Secrets",
+  "Movie 3: Prisoner of Azkaban",
+  "Movie 4: Goblet of Fire",
+  "Movie 5: Order of the Phoenix",
+  "Movie 6: Half-Blood Prince",
+  "Movie 7.1: Deathly Hallows Part 1",
+  "Movie 7.2: Deathly Hallows Part 2",
+];
 
 interface InlineTranscriptFormProps {
   label: string;
@@ -277,6 +301,78 @@ export default function TopicBriefs() {
                   onChange={(e) => updateForm("angle_note", e.target.value)}
                   rows={4}
                   className="bg-secondary border-border resize-none"
+                />
+              </div>
+
+              {/* Main Characters */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Main Characters</Label>
+                <p className="text-[11px] text-muted-foreground/70 mb-1">
+                  Characters central to this video. Used to build retrieval queries. e.g., Ginny Weasley, Harry Potter
+                </p>
+                <Input
+                  placeholder="Ginny Weasley, Harry Potter"
+                  value={(form.characters || []).join(", ")}
+                  onChange={(e) =>
+                    updateForm(
+                      "characters",
+                      e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                    )
+                  }
+                  className="bg-secondary border-border mt-1"
+                />
+              </div>
+
+              {/* Focus Areas */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Focus Areas</Label>
+                <p className="text-[11px] text-muted-foreground/70 mb-1">
+                  Key themes, scenes, or topics this video covers. e.g., Chamber of Secrets trauma, OotP confrontation, adaptation gaps
+                </p>
+                <Input
+                  placeholder="Chamber of Secrets trauma, OotP confrontation, adaptation gaps"
+                  value={(form.focus_areas || []).join(", ")}
+                  onChange={(e) =>
+                    updateForm(
+                      "focus_areas",
+                      e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                    )
+                  }
+                  className="bg-secondary border-border mt-1"
+                />
+              </div>
+
+              {/* Priority Books */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Priority Books</Label>
+                <p className="text-[11px] text-muted-foreground/70 mb-1">
+                  Which books are most relevant. Retrieval will weight these.
+                </p>
+                <MultiSelectChips
+                  options={BOOK_OPTIONS.map((b) => ({ value: b, label: b }))}
+                  selected={(form.priority_sources || []).filter((s) => BOOK_OPTIONS.includes(s))}
+                  onChange={(vals) => {
+                    const movies = (form.priority_sources || []).filter((s) => MOVIE_OPTIONS.includes(s));
+                    updateForm("priority_sources", [...vals, ...movies]);
+                  }}
+                  placeholder="Select priority books…"
+                />
+              </div>
+
+              {/* Priority Movies */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Priority Movies</Label>
+                <p className="text-[11px] text-muted-foreground/70 mb-1">
+                  Which films are most relevant. Retrieval will weight these.
+                </p>
+                <MultiSelectChips
+                  options={MOVIE_OPTIONS.map((m) => ({ value: m, label: m }))}
+                  selected={(form.priority_sources || []).filter((s) => MOVIE_OPTIONS.includes(s))}
+                  onChange={(vals) => {
+                    const books = (form.priority_sources || []).filter((s) => BOOK_OPTIONS.includes(s));
+                    updateForm("priority_sources", [...books, ...vals]);
+                  }}
+                  placeholder="Select priority movies…"
                 />
               </div>
 
