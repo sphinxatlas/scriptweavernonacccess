@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { MultiSelectChips, type MultiSelectOption } from "@/components/MultiSelectChips";
-import { ChevronDown, FlaskConical, Loader2, Clock, GitCompare } from "lucide-react";
+import { ChevronDown, FlaskConical, Loader2, Clock, GitCompare, Copy } from "lucide-react";
 import {
   streamGenerateStep,
   streamPolishPass,
