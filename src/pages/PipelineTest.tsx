@@ -391,7 +391,20 @@ export default function PipelineTest() {
         // output) word count, floored — matching the polish-pass spec.
         const inputScriptWords = wordCount(fsText);
         const minBeats = Math.floor(inputScriptWords / 300);
-        const beatLog = (mvText.match(/beat\s*\d+/gim) || []).length;
+        // Extract the PERSONALITY BEAT LOG section and count numbered
+        // entries inside it. The pass output uses headings like
+        // "PERSONALITY BEAT LOG" followed by "1." / "2." numbered entries
+        // and ends at the next section heading (RESISTED SECTIONS,
+        // PARENTHETICAL ASIDE LOG, MOCK FORMAL REGISTER LOG, I VS WE
+        // AUDIT LOG) or the "---" script separator. The previous parser
+        // looked for the literal string "beat <n>" which the pass no
+        // longer emits, so it always returned 0.
+        const sectionMatch = mvText.match(
+          /PERSONALITY BEAT LOG[\s\S]*?(?=\n\s*(?:RESISTED SECTIONS|PARENTHETICAL ASIDE LOG|MOCK FORMAL REGISTER LOG|I VS WE AUDIT LOG|HOOK AUDIT LOG)\b|\n\s*---\s*\n|$)/i,
+        );
+        const beatLog = sectionMatch
+          ? (sectionMatch[0].match(/^\s*\d+[.)]/gm) || []).length
+          : 0;
         const mvWarn: string[] = [];
         if (beatLog < minBeats) mvWarn.push(`Beat log minimum not met (${beatLog} < ${minBeats})`);
         update("melty_voice", {

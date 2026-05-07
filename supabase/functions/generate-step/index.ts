@@ -1145,6 +1145,66 @@ const getCharacterRelevanceScore = (content: string, targetCharacter: string): {
   return { score, mentions, likelySpeaker };
 };
 
+// ─────────────────────────────────────────────────────────────────────────
+// HP ABBREVIATION EXPANSION
+//
+// Fan-source text and user-authored queries often use HP installment
+// abbreviations (PS, SS, CoS, PoA, GoF, OotP, HBP, DH, DH1, DH2, DA,
+// Hinny). Our canon filenames and chunk text use the full titles
+// ("Half-Blood Prince", "Order of the Phoenix", etc.) so FTS misses
+// these references. We expand abbreviations ADDITIVELY — the original
+// text/query is preserved and the expansion is appended — so existing
+// matches are never lost. This is a pure text-augmentation; retrieval
+// filtering and priority boosting are untouched.
+// ─────────────────────────────────────────────────────────────────────────
+const HP_ABBREVIATIONS: Array<{ pattern: RegExp; expansions: string[] }> = [
+  { pattern: /\bPS\b/g,   expansions: ["Philosopher's Stone"] },
+  { pattern: /\bSS\b/g,   expansions: ["Sorcerer's Stone"] },
+  { pattern: /\bCoS\b/g,  expansions: ["Chamber of Secrets"] },
+  { pattern: /\bPoA\b/g,  expansions: ["Prisoner of Azkaban"] },
+  { pattern: /\bGoF\b/g,  expansions: ["Goblet of Fire"] },
+  { pattern: /\bOotP\b/g, expansions: ["Order of the Phoenix"] },
+  { pattern: /\bOOTP\b/g, expansions: ["Order of the Phoenix"] },
+  { pattern: /\bHBP\b/g,  expansions: ["Half-Blood Prince"] },
+  { pattern: /\bDH1\b/g,  expansions: ["Deathly Hallows"] },
+  { pattern: /\bDH2\b/g,  expansions: ["Deathly Hallows"] },
+  { pattern: /\bDH\b/g,   expansions: ["Deathly Hallows"] },
+  { pattern: /\bDA\b/g,   expansions: ["Dumbledore's Army"] },
+  { pattern: /\bHinny\b/gi, expansions: ["Harry Ginny"] },
+];
+
+const expandHpAbbreviations = (text: string): string => {
+  if (!text) return text;
+  const found = new Set<string>();
+  for (const { pattern, expansions } of HP_ABBREVIATIONS) {
+    if (pattern.test(text)) {
+      for (const e of expansions) found.add(e);
+    }
+    pattern.lastIndex = 0;
+  }
+  if (found.size === 0) return text;
+  // Append once at the end so original text is preserved verbatim.
+  return `${text}\n\n[Abbreviation expansions: ${Array.from(found).join("; ")}]`;
+};
+
+const expandHpAbbreviationsInQueries = (queries: string[]): string[] => {
+  const out: string[] = [];
+  for (const q of queries) {
+    if (!q) continue;
+    let expanded = q;
+    let touched = false;
+    for (const { pattern, expansions } of HP_ABBREVIATIONS) {
+      if (pattern.test(expanded)) {
+        touched = true;
+        expanded = expanded.replace(pattern, (m) => `${m} ${expansions.join(" ")}`);
+      }
+      pattern.lastIndex = 0;
+    }
+    if (touched) out.push(expanded);
+  }
+  return out;
+};
+
 const deriveRetrievalQueryPack = (brief: any): QueryPack => {
   const title = normalizeWhitespace(brief.title || "");
   const thesis = normalizeWhitespace(brief.thesis || "");
@@ -1241,6 +1301,14 @@ const deriveRetrievalQueryPack = (brief: any): QueryPack => {
 
   const allQueries = dedupeStrings([primaryQuery, ...trimmedSubqueries, ...transcriptQueries, ...comparisonQueries], 30);
 
+  // Additive HP abbreviation expansion. If a query string contains an HP
+  // installment abbreviation (PS, CoS, HBP, OotP, DH2, ...), append a
+  // companion query with the abbreviation expanded to its full title so
+  // FTS can match canon filenames and chunk text. Originals are kept so
+  // we never lose existing matches.
+  const expandedAll = expandHpAbbreviationsInQueries(allQueries);
+  const finalAll = dedupeStrings([...allQueries, ...expandedAll], 60);
+
   return {
     primaryQuery,
     subqueries: trimmedSubqueries,
@@ -1248,7 +1316,7 @@ const deriveRetrievalQueryPack = (brief: any): QueryPack => {
     themeQueries,
     comparisonQueries,
     transcriptQueries,
-    allQueries,
+    allQueries: finalAll,
     targetCharacter,
   };
 };
@@ -1697,7 +1765,10 @@ serve(async (req) => {
       const parts: string[] = [];
       let skipped = 0;
       for (const s of alternativeSources) {
-        const raw = (s.content || "").toString();
+        // Expand HP installment abbreviations (PS/CoS/HBP/OotP/DH/...) in
+        // the source body before the per-item cap. The original text is
+        // preserved verbatim; expansions are appended in a trailing note.
+        const raw = expandHpAbbreviations((s.content || "").toString());
         let capped = raw;
         if (raw.length > perItem) {
           capped = raw.slice(0, perItem) +
