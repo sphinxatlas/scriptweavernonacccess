@@ -381,16 +381,73 @@ serve(async (req) => {
 
 ${userFeedback ? `## USER FEEDBACK\n${userFeedback}\n\n` : ""}## PASSAGE
 ${scriptText}`;
+    } else if (passType === "melty_voice") {
+      // Melty Voice Pass — load both governing documents as separate layers
+      // via the loadLayer pattern, each injected at HIGHEST BINDING intensity.
+      // The uploaded documents are the primary instruction source for this
+      // pass (NOT the inline constant).
+      const [hostPersona, voicePass] = await Promise.all([
+        loadGuidanceText(supabase, ["host_persona"]),
+        loadGuidanceText(supabase, ["melty_voice_pass"]),
+      ]);
+
+      const missing: string[] = [];
+      if (!hostPersona.text || hostPersona.text.trim().length < 20) missing.push("Host Persona (HOST_PERSONA_MELTY_V3)");
+      if (!voicePass.text || voicePass.text.trim().length < 20) missing.push("Melty Voice Pass (MELTY_VOICE_PASS_V2)");
+      if (missing.length > 0) {
+        return new Response(
+          JSON.stringify({
+            error: `Melty Voice Pass requires these documents in your Source Library: ${missing.join(", ")}.`,
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      for (const [label, g] of [
+        ["Host Persona", hostPersona],
+        ["Melty Voice Pass", voicePass],
+      ] as const) {
+        if (g.truncated) {
+          console.warn(`WARNING: Guidance document '${label}' truncated at ${GUIDANCE_CHUNK_LIMIT} chunks.`);
+        }
+      }
+
+      console.log("[polish-pass]", JSON.stringify({
+        passType: "melty_voice",
+        scope: "full_script",
+        hostPersonaChunks: hostPersona.chunks,
+        hostPersonaTruncated: hostPersona.truncated,
+        voicePassChunks: voicePass.chunks,
+        voicePassTruncated: voicePass.truncated,
+        scriptChars: scriptText.length,
+      }));
+
+      const meltyPreamble = `You are running the MELTY VOICE PASS on a finished YouTube script.
+
+The two documents loaded below are the ONLY governing instructions for this pass. Read both in full before making any changes. Follow them literally — including the beat count formula, burst rhythm audit, HUMOR TRIGGER MAP cross-reference, density checklist, required logs, and earned-use flagging rules for the Anti-AI handoff.
+
+Hard preservation rules: do not change the script's arguments, evidence, claim strength, structure, factual claims, section order, or canon meaning. Preserve all editor tags. Do not invent new evidence.`;
+
+      systemPrompt =
+        meltyPreamble +
+        `\n\n## HOST PERSONA — HOST_PERSONA_MELTY_V3 (HIGHEST BINDING — voice identity)\n` +
+        `This is the voice identity document. Every sentence of the revised script must sound like this person.\n\n${hostPersona.text}` +
+        (hostPersona.truncated ? `\n\n[Note: Host Persona document was truncated to the first ${GUIDANCE_CHUNK_LIMIT} chunks.]` : "") +
+        `\n\n## MELTY VOICE PASS — MELTY_VOICE_PASS_V2 (HIGHEST BINDING — operational checklist)\n` +
+        `This document governs HOW the pass runs: beat count formula, burst rhythm audit, HUMOR TRIGGER MAP cross-reference, density checklist, required logs, and earned-use flagging for the Anti-AI handoff. Execute it literally.\n\n${voicePass.text}` +
+        (voicePass.truncated ? `\n\n[Note: Melty Voice Pass document was truncated to the first ${GUIDANCE_CHUNK_LIMIT} chunks.]` : "");
+
+      userPrompt = `Run the Melty Voice Pass on the following script, following both governing documents above literally (including all required logs and the operational checklist).
+
+## CURRENT SCRIPT
+${scriptText}`;
     } else {
-      // Full-script polish pass — single-doc lens, EXCEPT melty_voice loads
-      // both Host Persona and the Melty Voice Pass instructions.
+      // Full-script polish pass for anti_ai or script_writing — single-doc lens.
       const docFileTypes =
         passType === "anti_ai" ? ["anti_ai_guide"] :
-        passType === "melty_voice" ? ["host_persona", "melty_voice_pass"] :
         ["instructions", "script_strategy"];
       const docLabel =
         passType === "anti_ai" ? "Anti AI Writing Instructions" :
-        passType === "melty_voice" ? "Melty Voice Pass" :
         "Script Writing Instructions";
 
       const guidance = await loadGuidanceText(supabase, docFileTypes);
@@ -420,7 +477,6 @@ ${scriptText}`;
 
       const baseSystem =
         passType === "anti_ai" ? ANTI_AI_SYSTEM :
-        passType === "melty_voice" ? MELTY_VOICE_SYSTEM :
         SCRIPT_WRITING_SYSTEM;
 
       systemPrompt =
