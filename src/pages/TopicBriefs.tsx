@@ -37,7 +37,31 @@ const blankForm = (): CreateBriefInput => ({
   target_min_words: 1400,
   target_max_words: 1600,
   comparison_mode: false,
+  characters: [],
+  focus_areas: [],
+  priority_sources: [],
 });
+
+const BOOK_OPTIONS = [
+  "Book 1: Philosopher's Stone",
+  "Book 2: Chamber of Secrets",
+  "Book 3: Prisoner of Azkaban",
+  "Book 4: Goblet of Fire",
+  "Book 5: Order of the Phoenix",
+  "Book 6: Half-Blood Prince",
+  "Book 7: Deathly Hallows",
+];
+
+const MOVIE_OPTIONS = [
+  "Movie 1: Philosopher's Stone",
+  "Movie 2: Chamber of Secrets",
+  "Movie 3: Prisoner of Azkaban",
+  "Movie 4: Goblet of Fire",
+  "Movie 5: Order of the Phoenix",
+  "Movie 6: Half-Blood Prince",
+  "Movie 7.1: Deathly Hallows Part 1",
+  "Movie 7.2: Deathly Hallows Part 2",
+];
 
 interface InlineTranscriptFormProps {
   label: string;
