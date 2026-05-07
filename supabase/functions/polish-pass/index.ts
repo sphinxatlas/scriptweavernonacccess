@@ -492,21 +492,32 @@ Return the COMPLETE revised script only. Do not include any commentary, summary,
 ${scriptText}`;
     }
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        stream: true,
-      }),
-    });
+    const callGateway = () =>
+      fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-pro",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          stream: true,
+        }),
+      });
+
+    // Retry transient 5xx (e.g. upstream 502) up to 3 times with backoff.
+    let aiResponse = await callGateway();
+    for (let attempt = 1; attempt <= 3 && aiResponse.status >= 500 && aiResponse.status !== 501; attempt++) {
+      try { await aiResponse.body?.cancel(); } catch (_) {}
+      const delayMs = 1500 * attempt;
+      console.warn(`[polish-pass] AI gateway ${aiResponse.status}, retry ${attempt} in ${delayMs}ms`);
+      await new Promise((r) => setTimeout(r, delayMs));
+      aiResponse = await callGateway();
+    }
 
     if (!aiResponse.ok) {
       if (aiResponse.status === 429) {
@@ -523,10 +534,16 @@ ${scriptText}`;
       }
       const t = await aiResponse.text();
       console.error("AI gateway error:", aiResponse.status, t);
-      return new Response(JSON.stringify({ error: "AI gateway error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      // Return 200 with fallback signal so the UI can show a friendly retry
+      // message instead of a blank screen on transient upstream failures.
+      return new Response(
+        JSON.stringify({
+          error: "AI gateway temporarily unavailable. Please try again in ~30 seconds.",
+          fallback: true,
+          upstream_status: aiResponse.status,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     return new Response(aiResponse.body, {
