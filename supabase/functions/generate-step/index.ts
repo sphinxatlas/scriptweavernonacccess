@@ -2419,7 +2419,7 @@ Please generate the ${stepType.replace(/_/g, " ")} based on the above informatio
       // Use the previous Full Script the client supplied, falling back to the latest
       // saved full_script output for this brief if the client didn't pass one.
       let prevScript = (previousFullScript || "").toString();
-      if (!prevScript) {
+      if (!prevScript && !isTestMode) {
         const { data: prevOut } = await supabase
           .from("pipeline_outputs")
           .select("content")
