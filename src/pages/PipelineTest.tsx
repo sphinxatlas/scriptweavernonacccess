@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { MultiSelectChips, type MultiSelectOption } from "@/components/MultiSelectChips";
-import { ChevronDown, FlaskConical, Loader2, Clock, GitCompare } from "lucide-react";
+import { ChevronDown, FlaskConical, Loader2, Clock, GitCompare, Copy } from "lucide-react";
 import {
   streamGenerateStep,
   streamPolishPass,
@@ -383,6 +383,45 @@ export default function PipelineTest() {
     }
   };
 
+  const handleCopyAll = async () => {
+    const reportLines: string[] = [];
+    reportLines.push("=== PIPELINE TEST REPORT ===");
+    reportLines.push(`Triggered: ${startedAt}`);
+    reportLines.push(`Brief: ${form.title}`);
+    reportLines.push("Mode: Test (4-beat cap)");
+    reportLines.push("");
+    for (const k of STEP_ORDER) {
+      const r = results[k];
+      reportLines.push(`${STEP_LABELS[k]}  ${statusIcon(r.status)}  ${r.notes}`);
+    }
+    reportLines.push("");
+    reportLines.push("WARNINGS");
+    if (allWarnings.length === 0) {
+      reportLines.push("None");
+    } else {
+      for (const w of allWarnings) reportLines.push(`⚠️ ${w}`);
+    }
+    reportLines.push("");
+    reportLines.push(`ESTIMATED TOKEN USAGE: ~${estTokens.toLocaleString()}`);
+    reportLines.push(`OVERALL: ${overallStatus}`);
+    reportLines.push("");
+
+    for (const k of STEP_ORDER) {
+      const r = results[k];
+      reportLines.push(`=== ${STEP_LABELS[k].toUpperCase()} ===`);
+      reportLines.push(r.output || "(no output)");
+      reportLines.push("");
+    }
+
+    const fullText = reportLines.join("\n");
+    try {
+      await navigator.clipboard.writeText(fullText);
+      toast.success("All outputs copied to clipboard");
+    } catch {
+      toast.error("Copy failed");
+    }
+  };
+
   const totalChars = STEP_ORDER.reduce((acc, k) => acc + (results[k].output?.length || 0), 0);
   const estTokens = Math.round(totalChars / 4);
   const allWarnings = STEP_ORDER.flatMap((k) => results[k].warnings.map((w) => `[${STEP_LABELS[k]}] ${w}`));
@@ -670,6 +709,15 @@ export default function PipelineTest() {
             <div>ESTIMATED TOKEN USAGE: ~{estTokens.toLocaleString()}</div>
             <div className="font-bold mt-2">OVERALL: {overallStatus}</div>
           </Card>
+        )}
+
+        {startedAt && (
+          <div className="mb-4 flex justify-end">
+            <Button variant="outline" size="sm" onClick={handleCopyAll} className="gap-1.5">
+              <Copy className="w-3.5 h-3.5" />
+              Copy All Outputs
+            </Button>
+          </div>
         )}
 
         {STEP_ORDER.map((k) => {
