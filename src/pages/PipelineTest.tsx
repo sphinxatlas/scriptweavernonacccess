@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, FlaskConical, Loader2 } from "lucide-react";
-import { streamGenerateStep, generateHookOptions, streamPolishPass, type HookOption } from "@/lib/api";
+import { streamGenerateStep, streamPolishPass, type HookOption } from "@/lib/api";
 import { toast } from "sonner";
 
 type StepKey =
@@ -205,8 +205,6 @@ export default function PipelineTest() {
       // Hook Options
       try {
         update("hook_options", { status: "running" });
-        const { hooks } = await generateHookOptions("test-mode" as any, undefined as any);
-        // Re-invoke via fetch for testMode (generateHookOptions doesn't pass testMode); use direct fetch instead.
         const resp = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-hook-options`,
           {
