@@ -1862,10 +1862,11 @@ Generate the Creative Brief now.`;
       });
     });
 
-    // In comparison mode, enforce balanced limits; otherwise use standard limits
-    const bookLimit = isComparison ? 20 : 20;
-    const transcriptLimit = isComparison ? 20 : 20;
-    const lexiconLimit = isComparison ? 5 : 10;
+    // In comparison mode, enforce balanced limits; otherwise use standard limits.
+    // Test mode caps every source type at 10 chunks (per spec).
+    const bookLimit = isTestMode ? 10 : (isComparison ? 20 : 20);
+    const transcriptLimit = isTestMode ? 10 : (isComparison ? 20 : 20);
+    const lexiconLimit = isTestMode ? 10 : (isComparison ? 5 : 10);
 
     const bookChunks = Array.from(mergedByType.book.values())
       .sort((a, b) => b._score - a._score)
@@ -1887,7 +1888,7 @@ Generate the Creative Brief now.`;
     // Commentary Transcripts — for idea discovery only, limited
     const commentaryChunks = Array.from(mergedByType.competitor_analysis.values())
       .sort((a, b) => b._score - a._score)
-      .slice(0, 8);
+      .slice(0, isTestMode ? 10 : 8);
 
     // Get total indexed chunk counts for debug
     const [bookChunkCount, transcriptChunkCount, lexiconChunkCount] = await Promise.all([
