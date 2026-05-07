@@ -1477,13 +1477,29 @@ serve(async (req) => {
       }));
     }
 
-    // Get the topic brief
-    const { data: brief, error: briefError } = await supabase
-      .from("topic_briefs")
-      .select("*")
-      .eq("id", briefId)
-      .single();
-    if (briefError || !brief) throw new Error("Brief not found");
+    // Get the topic brief — inline in test mode (no DB read).
+    let brief: any;
+    if (isTestMode) {
+      if (!testInlineBrief || typeof testInlineBrief !== "object") {
+        throw new Error("testMode requires testInlineBrief");
+      }
+      brief = {
+        id: "test-mode",
+        comparison_mode: false,
+        priority_sources: [],
+        target_min_words: 700,
+        target_max_words: 800,
+        ...testInlineBrief,
+      };
+    } else {
+      const { data: b, error: briefError } = await supabase
+        .from("topic_briefs")
+        .select("*")
+        .eq("id", briefId)
+        .single();
+      if (briefError || !b) throw new Error("Brief not found");
+      brief = b;
+    }
 
     // Load shared guidance layers (Script Instructions, Anti-AI, Host Persona)
     // once per request. These are appended additively to every step's system
