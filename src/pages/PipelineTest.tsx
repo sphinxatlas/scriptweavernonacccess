@@ -240,8 +240,12 @@ export default function PipelineTest() {
           }
           if (diagnostics?.retrieval) {
             const r = diagnostics.retrieval;
-            for (const t of ["book", "transcript", "lexicon", "commentary"] as const) {
-              if (r[t] === 0) warnings.push(`Zero retrieval on ${t}`);
+            // Creative Brief intentionally runs before retrieval — zero
+            // retrieval is expected for that step and is not a failure.
+            if (step !== "creative_brief") {
+              for (const t of ["book", "transcript", "lexicon", "commentary"] as const) {
+                if (r[t] === 0) warnings.push(`Zero retrieval on ${t}`);
+              }
             }
           }
           const expected = EXPECTED_MODEL[step];
