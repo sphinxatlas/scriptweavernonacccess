@@ -192,6 +192,7 @@ export default function PipelineTest() {
         testMode: true,
         testInlineBrief: inlineBrief(),
         testInlineOutputs: outputs as Record<string, string>,
+        testInlineAlternativeSourceIds: selectedAltIds,
         onDiagnostics: (d) => { diagnostics = d; },
       },
     );
