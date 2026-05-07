@@ -408,7 +408,15 @@ export async function streamGenerateStep(
   stepType: PipelineStepType,
   onDelta: (text: string) => void,
   onDone: () => void,
-  options?: { revisionFeedback?: string; previousFullScript?: string; hookDirection?: string },
+  options?: {
+    revisionFeedback?: string;
+    previousFullScript?: string;
+    hookDirection?: string;
+    testMode?: boolean;
+    testInlineBrief?: Record<string, any>;
+    testInlineOutputs?: Record<string, string>;
+    onDiagnostics?: (d: any) => void;
+  },
 ) {
   const resp = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-step`,
@@ -424,6 +432,9 @@ export async function streamGenerateStep(
         revisionFeedback: options?.revisionFeedback,
         previousFullScript: options?.previousFullScript,
         hookDirection: options?.hookDirection,
+        testMode: options?.testMode,
+        testInlineBrief: options?.testInlineBrief,
+        testInlineOutputs: options?.testInlineOutputs,
       }),
     }
   );
@@ -451,7 +462,15 @@ export async function streamGenerateStep(
       textBuffer = textBuffer.slice(newlineIndex + 1);
 
       if (line.endsWith("\r")) line = line.slice(0, -1);
-      if (line.startsWith(":") || line.trim() === "") continue;
+      if (line.startsWith(":")) {
+        // SSE comment line — may carry diagnostics from test mode.
+        const m = line.match(/^:\s*diagnostics\s+(.+)$/);
+        if (m && options?.onDiagnostics) {
+          try { options.onDiagnostics(JSON.parse(m[1])); } catch { /* ignore */ }
+        }
+        continue;
+      }
+      if (line.trim() === "") continue;
       if (!line.startsWith("data: ")) continue;
 
       const jsonStr = line.slice(6).trim();
