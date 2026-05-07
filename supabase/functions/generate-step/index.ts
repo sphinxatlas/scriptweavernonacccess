@@ -1726,7 +1726,11 @@ serve(async (req) => {
     // ── CREATIVE BRIEF STEP ──
     if (stepType === "creative_brief") {
       if (formatRefs.length === 0) {
-        throw new Error("No format reference transcripts linked to this brief. Please add at least one format reference in the Transcript Library before generating the Creative Brief.");
+        if (isTestMode) {
+          // Test mode does not require format references — synthesize none.
+        } else {
+          throw new Error("No format reference transcripts linked to this brief. Please add at least one format reference in the Transcript Library before generating the Creative Brief.");
+        }
       }
 
       const formatRefBlock = formatRefs
@@ -1745,6 +1749,22 @@ serve(async (req) => {
       // a single source of guidance.
       let systemPrompt = STEP_PROMPTS["creative_brief"];
       systemPrompt += layeredGuidanceBlock;
+      if (isTestMode) {
+        systemPrompt +=
+          `\n\n## PIPELINE TEST MODE — INPUT CAPS (BINDING)\n` +
+          `This is a diagnostic run. Halve the secondary-source budget you would normally use. Produce a real, complete Creative Brief — do not truncate. Keep the output tight (target ~400 words).`;
+        const diagnostics = {
+          step: "creative_brief",
+          model: getModelForStep(stepType),
+          retrieval: { book: 0, transcript: 0, lexicon: 0, commentary: 0, zero_result_queries: 0, total_queries: 0 },
+          guidance: {
+            script_instructions: { loaded: guidanceLayers.scriptInstructions.chunksRead > 0, truncated: guidanceLayers.scriptInstructions.truncated },
+            anti_ai: { loaded: guidanceLayers.antiAiInstructions.chunksRead > 0, truncated: guidanceLayers.antiAiInstructions.truncated },
+            host_persona: { loaded: guidanceLayers.hostPersona.chunksRead > 0, truncated: guidanceLayers.hostPersona.truncated },
+          },
+        };
+        __diagnosticsHeader = `: diagnostics ${JSON.stringify(diagnostics)}\n\n`;
+      }
 
       const userMessage = `## Video Title
 ${brief.title}
