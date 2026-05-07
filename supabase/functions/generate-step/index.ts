@@ -1620,14 +1620,21 @@ serve(async (req) => {
     // OUTPUT instead, via previousContext.
     // ─────────────────────────────────────────────────────────────────────
     type BudgetProfile = "ssa" | "creative_brief";
-    const TRANSCRIPT_BUDGETS: Record<BudgetProfile, { perItem: number; total: number }> = {
-      ssa:            { perItem: 60000, total: 280000 },
-      creative_brief: { perItem: 12000, total: 80000 },
-    };
-    const ALT_BUDGETS: Record<BudgetProfile, { perItem: number; total: number }> = {
-      ssa:            { perItem: 40000, total: 160000 },
-      creative_brief: { perItem: 8000,  total: 40000 },
-    };
+    // Test-mode halves the SSA + Creative Brief secondary budgets so the test
+    // run is materially cheaper while still exercising the same logic.
+    const TRANSCRIPT_BUDGETS: Record<BudgetProfile, { perItem: number; total: number }> = isTestMode
+      ? { ssa: { perItem: 30000, total: 140000 }, creative_brief: { perItem: 6000, total: 40000 } }
+      : { ssa: { perItem: 60000, total: 280000 }, creative_brief: { perItem: 12000, total: 80000 } };
+    const ALT_BUDGETS: Record<BudgetProfile, { perItem: number; total: number }> = isTestMode
+      ? { ssa: { perItem: 20000, total: 80000 }, creative_brief: { perItem: 4000, total: 20000 } }
+      : { ssa: { perItem: 40000, total: 160000 }, creative_brief: { perItem: 8000, total: 40000 } };
+
+    // In test mode, restrict Selected Source Analysis to at most 2 sources
+    // per type so the diagnostic run is bounded.
+    if (isTestMode && stepType === "selected_source_analysis") {
+      topicTranscripts = topicTranscripts.slice(0, 2);
+      alternativeSources = alternativeSources.slice(0, 2);
+    }
 
     // Visible warnings collected per request for log/observability.
     const truncationWarnings: string[] = [];
