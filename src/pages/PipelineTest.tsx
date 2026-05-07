@@ -192,6 +192,7 @@ export default function PipelineTest() {
         testMode: true,
         testInlineBrief: inlineBrief(),
         testInlineOutputs: outputs as Record<string, string>,
+        testInlineAlternativeSourceIds: selectedAltIds,
         onDiagnostics: (d) => { diagnostics = d; },
       },
     );
@@ -239,8 +240,12 @@ export default function PipelineTest() {
           }
           if (diagnostics?.retrieval) {
             const r = diagnostics.retrieval;
-            for (const t of ["book", "transcript", "lexicon", "commentary"] as const) {
-              if (r[t] === 0) warnings.push(`Zero retrieval on ${t}`);
+            // Creative Brief intentionally runs before retrieval — zero
+            // retrieval is expected for that step and is not a failure.
+            if (step !== "creative_brief") {
+              for (const t of ["book", "transcript", "lexicon", "commentary"] as const) {
+                if (r[t] === 0) warnings.push(`Zero retrieval on ${t}`);
+              }
             }
           }
           const expected = EXPECTED_MODEL[step];
@@ -329,7 +334,10 @@ export default function PipelineTest() {
           () => {},
         );
         const mvWords = wordCount(mvText);
-        const minBeats = Math.ceil(mvWords / 300);
+        // Beat log minimum is defined against the INPUT script (Full Script
+        // output) word count, floored — matching the polish-pass spec.
+        const inputScriptWords = wordCount(fsText);
+        const minBeats = Math.floor(inputScriptWords / 300);
         const beatLog = (mvText.match(/beat\s*\d+/gim) || []).length;
         const mvWarn: string[] = [];
         if (beatLog < minBeats) mvWarn.push(`Beat log minimum not met (${beatLog} < ${minBeats})`);

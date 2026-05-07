@@ -12,6 +12,7 @@ function getModelForStep(stepType: string) {
       "creative_brief",
       "six_category_extraction",
       "selected_source_analysis",
+      "evidence_table",
       "outline",
       "script_evidence_pack",
       "full_script",
@@ -1298,6 +1299,10 @@ serve(async (req) => {
       testMode,
       testInlineBrief,
       testInlineOutputs,
+      // Optional inline alternative source IDs (test mode only). When
+      // supplied, the function fetches these from alternative_sources by id
+      // and injects them into SSA exactly as the real pipeline does.
+      testInlineAlternativeSourceIds,
     } = await req.json();
     if (!stepType) throw new Error("stepType is required");
     if (!testMode && !briefId) throw new Error("briefId is required");
@@ -1607,6 +1612,16 @@ serve(async (req) => {
       alternativeSources = (altSourceLinks || [])
         .map((r: any) => r.alternative_sources)
         .filter(Boolean);
+    }
+
+    // In test mode, allow the orchestrator to pass alternative source IDs
+    // directly so SSA receives the same inputs as a real run.
+    if (isTestMode && Array.isArray(testInlineAlternativeSourceIds) && testInlineAlternativeSourceIds.length > 0) {
+      const { data: altRows } = await supabase
+        .from("alternative_sources")
+        .select("title, source_type, source_author, url, content")
+        .in("id", testInlineAlternativeSourceIds);
+      alternativeSources = (altRows || []).filter(Boolean);
     }
 
     // ─────────────────────────────────────────────────────────────────────
