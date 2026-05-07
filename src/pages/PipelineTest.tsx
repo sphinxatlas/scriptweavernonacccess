@@ -711,6 +711,15 @@ export default function PipelineTest() {
           </Card>
         )}
 
+        {startedAt && (
+          <div className="mb-4 flex justify-end">
+            <Button variant="outline" size="sm" onClick={handleCopyAll} className="gap-1.5">
+              <Copy className="w-3.5 h-3.5" />
+              Copy All Outputs
+            </Button>
+          </div>
+        )}
+
         {STEP_ORDER.map((k) => {
           const r = results[k];
           if (!r.output && r.status === "pending") return null;
