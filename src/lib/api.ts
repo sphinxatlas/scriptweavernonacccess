@@ -104,6 +104,65 @@ export async function deleteSourceFile(fileId: string, storagePath: string) {
   if (error) throw error;
 }
 
+// Rename a source file: moves the object in storage and updates the DB row.
+// file_chunks reference the file by file_id (uuid), not filename, so renaming
+// source_files.name automatically flows through to chunk lookups via the join
+// in search_chunks. No file_chunks rows need to be rewritten.
+// Only .txt and .md extensions are allowed; the existing extension is preserved.
+export async function renameSourceFile(
+  fileId: string,
+  oldStoragePath: string,
+  oldName: string,
+  newName: string,
+): Promise<{ name: string; storage_path: string }> {
+  const trimmed = newName.trim();
+  if (!trimmed) throw new Error("Filename cannot be empty");
+
+  const oldExtMatch = oldName.match(/\.(txt|md)$/i);
+  const oldExt = oldExtMatch ? oldExtMatch[0] : "";
+  const newExtMatch = trimmed.match(/\.(txt|md)$/i);
+  if (!newExtMatch) {
+    throw new Error("Filename must end in .txt or .md");
+  }
+  if (oldExt && newExtMatch[0].toLowerCase() !== oldExt.toLowerCase()) {
+    throw new Error(`File extension must remain ${oldExt}`);
+  }
+  if (trimmed === oldName) {
+    return { name: oldName, storage_path: oldStoragePath };
+  }
+
+  // Build new storage path keeping the same folder + timestamp prefix.
+  const lastSlash = oldStoragePath.lastIndexOf("/");
+  const folder = lastSlash >= 0 ? oldStoragePath.slice(0, lastSlash + 1) : "";
+  const oldBase = lastSlash >= 0 ? oldStoragePath.slice(lastSlash + 1) : oldStoragePath;
+  const tsMatch = oldBase.match(/^(\d+-)/);
+  const prefix = tsMatch ? tsMatch[1] : `${Date.now()}-`;
+  const newStoragePath = `${folder}${prefix}${trimmed}`;
+
+  // 1) Move storage object.
+  const { error: moveErr } = await supabase.storage
+    .from("source-files")
+    .move(oldStoragePath, newStoragePath);
+  if (moveErr) throw new Error(`Storage rename failed: ${moveErr.message}`);
+
+  // 2) Update source_files row. If this fails, roll back the storage move.
+  const { error: updateErr } = await supabase
+    .from("source_files")
+    .update({ name: trimmed, storage_path: newStoragePath })
+    .eq("id", fileId);
+
+  if (updateErr) {
+    // Roll back storage rename.
+    await supabase.storage
+      .from("source-files")
+      .move(newStoragePath, oldStoragePath)
+      .catch(() => {});
+    throw new Error(`Database update failed: ${updateErr.message}`);
+  }
+
+  return { name: trimmed, storage_path: newStoragePath };
+}
+
 export async function getSourceFiles() {
   const { data, error } = await supabase
     .from("source_files")
