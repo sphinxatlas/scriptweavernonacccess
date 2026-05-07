@@ -157,6 +157,9 @@ export interface CreateBriefInput {
   target_min_words: number;
   target_max_words: number;
   comparison_mode: boolean;
+  characters?: string[];
+  focus_areas?: string[];
+  priority_sources?: string[];
 }
 
 export async function createTopicBrief(input: CreateBriefInput) {
