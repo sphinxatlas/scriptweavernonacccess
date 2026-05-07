@@ -1956,15 +1956,23 @@ Generate the Creative Brief now.`;
     };
     console.log("RETRIEVAL DEBUG:", JSON.stringify(debugInfo, null, 2));
 
-    // Get previous pipeline outputs for this brief
+    // Get previous pipeline outputs for this brief — inline in test mode.
     const stepIndex = STEP_ORDER.indexOf(stepType);
     const previousSteps = STEP_ORDER.slice(0, stepIndex);
-    const { data: previousOutputs } = await supabase
-      .from("pipeline_outputs")
-      .select("step_type, content")
-      .eq("brief_id", briefId)
-      .in("step_type", previousSteps)
-      .order("created_at");
+    let previousOutputs: { step_type: string; content: string }[] | null = null;
+    if (isTestMode) {
+      previousOutputs = previousSteps
+        .filter((s) => inlineOutputsMap[s])
+        .map((s) => ({ step_type: s, content: inlineOutputsMap[s] }));
+    } else {
+      const { data } = await supabase
+        .from("pipeline_outputs")
+        .select("step_type, content")
+        .eq("brief_id", briefId)
+        .in("step_type", previousSteps)
+        .order("created_at");
+      previousOutputs = data as any;
+    }
 
     // Build context grouped by source type — NEVER include instructions as evidence
     const totalMatches = bookChunks.length + transcriptChunks.length + lexiconChunks.length;
