@@ -304,6 +304,78 @@ export default function TopicBriefs() {
                 />
               </div>
 
+              {/* Main Characters */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Main Characters</Label>
+                <p className="text-[11px] text-muted-foreground/70 mb-1">
+                  Characters central to this video. Used to build retrieval queries. e.g., Ginny Weasley, Harry Potter
+                </p>
+                <Input
+                  placeholder="Ginny Weasley, Harry Potter"
+                  value={(form.characters || []).join(", ")}
+                  onChange={(e) =>
+                    updateForm(
+                      "characters",
+                      e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                    )
+                  }
+                  className="bg-secondary border-border mt-1"
+                />
+              </div>
+
+              {/* Focus Areas */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Focus Areas</Label>
+                <p className="text-[11px] text-muted-foreground/70 mb-1">
+                  Key themes, scenes, or topics this video covers. e.g., Chamber of Secrets trauma, OotP confrontation, adaptation gaps
+                </p>
+                <Input
+                  placeholder="Chamber of Secrets trauma, OotP confrontation, adaptation gaps"
+                  value={(form.focus_areas || []).join(", ")}
+                  onChange={(e) =>
+                    updateForm(
+                      "focus_areas",
+                      e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                    )
+                  }
+                  className="bg-secondary border-border mt-1"
+                />
+              </div>
+
+              {/* Priority Books */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Priority Books</Label>
+                <p className="text-[11px] text-muted-foreground/70 mb-1">
+                  Which books are most relevant. Retrieval will weight these.
+                </p>
+                <MultiSelectChips
+                  options={BOOK_OPTIONS.map((b) => ({ value: b, label: b }))}
+                  selected={(form.priority_sources || []).filter((s) => BOOK_OPTIONS.includes(s))}
+                  onChange={(vals) => {
+                    const movies = (form.priority_sources || []).filter((s) => MOVIE_OPTIONS.includes(s));
+                    updateForm("priority_sources", [...vals, ...movies]);
+                  }}
+                  placeholder="Select priority books…"
+                />
+              </div>
+
+              {/* Priority Movies */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Priority Movies</Label>
+                <p className="text-[11px] text-muted-foreground/70 mb-1">
+                  Which films are most relevant. Retrieval will weight these.
+                </p>
+                <MultiSelectChips
+                  options={MOVIE_OPTIONS.map((m) => ({ value: m, label: m }))}
+                  selected={(form.priority_sources || []).filter((s) => MOVIE_OPTIONS.includes(s))}
+                  onChange={(vals) => {
+                    const books = (form.priority_sources || []).filter((s) => BOOK_OPTIONS.includes(s));
+                    updateForm("priority_sources", [...books, ...vals]);
+                  }}
+                  placeholder="Select priority movies…"
+                />
+              </div>
+
               {/* Target Length */}
               <div>
                 <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
