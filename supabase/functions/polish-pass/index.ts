@@ -10,6 +10,16 @@ const corsHeaders = {
 const GUIDANCE_CHUNK_LIMIT = 100;
 
 type PassType = "script_writing" | "anti_ai" | "melty_voice";
+
+const NO_META_COMMENTARY_RULE = `\n\nNO META-COMMENTARY RULE (BINDING — HARD):
+The script is viewer-facing copy. The viewer must NEVER see any reference to the script's own research process, evidence pipeline, or source availability. Specifically, you must NOT:
+- Mention the evidence pack, Script Evidence Pack, source library, retrieval, transcripts, books-vs-films coverage gaps, or what sources were or were not available.
+- Say anything like "I can't prove this part", "the transcript doesn't show", "evidence is limited here", "the books don't confirm", "we don't have a scene for this", or any equivalent acknowledgement of a gap in the source material.
+- Reference the pipeline, the model, the system, instructions, or limitations of any kind.
+
+If a beat lacks the evidence to make the comparison or claim it was meant to make, you have exactly three permitted moves: (1) work around the gap silently using whatever evidence IS available, (2) narrow the claim to what can actually be supported, or (3) omit the beat entirely and continue.
+
+[FLAG: ...] markers and any other bracketed flags are INTERNAL ONLY and must NEVER appear in the script output. If the input script contains any [FLAG: ...] markers, remove them and silently rewrite the surrounding sentence so the gap is handled using one of the three moves above.`;
 type PassScope = "full_script" | "passage";
 
 const SCRIPT_WRITING_SYSTEM = `You are running a SCRIPT WRITING POLISH PASS on an existing finished YouTube script.
@@ -435,7 +445,8 @@ Hard preservation rules: do not change the script's arguments, evidence, claim s
         (hostPersona.truncated ? `\n\n[Note: Host Persona document was truncated to the first ${GUIDANCE_CHUNK_LIMIT} chunks.]` : "") +
         `\n\n## MELTY VOICE PASS — MELTY_VOICE_PASS_V2 (HIGHEST BINDING — operational checklist)\n` +
         `This document governs HOW the pass runs: beat count formula, burst rhythm audit, HUMOR TRIGGER MAP cross-reference, density checklist, required logs, and earned-use flagging for the Anti-AI handoff. Execute it literally.\n\n${voicePass.text}` +
-        (voicePass.truncated ? `\n\n[Note: Melty Voice Pass document was truncated to the first ${GUIDANCE_CHUNK_LIMIT} chunks.]` : "");
+        (voicePass.truncated ? `\n\n[Note: Melty Voice Pass document was truncated to the first ${GUIDANCE_CHUNK_LIMIT} chunks.]` : "") +
+        NO_META_COMMENTARY_RULE;
 
       userPrompt = `Run the Melty Voice Pass on the following script, following both governing documents above literally (including all required logs and the operational checklist).
 
@@ -482,7 +493,8 @@ ${scriptText}`;
       systemPrompt =
         baseSystem +
         `\n\n## ${docLabel.toUpperCase()} (BINDING — primary lens for this pass)\n\n${guidance.text}` +
-        (guidance.truncated ? `\n\n[Note: ${docLabel} document was truncated to the first ${GUIDANCE_CHUNK_LIMIT} chunks.]` : "");
+        (guidance.truncated ? `\n\n[Note: ${docLabel} document was truncated to the first ${GUIDANCE_CHUNK_LIMIT} chunks.]` : "") +
+        (passType === "anti_ai" ? NO_META_COMMENTARY_RULE : "");
 
       userPrompt = `Run a ${docLabel} polish pass on the following script.
 
