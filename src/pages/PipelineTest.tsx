@@ -11,7 +11,15 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { MultiSelectChips, type MultiSelectOption } from "@/components/MultiSelectChips";
-import { ChevronDown, FlaskConical, Loader2, Clock, GitCompare, Copy } from "lucide-react";
+import { ChevronDown, FlaskConical, Loader2, Clock, GitCompare, Copy, History, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   streamGenerateStep,
   streamPolishPass,
@@ -120,6 +128,38 @@ const blankForm = (): CreateBriefInput => ({
 
 function wordCount(s: string): number {
   return s.trim().split(/\s+/).filter(Boolean).length;
+}
+
+const HISTORY_KEY = "pipeline-test-history";
+const HISTORY_MAX = 10;
+
+type HistoryEntry = {
+  timestamp: string;
+  form: CreateBriefInput;
+  selectedFormatIds: string[];
+  selectedTopicIds: string[];
+  selectedAltIds: string[];
+};
+
+function loadHistory(): HistoryEntry[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistoryEntry(entry: HistoryEntry) {
+  const existing = loadHistory();
+  const next = [entry, ...existing].slice(0, HISTORY_MAX);
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+  } catch {
+    // ignore quota errors
+  }
 }
 
 function statusIcon(s: StepResult["status"]) {
