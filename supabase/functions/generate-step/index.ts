@@ -2506,6 +2506,7 @@ Please generate the ${stepType.replace(/_/g, " ")} based on the above informatio
         },
       };
       diagnosticsSseHeader = `: diagnostics ${JSON.stringify(diagnostics)}\n\n`;
+      __diagnosticsHeader = diagnosticsSseHeader;
     }
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
