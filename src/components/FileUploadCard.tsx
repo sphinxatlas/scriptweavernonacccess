@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
-import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, Trash2, Eye, Download } from "lucide-react";
+import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, Trash2, Eye, Download, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   uploadSourceFile,
@@ -8,6 +9,7 @@ import {
   deleteSourceFile,
   getSourceFileContent,
   getSourceFileDownloadUrl,
+  renameSourceFile,
   type SourceFile,
 } from "@/lib/api";
 import { toast } from "sonner";
@@ -28,6 +30,9 @@ export function FileUploadCard({ fileType, title, description, accept = ".txt,.m
   const [processing, setProcessing] = useState<string | null>(null);
   const [viewing, setViewing] = useState<SourceFile | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState<string>("");
+  const [renameSaving, setRenameSaving] = useState(false);
 
   const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
@@ -106,6 +111,31 @@ export function FileUploadCard({ fileType, title, description, accept = ".txt,.m
     }
   };
 
+  const startRename = (file: SourceFile) => {
+    setRenamingId(file.id);
+    setRenameValue(file.name);
+  };
+
+  const cancelRename = () => {
+    setRenamingId(null);
+    setRenameValue("");
+  };
+
+  const confirmRename = async (file: SourceFile) => {
+    setRenameSaving(true);
+    try {
+      await renameSourceFile(file.id, file.storage_path, file.name, renameValue);
+      toast.success(`Renamed to ${renameValue.trim()}`);
+      setRenamingId(null);
+      setRenameValue("");
+      onRefresh();
+    } catch (err: any) {
+      toast.error(err.message || "Rename failed");
+    } finally {
+      setRenameSaving(false);
+    }
+  };
+
   const statusIcon = (status: string) => {
     switch (status) {
       case "indexed": return <CheckCircle2 className="w-3.5 h-3.5 text-success" />;
@@ -168,12 +198,62 @@ export function FileUploadCard({ fileType, title, description, accept = ".txt,.m
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="flex-1 truncate text-foreground text-xs font-mono">{file.name}</span>
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    {file.file_size ? `${(file.file_size / 1024).toFixed(0)}KB` : ""}
-                  </span>
+                  {renamingId === file.id ? (
+                    <Input
+                      autoFocus
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { e.preventDefault(); confirmRename(file); }
+                        else if (e.key === "Escape") { e.preventDefault(); cancelRename(); }
+                      }}
+                      disabled={renameSaving}
+                      className="h-7 text-xs font-mono"
+                    />
+                  ) : (
+                    <>
+                      <span className="flex-1 truncate text-foreground text-xs font-mono">{file.name}</span>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {file.file_size ? `${(file.file_size / 1024).toFixed(0)}KB` : ""}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
+              {renamingId === file.id ? (
+                <>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={() => confirmRename(file)}
+                    disabled={renameSaving}
+                    title="Confirm rename"
+                  >
+                    {renameSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={cancelRename}
+                    disabled={renameSaving}
+                    title="Cancel"
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6"
+                  onClick={() => startRename(file)}
+                  title="Rename"
+                >
+                  <Pencil className="w-3 h-3" />
+                </Button>
+              )}
               <Button
                 size="icon"
                 variant="ghost"
