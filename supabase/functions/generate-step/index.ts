@@ -12,6 +12,7 @@ function getModelForStep(stepType: string) {
       "creative_brief",
       "six_category_extraction",
       "selected_source_analysis",
+      "evidence_table",
       "outline",
       "script_evidence_pack",
       "full_script",
