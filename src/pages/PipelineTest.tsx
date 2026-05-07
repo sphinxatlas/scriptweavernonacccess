@@ -1,14 +1,27 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, FlaskConical, Loader2 } from "lucide-react";
-import { streamGenerateStep, streamPolishPass, type HookOption } from "@/lib/api";
+import { MultiSelectChips, type MultiSelectOption } from "@/components/MultiSelectChips";
+import { ChevronDown, FlaskConical, Loader2, Clock, GitCompare } from "lucide-react";
+import {
+  streamGenerateStep,
+  streamPolishPass,
+  TARGET_LENGTH_OPTIONS,
+  getFormatReferenceTranscripts,
+  getBriefTopicTranscripts,
+  getAlternativeSources,
+  type HookOption,
+  type CreateBriefInput,
+} from "@/lib/api";
 import { toast } from "sonner";
 
 type StepKey =
@@ -62,6 +75,27 @@ const EXPECTED_MODEL: Record<StepKey, string> = {
   anti_ai: "google/gemini-2.5-pro",
 };
 
+const BOOK_OPTIONS = [
+  "Book 1: Philosopher's Stone",
+  "Book 2: Chamber of Secrets",
+  "Book 3: Prisoner of Azkaban",
+  "Book 4: Goblet of Fire",
+  "Book 5: Order of the Phoenix",
+  "Book 6: Half-Blood Prince",
+  "Book 7: Deathly Hallows",
+];
+
+const MOVIE_OPTIONS = [
+  "Movie 1: Philosopher's Stone",
+  "Movie 2: Chamber of Secrets",
+  "Movie 3: Prisoner of Azkaban",
+  "Movie 4: Goblet of Fire",
+  "Movie 5: Order of the Phoenix",
+  "Movie 6: Half-Blood Prince",
+  "Movie 7.1: Deathly Hallows Part 1",
+  "Movie 7.2: Deathly Hallows Part 2",
+];
+
 type StepResult = {
   status: "pending" | "running" | "pass" | "fail" | "skip";
   output: string;
@@ -72,13 +106,17 @@ type StepResult = {
   hooks?: HookOption[];
 };
 
-const DEFAULT_BRIEF = {
+const blankForm = (): CreateBriefInput => ({
   title: "Why Book Ron Is Not Movie Ron",
-  characters: "Ron Weasley",
-  focus_areas: "Trio dynamic, adaptation gap, emotional function",
-  angle_note: "The films kept the jokes and lost the spine",
-  thesis: "Ron's loyalty is load-bearing in the books and decorative in the films",
-};
+  angle_note: "The films kept the jokes and lost the spine. Ron's loyalty is load-bearing in the books and decorative in the films.",
+  target_minutes: 10,
+  target_min_words: 1400,
+  target_max_words: 1600,
+  comparison_mode: false,
+  characters: ["Ron Weasley"],
+  focus_areas: ["Trio dynamic", "Adaptation gap", "Emotional function"],
+  priority_sources: [],
+});
 
 function wordCount(s: string): number {
   return s.trim().split(/\s+/).filter(Boolean).length;
@@ -93,13 +131,32 @@ function statusIcon(s: StepResult["status"]) {
 }
 
 export default function PipelineTest() {
-  const [form, setForm] = useState(DEFAULT_BRIEF);
+  const [form, setForm] = useState<CreateBriefInput>(blankForm());
+  const [selectedFormatIds, setSelectedFormatIds] = useState<string[]>([]);
+  const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
+  const [selectedAltIds, setSelectedAltIds] = useState<string[]>([]);
   const [confirmed, setConfirmed] = useState(false);
   const [running, setRunning] = useState(false);
   const [startedAt, setStartedAt] = useState<string | null>(null);
   const [results, setResults] = useState<Record<StepKey, StepResult>>(() =>
     Object.fromEntries(STEP_ORDER.map((k) => [k, { status: "pending", output: "", notes: "", warnings: [] }])) as any,
   );
+
+  const { data: formatRefs = [] } = useQuery({
+    queryKey: ["format-references"],
+    queryFn: getFormatReferenceTranscripts,
+  });
+  const { data: topicTranscripts = [] } = useQuery({
+    queryKey: ["topic-transcripts"],
+    queryFn: getBriefTopicTranscripts,
+  });
+  const { data: alternativeSources = [] } = useQuery({
+    queryKey: ["alternative-sources"],
+    queryFn: getAlternativeSources,
+  });
+
+  const updateForm = (key: keyof CreateBriefInput, value: any) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
 
   const update = (k: StepKey, patch: Partial<StepResult>) =>
     setResults((prev) => ({ ...prev, [k]: { ...prev[k], ...patch } }));
@@ -111,13 +168,12 @@ export default function PipelineTest() {
     title: form.title,
     description: form.angle_note,
     angle_note: form.angle_note,
-    thesis: form.thesis,
-    characters: form.characters.split(",").map((s) => s.trim()).filter(Boolean),
-    focus_areas: form.focus_areas.split(",").map((s) => s.trim()).filter(Boolean),
-    priority_sources: [],
+    characters: form.characters || [],
+    focus_areas: form.focus_areas || [],
+    priority_sources: form.priority_sources || [],
     target_min_words: 650,
     target_max_words: 800,
-    comparison_mode: false,
+    comparison_mode: form.comparison_mode,
   });
 
   const runStep = async (
@@ -147,17 +203,19 @@ export default function PipelineTest() {
       toast.error("Please confirm the diagnostic checkbox first.");
       return;
     }
+    if (!form.title.trim()) {
+      toast.error("Video title is required");
+      return;
+    }
+    if (!form.angle_note.trim()) {
+      toast.error("Angle note is required");
+      return;
+    }
     setRunning(true);
     setStartedAt(new Date().toISOString());
     reset();
     const outputs: Partial<Record<StepKey, string>> = {};
     let firstFailedAt: StepKey | null = null;
-    const markSkip = (from: StepKey) => {
-      const idx = STEP_ORDER.indexOf(from);
-      for (let i = idx; i < STEP_ORDER.length; i++) {
-        update(STEP_ORDER[i], { status: "skip", notes: `upstream failure at ${from}` });
-      }
-    };
 
     const orderedGen: Exclude<StepKey, "hook_options" | "melty_voice" | "anti_ai">[] = [
       "creative_brief",
@@ -234,7 +292,6 @@ export default function PipelineTest() {
           notes: `${allHooks.length} hooks • distinct entry points: ${opens.size === allHooks.length ? "yes" : "no"}`,
           warnings,
         });
-        // Pick first hook for full_script
         const chosen = allHooks[0]?.hook_text || "";
 
         // Full Script
@@ -304,7 +361,6 @@ export default function PipelineTest() {
         });
       } catch (e: any) {
         if (!firstFailedAt) {
-          // Determine which step is currently running
           const currentRunning = STEP_ORDER.find((k) => results[k]?.status === "running");
           firstFailedAt = currentRunning || "hook_options";
           update(firstFailedAt, { status: "fail", notes: e.message || "error" });
@@ -315,7 +371,13 @@ export default function PipelineTest() {
         }
       }
     } catch (e) {
-      if (firstFailedAt) markSkip(firstFailedAt);
+      if (firstFailedAt) {
+        const idx = STEP_ORDER.indexOf(firstFailedAt);
+        for (let i = idx; i < STEP_ORDER.length; i++) {
+          if (results[STEP_ORDER[i]].status !== "fail")
+            update(STEP_ORDER[i], { status: "skip", notes: `upstream failure at ${firstFailedAt}` });
+        }
+      }
     } finally {
       setRunning(false);
     }
@@ -332,53 +394,256 @@ export default function PipelineTest() {
     ? "… IN PROGRESS"
     : "—";
 
+  const formatOptions: MultiSelectOption[] = (formatRefs as any[]).map((r: any) => ({
+    value: r.id,
+    label: r.video_title,
+    sublabel: r.channel_name,
+  }));
+  const topicOptions: MultiSelectOption[] = (topicTranscripts as any[]).map((r: any) => ({
+    value: r.id,
+    label: r.video_title,
+    sublabel: r.channel_name,
+  }));
+  const altOptions: MultiSelectOption[] = (alternativeSources as any[]).map((r: any) => ({
+    value: r.id,
+    label: r.title,
+    sublabel: r.source_type || r.source_author || undefined,
+  }));
+
   return (
     <Layout>
-      <div className="p-8 max-w-5xl">
+      <div className="p-8 max-w-4xl">
         <div className="mb-8 flex items-center gap-3">
           <FlaskConical className="w-6 h-6 text-primary" />
           <div>
             <h1 className="text-2xl font-mono font-bold text-foreground">Pipeline Test</h1>
-            <p className="text-sm text-muted-foreground">Diagnostic full-pipeline run with capped inputs. Nothing is saved.</p>
+            <p className="text-sm text-muted-foreground">
+              Diagnostic full-pipeline run with capped inputs (4-beat cap). Nothing is saved.
+            </p>
           </div>
         </div>
 
-        <Card className="p-6 mb-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="border border-primary/30 rounded-lg p-5 mb-6 bg-card">
+          <h3 className="font-mono text-sm font-semibold text-foreground mb-4">Pipeline Test Brief</h3>
+          <div className="space-y-4">
+            {/* Video Title */}
             <div>
-              <Label>Title</Label>
-              <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+              <Label className="text-xs text-muted-foreground">Video Title</Label>
+              <Input
+                placeholder="e.g., Why Snape's Redemption Arc is Overrated"
+                value={form.title}
+                onChange={(e) => updateForm("title", e.target.value)}
+                className="bg-secondary border-border mt-1"
+              />
             </div>
+
+            {/* Angle Note */}
             <div>
-              <Label>Characters (comma separated)</Label>
-              <Input value={form.characters} onChange={(e) => setForm({ ...form, characters: e.target.value })} />
+              <Label className="text-xs text-muted-foreground">Angle Note</Label>
+              <p className="text-[11px] text-muted-foreground/70 mb-1">
+                Your angle or direction for this video. A few sentences. The system will develop this into a full thesis.
+              </p>
+              <Textarea
+                placeholder="e.g., Snape's redemption is built on a single act..."
+                value={form.angle_note}
+                onChange={(e) => updateForm("angle_note", e.target.value)}
+                rows={4}
+                className="bg-secondary border-border resize-none"
+              />
             </div>
-            <div className="md:col-span-2">
-              <Label>Focus Areas</Label>
-              <Input value={form.focus_areas} onChange={(e) => setForm({ ...form, focus_areas: e.target.value })} />
+
+            {/* Main Characters */}
+            <div>
+              <Label className="text-xs text-muted-foreground">Main Characters</Label>
+              <p className="text-[11px] text-muted-foreground/70 mb-1">
+                Characters central to this video. Used to build retrieval queries. e.g., Ginny Weasley, Harry Potter
+              </p>
+              <Input
+                placeholder="Ginny Weasley, Harry Potter"
+                value={(form.characters || []).join(", ")}
+                onChange={(e) =>
+                  updateForm("characters", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))
+                }
+                className="bg-secondary border-border mt-1"
+              />
             </div>
-            <div className="md:col-span-2">
-              <Label>Angle Note</Label>
-              <Textarea rows={2} value={form.angle_note} onChange={(e) => setForm({ ...form, angle_note: e.target.value })} />
+
+            {/* Focus Areas */}
+            <div>
+              <Label className="text-xs text-muted-foreground">Focus Areas</Label>
+              <p className="text-[11px] text-muted-foreground/70 mb-1">
+                Key themes, scenes, or topics this video covers.
+              </p>
+              <Input
+                placeholder="Chamber of Secrets trauma, OotP confrontation, adaptation gaps"
+                value={(form.focus_areas || []).join(", ")}
+                onChange={(e) =>
+                  updateForm("focus_areas", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))
+                }
+                className="bg-secondary border-border mt-1"
+              />
             </div>
-            <div className="md:col-span-2">
-              <Label>Thesis</Label>
-              <Textarea rows={2} value={form.thesis} onChange={(e) => setForm({ ...form, thesis: e.target.value })} />
+
+            {/* Priority Books */}
+            <div>
+              <Label className="text-xs text-muted-foreground">Priority Books</Label>
+              <p className="text-[11px] text-muted-foreground/70 mb-1">
+                Which books are most relevant. Retrieval will weight these.
+              </p>
+              <MultiSelectChips
+                options={BOOK_OPTIONS.map((b) => ({ value: b, label: b }))}
+                selected={(form.priority_sources || []).filter((s) => BOOK_OPTIONS.includes(s))}
+                onChange={(vals) => {
+                  const movies = (form.priority_sources || []).filter((s) => MOVIE_OPTIONS.includes(s));
+                  updateForm("priority_sources", [...vals, ...movies]);
+                }}
+                placeholder="Select priority books…"
+              />
+            </div>
+
+            {/* Priority Movies */}
+            <div>
+              <Label className="text-xs text-muted-foreground">Priority Movies</Label>
+              <p className="text-[11px] text-muted-foreground/70 mb-1">
+                Which films are most relevant. Retrieval will weight these.
+              </p>
+              <MultiSelectChips
+                options={MOVIE_OPTIONS.map((m) => ({ value: m, label: m }))}
+                selected={(form.priority_sources || []).filter((s) => MOVIE_OPTIONS.includes(s))}
+                onChange={(vals) => {
+                  const books = (form.priority_sources || []).filter((s) => BOOK_OPTIONS.includes(s));
+                  updateForm("priority_sources", [...books, ...vals]);
+                }}
+                placeholder="Select priority movies…"
+              />
+            </div>
+
+            {/* Target Length (optional in test runs) */}
+            <div>
+              <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                Target Length (Voiceover) <span className="text-muted-foreground/60">(optional)</span>
+              </Label>
+              <Select
+                value={String(form.target_minutes)}
+                onValueChange={(v) => {
+                  const opt = TARGET_LENGTH_OPTIONS.find((o) => o.minutes === Number(v));
+                  if (opt) {
+                    updateForm("target_minutes", opt.minutes);
+                    updateForm("target_min_words", opt.min);
+                    updateForm("target_max_words", opt.max);
+                  }
+                }}
+              >
+                <SelectTrigger className="bg-secondary border-border mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TARGET_LENGTH_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.minutes} value={String(opt.minutes)}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground/70 mt-1">
+                Not used in test runs. Output length is controlled by the 4-beat cap.
+              </p>
+            </div>
+
+            {/* Comparison Mode */}
+            <div className="flex items-center gap-3 pt-2 border-t border-border">
+              <Switch
+                checked={form.comparison_mode}
+                onCheckedChange={(v) => updateForm("comparison_mode", v)}
+              />
+              <div>
+                <Label className="text-xs font-medium flex items-center gap-1.5">
+                  <GitCompare className="w-3.5 h-3.5 text-primary" />
+                  Book vs Movie Comparison Mode
+                </Label>
+                <p className="text-xs text-muted-foreground">Forces paired retrieval and contrast-based analysis</p>
+              </div>
+            </div>
+
+            {/* Format Reference Videos */}
+            <div className="pt-2 border-t border-border">
+              <Label className="text-xs text-muted-foreground">Format Reference Videos</Label>
+              <p className="text-[11px] text-muted-foreground/70 mb-2">
+                Non-HP format reference videos. Used for argument structure and positioning only — never for Harry Potter content.
+              </p>
+              <MultiSelectChips
+                options={formatOptions}
+                selected={selectedFormatIds}
+                onChange={(vals) => {
+                  if (vals.length > 2) {
+                    toast.error("Maximum 2 format references");
+                    return;
+                  }
+                  setSelectedFormatIds(vals);
+                }}
+                placeholder={formatOptions.length === 0 ? "No format references available" : "Select format references…"}
+                emptyText="No format references available."
+                searchable
+                searchPlaceholder="Search format references..."
+                emptySearchMessage="No matching sources found."
+              />
+            </div>
+
+            {/* HP Topic Transcripts */}
+            <div className="pt-2 border-t border-border">
+              <Label className="text-xs text-muted-foreground">HP Topic Transcripts (optional)</Label>
+              <p className="text-[11px] text-muted-foreground/70 mb-2">
+                HP videos covering a similar topic to this video. Used as research leads.
+              </p>
+              <MultiSelectChips
+                options={topicOptions}
+                selected={selectedTopicIds}
+                onChange={setSelectedTopicIds}
+                placeholder={topicOptions.length === 0 ? "No HP topic transcripts available" : "Select HP topic transcripts…"}
+                emptyText="No HP topic transcripts available."
+                searchable
+                searchPlaceholder="Search HP topic transcripts..."
+                emptySearchMessage="No matching sources found."
+              />
+            </div>
+
+            {/* Alternative Sources */}
+            <div className="pt-2 border-t border-border">
+              <Label className="text-xs text-muted-foreground">Alternative Sources (optional)</Label>
+              <p className="text-[11px] text-muted-foreground/70 mb-2">
+                Optional pasted sources such as Reddit threads, fan comments, wiki extracts, blog posts, or research notes.
+              </p>
+              <MultiSelectChips
+                options={altOptions}
+                selected={selectedAltIds}
+                onChange={setSelectedAltIds}
+                placeholder={altOptions.length === 0 ? "No alternative sources available" : "Select alternative sources…"}
+                emptyText="No alternative sources yet. Add some in the Secondary Source Library."
+                searchable
+                searchPlaceholder="Search alternative sources..."
+                emptySearchMessage="No matching sources found."
+              />
+            </div>
+
+            <div className="pt-2 border-t border-border space-y-3">
+              <p className="text-[11px] text-muted-foreground">
+                Estimated cost before run: ~25,000–50,000 input tokens (capped 4-beat run, halved secondary budgets).
+              </p>
+              <div className="flex items-center gap-2">
+                <Checkbox id="confirm" checked={confirmed} onCheckedChange={(v) => setConfirmed(!!v)} />
+                <Label htmlFor="confirm" className="text-sm cursor-pointer">
+                  I understand this is a diagnostic run. Outputs will not be saved.
+                </Label>
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={handleRun} disabled={running || !confirmed}>
+                  {running ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Running…</> : "Run Pipeline Test"}
+                </Button>
+              </div>
             </div>
           </div>
-          <div className="text-xs text-muted-foreground">
-            Estimated cost before run: ~25,000–50,000 input tokens (capped 4-beat run, halved secondary budgets).
-          </div>
-          <div className="flex items-center gap-2">
-            <Checkbox id="confirm" checked={confirmed} onCheckedChange={(v) => setConfirmed(!!v)} />
-            <Label htmlFor="confirm" className="text-sm cursor-pointer">
-              I understand this is a diagnostic run. Outputs will not be saved.
-            </Label>
-          </div>
-          <Button onClick={handleRun} disabled={running || !confirmed}>
-            {running ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Running…</> : "Run Pipeline Test"}
-          </Button>
-        </Card>
+        </div>
 
         {startedAt && (
           <Card className="p-6 mb-6 font-mono text-xs whitespace-pre-wrap">
