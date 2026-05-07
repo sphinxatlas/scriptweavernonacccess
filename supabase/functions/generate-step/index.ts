@@ -1302,6 +1302,12 @@ serve(async (req) => {
     if (!stepType) throw new Error("stepType is required");
     if (!testMode && !briefId) throw new Error("briefId is required");
     const isTestMode = testMode === true;
+    // Inline upstream outputs supplied by the Pipeline Test orchestrator,
+    // keyed by step_type. Used in place of pipeline_outputs reads.
+    const inlineOutputsMap: Record<string, string> =
+      isTestMode && testInlineOutputs && typeof testInlineOutputs === "object"
+        ? (testInlineOutputs as Record<string, string>)
+        : {};
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
