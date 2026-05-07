@@ -1270,6 +1270,28 @@ const getChunkCountByType = async (supabase: any, sourceType: SearchSourceType) 
   return count ?? 0;
 };
 
+// Maps UI option labels (from BOOK_OPTIONS / MOVIE_OPTIONS in the brief forms)
+// to filename tokens used in source_files.file_name. Filenames look like
+// HPM6_HalfbloodPrince_Movie_TranscriptVS.txt or HPB6_HalfBloodPrince.txt,
+// so we match on the leading HPM<n>/HPB<n> token (case-insensitive).
+const PRIORITY_LABEL_TO_TOKEN: Record<string, string> = {
+  "Movie 1: Philosopher's Stone": "HPM1",
+  "Movie 2: Chamber of Secrets": "HPM2",
+  "Movie 3: Prisoner of Azkaban": "HPM3",
+  "Movie 4: Goblet of Fire": "HPM4",
+  "Movie 5: Order of the Phoenix": "HPM5",
+  "Movie 6: Half-Blood Prince": "HPM6",
+  "Movie 7.1: Deathly Hallows Part 1": "HPM7.1",
+  "Movie 7.2: Deathly Hallows Part 2": "HPM7.2",
+  "Book 1: Philosopher's Stone": "HPB1",
+  "Book 2: Chamber of Secrets": "HPB2",
+  "Book 3: Prisoner of Azkaban": "HPB3",
+  "Book 4: Goblet of Fire": "HPB4",
+  "Book 5: Order of the Phoenix": "HPB5",
+  "Book 6: Half-Blood Prince": "HPB6",
+  "Book 7: Deathly Hallows": "HPB7",
+};
+
 const getPriorityBoost = (fileName: string, prioritySources: string[]) => {
   // Hardcoded mapping defined just above
   if (!prioritySources.length) return 0;
