@@ -2178,9 +2178,11 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
     let systemPrompt = STEP_PROMPTS[stepType] || "You are a helpful writing assistant.";
 
-    // Inject dynamic target length instructions for outline and full_script
-    const targetMin = brief.target_min_words ?? 1400;
-    const targetMax = brief.target_max_words ?? 1600;
+    // Inject dynamic target length instructions for outline and full_script.
+    // Test mode forces a ~700-word target so the Full Script is a complete
+    // (not truncated) short script driven by a 4-beat plan.
+    const targetMin = isTestMode ? 650 : (brief.target_min_words ?? 1400);
+    const targetMax = isTestMode ? 800 : (brief.target_max_words ?? 1600);
 
     if (stepType === "full_script") {
       systemPrompt = systemPrompt.replace(
