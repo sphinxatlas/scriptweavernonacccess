@@ -383,6 +383,45 @@ export default function PipelineTest() {
     }
   };
 
+  const handleCopyAll = async () => {
+    const reportLines: string[] = [];
+    reportLines.push("=== PIPELINE TEST REPORT ===");
+    reportLines.push(`Triggered: ${startedAt}`);
+    reportLines.push(`Brief: ${form.title}`);
+    reportLines.push("Mode: Test (4-beat cap)");
+    reportLines.push("");
+    for (const k of STEP_ORDER) {
+      const r = results[k];
+      reportLines.push(`${STEP_LABELS[k]}  ${statusIcon(r.status)}  ${r.notes}`);
+    }
+    reportLines.push("");
+    reportLines.push("WARNINGS");
+    if (allWarnings.length === 0) {
+      reportLines.push("None");
+    } else {
+      for (const w of allWarnings) reportLines.push(`⚠️ ${w}`);
+    }
+    reportLines.push("");
+    reportLines.push(`ESTIMATED TOKEN USAGE: ~${estTokens.toLocaleString()}`);
+    reportLines.push(`OVERALL: ${overallStatus}`);
+    reportLines.push("");
+
+    for (const k of STEP_ORDER) {
+      const r = results[k];
+      reportLines.push(`=== ${STEP_LABELS[k].toUpperCase()} ===`);
+      reportLines.push(r.output || "(no output)");
+      reportLines.push("");
+    }
+
+    const fullText = reportLines.join("\n");
+    try {
+      await navigator.clipboard.writeText(fullText);
+      toast.success("All outputs copied to clipboard");
+    } catch {
+      toast.error("Copy failed");
+    }
+  };
+
   const totalChars = STEP_ORDER.reduce((acc, k) => acc + (results[k].output?.length || 0), 0);
   const estTokens = Math.round(totalChars / 4);
   const allWarnings = STEP_ORDER.flatMap((k) => results[k].warnings.map((w) => `[${STEP_LABELS[k]}] ${w}`));
