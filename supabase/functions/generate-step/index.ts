@@ -1271,6 +1271,7 @@ const getChunkCountByType = async (supabase: any, sourceType: SearchSourceType) 
 };
 
 const getPriorityBoost = (fileName: string, prioritySources: string[]) => {
+  // Hardcoded mapping defined just above
   if (!prioritySources.length) return 0;
   const lower = fileName.toLowerCase();
   const matched = prioritySources.some((source) => {
