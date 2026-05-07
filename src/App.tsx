@@ -7,6 +7,7 @@ import SourceLibrary from "./pages/SourceLibrary";
 import TopicBriefs from "./pages/TopicBriefs";
 import PipelineView from "./pages/PipelineView";
 import TranscriptLibrary from "./pages/TranscriptLibrary";
+import PipelineTest from "./pages/PipelineTest";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/briefs" element={<TopicBriefs />} />
           <Route path="/briefs/:briefId" element={<PipelineView />} />
           <Route path="/transcripts" element={<TranscriptLibrary />} />
+          <Route path="/pipeline-test" element={<PipelineTest />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

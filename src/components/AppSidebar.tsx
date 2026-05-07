@@ -1,4 +1,4 @@
-import { Library, ScrollText, Sparkles, Feather, BookOpen } from "lucide-react";
+import { Library, ScrollText, Sparkles, Feather, BookOpen, FlaskConical } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -6,6 +6,7 @@ const navItems = [
   { to: "/", label: "Source Library", icon: Library },
   { to: "/briefs", label: "Topic Briefs", icon: Feather },
   { to: "/transcripts", label: "Secondary Sources", icon: ScrollText },
+  { to: "/pipeline-test", label: "Pipeline Test", icon: FlaskConical },
 ];
 
 export function AppSidebar() {

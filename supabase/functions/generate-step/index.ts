@@ -1280,8 +1280,34 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { briefId, stepType, revisionFeedback, previousFullScript, hookDirection } = await req.json();
-    if (!briefId || !stepType) throw new Error("briefId and stepType are required");
+    const {
+      briefId,
+      stepType,
+      revisionFeedback,
+      previousFullScript,
+      hookDirection,
+      // ── TEST MODE (Pipeline Test tab) ──
+      // When testMode === true, the function:
+      //   - never touches topic_briefs / pipeline_outputs / evidence_points
+      //   - uses the supplied inline brief + inline previous outputs
+      //   - applies per-step input caps (see TEST_MODE_INSTRUCTIONS below)
+      //   - halves SSA secondary budgets
+      //   - emits a `: diagnostics {json}` SSE header with retrieval +
+      //     guidance counts for the orchestrator to assemble its report
+      // No schema changes, no DB writes, no impact on normal runs.
+      testMode,
+      testInlineBrief,
+      testInlineOutputs,
+    } = await req.json();
+    if (!stepType) throw new Error("stepType is required");
+    if (!testMode && !briefId) throw new Error("briefId is required");
+    const isTestMode = testMode === true;
+    // Inline upstream outputs supplied by the Pipeline Test orchestrator,
+    // keyed by step_type. Used in place of pipeline_outputs reads.
+    const inlineOutputsMap: Record<string, string> =
+      isTestMode && testInlineOutputs && typeof testInlineOutputs === "object"
+        ? (testInlineOutputs as Record<string, string>)
+        : {};
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -1457,13 +1483,29 @@ serve(async (req) => {
       }));
     }
 
-    // Get the topic brief
-    const { data: brief, error: briefError } = await supabase
-      .from("topic_briefs")
-      .select("*")
-      .eq("id", briefId)
-      .single();
-    if (briefError || !brief) throw new Error("Brief not found");
+    // Get the topic brief — inline in test mode (no DB read).
+    let brief: any;
+    if (isTestMode) {
+      if (!testInlineBrief || typeof testInlineBrief !== "object") {
+        throw new Error("testMode requires testInlineBrief");
+      }
+      brief = {
+        id: "test-mode",
+        comparison_mode: false,
+        priority_sources: [],
+        target_min_words: 700,
+        target_max_words: 800,
+        ...testInlineBrief,
+      };
+    } else {
+      const { data: b, error: briefError } = await supabase
+        .from("topic_briefs")
+        .select("*")
+        .eq("id", briefId)
+        .single();
+      if (briefError || !b) throw new Error("Brief not found");
+      brief = b;
+    }
 
     // Load shared guidance layers (Script Instructions, Anti-AI, Host Persona)
     // once per request. These are appended additively to every step's system
@@ -1499,12 +1541,15 @@ serve(async (req) => {
     const guidanceSseHeader = guidanceWarnings.length > 0
       ? `: guidance_warnings ${JSON.stringify(guidanceWarnings)}\n\n`
       : "";
+    // Captured by closure; assigned later in test mode just before the AI call.
+    let __diagnosticsHeader = "";
     const wrapStreamWithWarnings = (upstream: ReadableStream<Uint8Array>) => {
-      if (!guidanceSseHeader) return upstream;
+      const header = guidanceSseHeader + __diagnosticsHeader;
+      if (!header) return upstream;
       const encoder = new TextEncoder();
       return new ReadableStream<Uint8Array>({
         async start(controller) {
-          controller.enqueue(encoder.encode(guidanceSseHeader));
+          controller.enqueue(encoder.encode(header));
           const reader = upstream.getReader();
           try {
             while (true) {
@@ -1534,32 +1579,35 @@ serve(async (req) => {
       hostPersonaContext = (personaChunks || []).map((c: any) => c.content).join("\n\n");
     }
 
-    // Fetch format reference transcripts linked to this brief
-    const { data: formatRefLinks } = await supabase
-      .from("brief_format_reference_links")
-      .select("transcript_id, format_reference_transcripts(channel_name, video_title, transcript)")
-      .eq("brief_id", briefId);
-    const formatRefs = (formatRefLinks || [])
-      .map((r: any) => r.format_reference_transcripts)
-      .filter(Boolean);
+    // Fetch format/topic/alt links — skipped entirely in test mode.
+    let formatRefs: any[] = [];
+    let topicTranscripts: any[] = [];
+    let alternativeSources: any[] = [];
+    if (!isTestMode) {
+      const { data: formatRefLinks } = await supabase
+        .from("brief_format_reference_links")
+        .select("transcript_id, format_reference_transcripts(channel_name, video_title, transcript)")
+        .eq("brief_id", briefId);
+      formatRefs = (formatRefLinks || [])
+        .map((r: any) => r.format_reference_transcripts)
+        .filter(Boolean);
 
-    // Fetch brief-specific HP topic transcripts linked to this brief
-    const { data: topicTranscriptLinks } = await supabase
-      .from("brief_topic_transcript_links")
-      .select("transcript_id, brief_topic_transcripts(channel_name, video_title, transcript)")
-      .eq("brief_id", briefId);
-    const topicTranscripts = (topicTranscriptLinks || [])
-      .map((r: any) => r.brief_topic_transcripts)
-      .filter(Boolean);
+      const { data: topicTranscriptLinks } = await supabase
+        .from("brief_topic_transcript_links")
+        .select("transcript_id, brief_topic_transcripts(channel_name, video_title, transcript)")
+        .eq("brief_id", briefId);
+      topicTranscripts = (topicTranscriptLinks || [])
+        .map((r: any) => r.brief_topic_transcripts)
+        .filter(Boolean);
 
-    // Fetch alternative sources (secondary, non-canon) linked to this brief
-    const { data: altSourceLinks } = await supabase
-      .from("brief_alternative_source_links")
-      .select("alternative_source_id, alternative_sources(title, source_type, source_author, url, content)")
-      .eq("brief_id", briefId);
-    const alternativeSources = (altSourceLinks || [])
-      .map((r: any) => r.alternative_sources)
-      .filter(Boolean);
+      const { data: altSourceLinks } = await supabase
+        .from("brief_alternative_source_links")
+        .select("alternative_source_id, alternative_sources(title, source_type, source_author, url, content)")
+        .eq("brief_id", briefId);
+      alternativeSources = (altSourceLinks || [])
+        .map((r: any) => r.alternative_sources)
+        .filter(Boolean);
+    }
 
     // ─────────────────────────────────────────────────────────────────────
     // SECONDARY SOURCE TOKEN BUDGETS
@@ -1581,14 +1629,21 @@ serve(async (req) => {
     // OUTPUT instead, via previousContext.
     // ─────────────────────────────────────────────────────────────────────
     type BudgetProfile = "ssa" | "creative_brief";
-    const TRANSCRIPT_BUDGETS: Record<BudgetProfile, { perItem: number; total: number }> = {
-      ssa:            { perItem: 60000, total: 280000 },
-      creative_brief: { perItem: 12000, total: 80000 },
-    };
-    const ALT_BUDGETS: Record<BudgetProfile, { perItem: number; total: number }> = {
-      ssa:            { perItem: 40000, total: 160000 },
-      creative_brief: { perItem: 8000,  total: 40000 },
-    };
+    // Test-mode halves the SSA + Creative Brief secondary budgets so the test
+    // run is materially cheaper while still exercising the same logic.
+    const TRANSCRIPT_BUDGETS: Record<BudgetProfile, { perItem: number; total: number }> = isTestMode
+      ? { ssa: { perItem: 30000, total: 140000 }, creative_brief: { perItem: 6000, total: 40000 } }
+      : { ssa: { perItem: 60000, total: 280000 }, creative_brief: { perItem: 12000, total: 80000 } };
+    const ALT_BUDGETS: Record<BudgetProfile, { perItem: number; total: number }> = isTestMode
+      ? { ssa: { perItem: 20000, total: 80000 }, creative_brief: { perItem: 4000, total: 20000 } }
+      : { ssa: { perItem: 40000, total: 160000 }, creative_brief: { perItem: 8000, total: 40000 } };
+
+    // In test mode, restrict Selected Source Analysis to at most 2 sources
+    // per type so the diagnostic run is bounded.
+    if (isTestMode && stepType === "selected_source_analysis") {
+      topicTranscripts = topicTranscripts.slice(0, 2);
+      alternativeSources = alternativeSources.slice(0, 2);
+    }
 
     // Visible warnings collected per request for log/observability.
     const truncationWarnings: string[] = [];
@@ -1671,7 +1726,11 @@ serve(async (req) => {
     // ── CREATIVE BRIEF STEP ──
     if (stepType === "creative_brief") {
       if (formatRefs.length === 0) {
-        throw new Error("No format reference transcripts linked to this brief. Please add at least one format reference in the Transcript Library before generating the Creative Brief.");
+        if (isTestMode) {
+          // Test mode does not require format references — synthesize none.
+        } else {
+          throw new Error("No format reference transcripts linked to this brief. Please add at least one format reference in the Transcript Library before generating the Creative Brief.");
+        }
       }
 
       const formatRefBlock = formatRefs
@@ -1690,6 +1749,22 @@ serve(async (req) => {
       // a single source of guidance.
       let systemPrompt = STEP_PROMPTS["creative_brief"];
       systemPrompt += layeredGuidanceBlock;
+      if (isTestMode) {
+        systemPrompt +=
+          `\n\n## PIPELINE TEST MODE — INPUT CAPS (BINDING)\n` +
+          `This is a diagnostic run. Halve the secondary-source budget you would normally use. Produce a real, complete Creative Brief — do not truncate. Keep the output tight (target ~400 words).`;
+        const diagnostics = {
+          step: "creative_brief",
+          model: getModelForStep(stepType),
+          retrieval: { book: 0, transcript: 0, lexicon: 0, commentary: 0, zero_result_queries: 0, total_queries: 0 },
+          guidance: {
+            script_instructions: { loaded: guidanceLayers.scriptInstructions.chunksRead > 0, truncated: guidanceLayers.scriptInstructions.truncated },
+            anti_ai: { loaded: guidanceLayers.antiAiInstructions.chunksRead > 0, truncated: guidanceLayers.antiAiInstructions.truncated },
+            host_persona: { loaded: guidanceLayers.hostPersona.chunksRead > 0, truncated: guidanceLayers.hostPersona.truncated },
+          },
+        };
+        __diagnosticsHeader = `: diagnostics ${JSON.stringify(diagnostics)}\n\n`;
+      }
 
       const userMessage = `## Video Title
 ${brief.title}
@@ -1810,10 +1885,11 @@ Generate the Creative Brief now.`;
       });
     });
 
-    // In comparison mode, enforce balanced limits; otherwise use standard limits
-    const bookLimit = isComparison ? 20 : 20;
-    const transcriptLimit = isComparison ? 20 : 20;
-    const lexiconLimit = isComparison ? 5 : 10;
+    // In comparison mode, enforce balanced limits; otherwise use standard limits.
+    // Test mode caps every source type at 10 chunks (per spec).
+    const bookLimit = isTestMode ? 10 : (isComparison ? 20 : 20);
+    const transcriptLimit = isTestMode ? 10 : (isComparison ? 20 : 20);
+    const lexiconLimit = isTestMode ? 10 : (isComparison ? 5 : 10);
 
     const bookChunks = Array.from(mergedByType.book.values())
       .sort((a, b) => b._score - a._score)
@@ -1835,7 +1911,7 @@ Generate the Creative Brief now.`;
     // Commentary Transcripts — for idea discovery only, limited
     const commentaryChunks = Array.from(mergedByType.competitor_analysis.values())
       .sort((a, b) => b._score - a._score)
-      .slice(0, 8);
+      .slice(0, isTestMode ? 10 : 8);
 
     // Get total indexed chunk counts for debug
     const [bookChunkCount, transcriptChunkCount, lexiconChunkCount] = await Promise.all([
@@ -1904,15 +1980,23 @@ Generate the Creative Brief now.`;
     };
     console.log("RETRIEVAL DEBUG:", JSON.stringify(debugInfo, null, 2));
 
-    // Get previous pipeline outputs for this brief
+    // Get previous pipeline outputs for this brief — inline in test mode.
     const stepIndex = STEP_ORDER.indexOf(stepType);
     const previousSteps = STEP_ORDER.slice(0, stepIndex);
-    const { data: previousOutputs } = await supabase
-      .from("pipeline_outputs")
-      .select("step_type, content")
-      .eq("brief_id", briefId)
-      .in("step_type", previousSteps)
-      .order("created_at");
+    let previousOutputs: { step_type: string; content: string }[] | null = null;
+    if (isTestMode) {
+      previousOutputs = previousSteps
+        .filter((s) => inlineOutputsMap[s])
+        .map((s) => ({ step_type: s, content: inlineOutputsMap[s] }));
+    } else {
+      const { data } = await supabase
+        .from("pipeline_outputs")
+        .select("step_type, content")
+        .eq("brief_id", briefId)
+        .in("step_type", previousSteps)
+        .order("created_at");
+      previousOutputs = data as any;
+    }
 
     // Build context grouped by source type — NEVER include instructions as evidence
     const totalMatches = bookChunks.length + transcriptChunks.length + lexiconChunks.length;
@@ -2069,8 +2153,8 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
       // ── APPROVED EVIDENCE POINTS (structured, post-review) ──
       // Pull rows from public.evidence_points for this brief, excluding any
-      // user-rejected rows. This is the canonical, user-approved set.
-      try {
+      // user-rejected rows. Skipped entirely in test mode.
+      if (!isTestMode) try {
         const { data: evRows } = await supabase
           .from("evidence_points")
           .select("*")
@@ -2117,9 +2201,11 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
     let systemPrompt = STEP_PROMPTS[stepType] || "You are a helpful writing assistant.";
 
-    // Inject dynamic target length instructions for outline and full_script
-    const targetMin = brief.target_min_words ?? 1400;
-    const targetMax = brief.target_max_words ?? 1600;
+    // Inject dynamic target length instructions for outline and full_script.
+    // Test mode forces a ~700-word target so the Full Script is a complete
+    // (not truncated) short script driven by a 4-beat plan.
+    const targetMin = isTestMode ? 650 : (brief.target_min_words ?? 1400);
+    const targetMax = isTestMode ? 800 : (brief.target_max_words ?? 1600);
 
     if (stepType === "full_script") {
       systemPrompt = systemPrompt.replace(
@@ -2254,26 +2340,32 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
         : "";
 
     if (stepType === "selected_source_analysis") {
-      // Pull the Creative Brief and Insights & Research outputs as upstream context.
-      const { data: cbOut } = await supabase
-        .from("pipeline_outputs")
-        .select("content")
-        .eq("brief_id", briefId)
-        .eq("step_type", "creative_brief")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      const { data: insightsOut } = await supabase
-        .from("pipeline_outputs")
-        .select("content")
-        .eq("brief_id", briefId)
-        .eq("step_type", "six_category_extraction")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      const creativeBriefContent = cbOut?.content || "";
-      const insightsContent = insightsOut?.content || "";
+      // Pull Creative Brief and Insights & Research — inline in test mode.
+      let creativeBriefContent = "";
+      let insightsContent = "";
+      if (isTestMode) {
+        creativeBriefContent = inlineOutputsMap["creative_brief"] || "";
+        insightsContent = inlineOutputsMap["six_category_extraction"] || "";
+      } else {
+        const { data: cbOut } = await supabase
+          .from("pipeline_outputs")
+          .select("content")
+          .eq("brief_id", briefId)
+          .eq("step_type", "creative_brief")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const { data: insightsOut } = await supabase
+          .from("pipeline_outputs")
+          .select("content")
+          .eq("brief_id", briefId)
+          .eq("step_type", "six_category_extraction")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        creativeBriefContent = cbOut?.content || "";
+        insightsContent = insightsOut?.content || "";
+      }
       const hasSelectedSecondary = topicTranscripts.length > 0 || alternativeSources.length > 0;
 
       systemPromptFinal = STEP_PROMPTS["selected_source_analysis"];
@@ -2297,16 +2389,21 @@ ${topicTranscriptUserBlock}${altSourceUserBlock}${buildSecondarySkippedNotice()}
 
 Now produce the Selected Source Analysis in the exact format specified. Be honest about source weight — never promote a secondary-source claim to canon. Surface what's overused, what's underdeveloped, what objections exist, and where original synthesis is possible against the canon extraction above.`;
     } else if (stepType === "six_category_extraction") {
-      // Get creative brief output
-      const { data: creativeBriefOutput } = await supabase
-        .from("pipeline_outputs")
-        .select("content")
-        .eq("brief_id", briefId)
-        .eq("step_type", "creative_brief")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      const creativeBriefContent = creativeBriefOutput?.content || "";
+      // Get creative brief output — inline in test mode.
+      let creativeBriefContent = "";
+      if (isTestMode) {
+        creativeBriefContent = inlineOutputsMap["creative_brief"] || "";
+      } else {
+        const { data: creativeBriefOutput } = await supabase
+          .from("pipeline_outputs")
+          .select("content")
+          .eq("brief_id", briefId)
+          .eq("step_type", "creative_brief")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        creativeBriefContent = creativeBriefOutput?.content || "";
+      }
 
       systemPromptFinal = STEP_PROMPTS["six_category_extraction"];
       // Guidance injected via buildGuidanceBlock() below — no legacy append.
@@ -2348,7 +2445,7 @@ Please generate the ${stepType.replace(/_/g, " ")} based on the above informatio
       // Use the previous Full Script the client supplied, falling back to the latest
       // saved full_script output for this brief if the client didn't pass one.
       let prevScript = (previousFullScript || "").toString();
-      if (!prevScript) {
+      if (!prevScript && !isTestMode) {
         const { data: prevOut } = await supabase
           .from("pipeline_outputs")
           .select("content")
@@ -2368,6 +2465,69 @@ Please generate the ${stepType.replace(/_/g, " ")} based on the above informatio
     // full_script revisions, use the revision-specific intensity entry.
     const effectiveStepKey = isFullScriptRevision ? "full_script_revision" : stepType;
     systemPromptFinal += buildGuidanceBlock(effectiveStepKey, guidanceLayers);
+
+    // ── PIPELINE TEST MODE — input caps as binding instructions ──
+    // The model still runs each step to real completion; we cap WHAT GOES IN,
+    // not what comes out. These caps match the Pipeline Test spec.
+    if (isTestMode) {
+      const caps: string[] = [];
+      if (stepType === "six_category_extraction") {
+        caps.push("HARD CAP: Output a maximum of 2 items per category. Pick the strongest 2 in each category and stop.");
+      }
+      if (stepType === "evidence_table") {
+        caps.push("HARD CAP: Output a maximum of 6 evidence rows total. Pick the 6 strongest, most argument-useful rows.");
+      }
+      if (stepType === "outline") {
+        caps.push("HARD CAP: Output exactly 4 beats. Beat 1 must be the hook beat. Beat 4 must contain the final payoff. Every beat must still include its full re-hook, function, and hook/payoff relation lines — do not skip the rehook logic.");
+      }
+      if (stepType === "script_evidence_pack") {
+        caps.push("HARD CAP: The Beat Plan you receive is capped at 4 beats. Build the Pack from those 4 beats only. Do not invent additional beats.");
+      }
+      if (stepType === "full_script") {
+        caps.push("HARD CAP: This is a 4-beat script. Write a COMPLETE script that delivers all 4 beats from the Pack and lands a real payoff. Target 650–800 words. Do not truncate. Do not stop mid-beat. Run the hook → 3 body beats → payoff to full completion.");
+      }
+      if (caps.length > 0) {
+        systemPromptFinal +=
+          `\n\n## PIPELINE TEST MODE — INPUT CAPS (BINDING)\n` +
+          `This is a diagnostic test run. Inputs are capped to keep cost low; every step still runs to real completion.\n` +
+          caps.map((c) => `- ${c}`).join("\n");
+      }
+    }
+
+    // Diagnostics SSE comment for the Pipeline Test orchestrator.
+    let diagnosticsSseHeader = "";
+    if (isTestMode) {
+      const diagnostics = {
+        step: stepType,
+        model: getModelForStep(stepType),
+        retrieval: {
+          book: bookChunks.length,
+          transcript: transcriptChunks.length,
+          lexicon: lexiconChunks.length,
+          commentary: commentaryChunks.length,
+          zero_result_queries: matchesPerQuery.filter(
+            (m: any) => (m.book + m.transcript + m.lexicon) === 0,
+          ).length,
+          total_queries: matchesPerQuery.length,
+        },
+        guidance: {
+          script_instructions: {
+            loaded: guidanceLayers.scriptInstructions.chunksRead > 0,
+            truncated: guidanceLayers.scriptInstructions.truncated,
+          },
+          anti_ai: {
+            loaded: guidanceLayers.antiAiInstructions.chunksRead > 0,
+            truncated: guidanceLayers.antiAiInstructions.truncated,
+          },
+          host_persona: {
+            loaded: guidanceLayers.hostPersona.chunksRead > 0,
+            truncated: guidanceLayers.hostPersona.truncated,
+          },
+        },
+      };
+      diagnosticsSseHeader = `: diagnostics ${JSON.stringify(diagnostics)}\n\n`;
+      __diagnosticsHeader = diagnosticsSseHeader;
+    }
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
