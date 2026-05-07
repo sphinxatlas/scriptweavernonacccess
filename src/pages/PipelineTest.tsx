@@ -181,6 +181,7 @@ export default function PipelineTest() {
   const [results, setResults] = useState<Record<StepKey, StepResult>>(() =>
     Object.fromEntries(STEP_ORDER.map((k) => [k, { status: "pending", output: "", notes: "", warnings: [] }])) as any,
   );
+  const [history, setHistory] = useState<HistoryEntry[]>(() => loadHistory());
 
   const { data: formatRefs = [] } = useQuery({
     queryKey: ["format-references"],
@@ -255,6 +256,18 @@ export default function PipelineTest() {
     setRunning(true);
     setStartedAt(new Date().toISOString());
     reset();
+
+    // Save inputs to localStorage history
+    const entry: HistoryEntry = {
+      timestamp: new Date().toISOString(),
+      form: { ...form },
+      selectedFormatIds: [...selectedFormatIds],
+      selectedTopicIds: [...selectedTopicIds],
+      selectedAltIds: [...selectedAltIds],
+    };
+    saveHistoryEntry(entry);
+    setHistory(loadHistory());
+
     const outputs: Partial<Record<StepKey, string>> = {};
     let firstFailedAt: StepKey | null = null;
 
