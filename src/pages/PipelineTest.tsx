@@ -334,7 +334,10 @@ export default function PipelineTest() {
           () => {},
         );
         const mvWords = wordCount(mvText);
-        const minBeats = Math.ceil(mvWords / 300);
+        // Beat log minimum is defined against the INPUT script (Full Script
+        // output) word count, floored — matching the polish-pass spec.
+        const inputScriptWords = wordCount(fsText);
+        const minBeats = Math.floor(inputScriptWords / 300);
         const beatLog = (mvText.match(/beat\s*\d+/gim) || []).length;
         const mvWarn: string[] = [];
         if (beatLog < minBeats) mvWarn.push(`Beat log minimum not met (${beatLog} < ${minBeats})`);
