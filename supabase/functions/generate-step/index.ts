@@ -75,13 +75,7 @@ When citing evidence:
 
 const COMPARISON_MODE_INSTRUCTION = `
 COMPARISON MODE ACTIVE:
-This is a Book vs Movie Comparison analysis. You MUST:
-- Retrieve and present evidence in PAIRED format: book version vs movie version
-- For each major point, show what the book says AND what the movie shows
-- Highlight differences, omissions, additions, and changes in emphasis
-- Analyze WHY differences exist (time constraints, visual storytelling, tone shifts)
-- Structure the comparison thematically, not just chronologically
-- Use Lexicon only to provide context about when/why changes were made
+This script compares book and film versions. Do not force a paired book/movie structure sentence by sentence. Lead with the strongest argument. However: every major book claim must have a corresponding film observation somewhere in the same section — what the film does instead, what it omits, or what it changes. A section that builds a book case for 400+ words without any film contrast has failed. The contrast does not need to be immediate, but it must land before the section closes. Where film evidence is missing, narrow the claim or use available film evidence from other moments. Never tell the viewer that film evidence is missing.
 `;
 
 // ── BINDING WRITING / VOICE / THEORY INSTRUCTION BLOCKS ──
