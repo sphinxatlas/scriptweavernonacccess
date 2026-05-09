@@ -6,6 +6,35 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// ─── HYBRID VECTOR SEARCH (test-mode only) ───────────────────────────────
+// Embeds query strings via OpenAI text-embedding-3-small (1536d) for use with
+// the match_chunks(vector, source_type, k) RPC. Returns null entries when the
+// API key is missing or the call fails — callers must fall back gracefully.
+async function embedQueriesBatch(texts: string[]): Promise<(number[] | null)[]> {
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  if (!apiKey || texts.length === 0) {
+    return texts.map(() => null);
+  }
+  try {
+    const resp = await fetch("https://api.openai.com/v1/embeddings", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "text-embedding-3-small", input: texts }),
+    });
+    if (!resp.ok) {
+      console.error("[generate-step] OpenAI embeddings error:", resp.status, await resp.text());
+      return texts.map(() => null);
+    }
+    const data = await resp.json();
+    return (data.data as any[]).map((d) => d.embedding as number[]);
+  } catch (e) {
+    console.error("[generate-step] embedding fetch failed:", e);
+    return texts.map(() => null);
+  }
+}
+
+const RRF_K = 60;
+
 function getModelForStep(stepType: string) {
   if (
     [
