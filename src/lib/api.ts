@@ -274,9 +274,12 @@ export async function duplicateTopicBrief(briefId: string) {
     target_min_words: original.target_min_words,
     target_max_words: original.target_max_words,
     comparison_mode: original.comparison_mode,
-    // Explicitly do NOT copy: thesis, focus_areas, characters, proof_goal,
-    // priority_sources, emotional_angle, tone, creative_brief_feedback,
-    // creative_brief_approved (these are pipeline-generated or review state).
+    characters: original.characters ?? [],
+    focus_areas: original.focus_areas ?? [],
+    priority_sources: original.priority_sources ?? [],
+    // Explicitly do NOT copy: thesis, proof_goal, emotional_angle, tone,
+    // creative_brief_feedback, creative_brief_approved (these are
+    // pipeline-generated or review state).
   };
 
   const { data: created, error: insertErr } = await supabase
@@ -313,7 +316,12 @@ export async function duplicateTopicBrief(briefId: string) {
     );
   }
 
-  return created;
+  return {
+    ...created,
+    _linkedFormatIds: formatIds,
+    _linkedTopicIds: topicIds,
+    _linkedAltIds: altIds,
+  };
 }
 
 export async function getPipelineOutputs(briefId: string) {
