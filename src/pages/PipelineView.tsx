@@ -869,6 +869,16 @@ export default function PipelineView() {
                           </div>
                         </div>
                       )}
+                      {!antiAiRunning && antiAiCompletedAt && (
+                        <div className="flex items-center gap-2 rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2 text-xs text-green-600 dark:text-green-400">
+                          <CheckCircle2 className="w-4 h-4 shrink-0" />
+                          <span className="font-medium">Anti-AI Polish Complete</span>
+                          <span className="text-green-600/70 dark:text-green-400/70">
+                            — Full Script overwritten at{" "}
+                            {antiAiCompletedAt.toLocaleTimeString()}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Tool 2 — Passage Rewrite */}
