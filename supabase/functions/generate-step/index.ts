@@ -1320,6 +1320,12 @@ const deriveRetrievalQueryPack = (brief: any): QueryPack => {
     ? dedupeStrings(focusAreas.map((area: string) => compressPhrase(area, 6)).filter(Boolean), 8)
     : [];
 
+  // Canon-language expansion of focus areas. Editorial focus-area phrases
+  // ("graveyard rebirth scene") rarely appear verbatim in canon; this map
+  // translates them into token strings that DO appear in book/film chunks
+  // ("Wormtail knees", "Voldemort lazily"). See FOCUS_AREA_CANON_EXPANSIONS.
+  const focusAreaCanonQueries = expandFocusAreasToCanonQueries(focusAreas);
+
   // Character queries (only if characters provided)
   const characterQueries = characters.length > 0
     ? dedupeStrings(characters.map((c: string) => `${compressPhrase(c, 3)} characterization`).filter((q: string) => q.trim().length > 0), 8)
@@ -1330,6 +1336,9 @@ const deriveRetrievalQueryPack = (brief: any): QueryPack => {
   if (themeQueries.length > 0) {
     seededParts.push(...themeQueries.map((theme) => `${targetCharacter} ${theme}`));
     seededParts.push(...themeQueries);
+  }
+  if (focusAreaCanonQueries.length > 0) {
+    seededParts.push(...focusAreaCanonQueries);
   }
   if (characterQueries.length > 0) seededParts.push(...characterQueries);
   const compressedTitle = compressPhrase(title, 8);
@@ -1358,7 +1367,9 @@ const deriveRetrievalQueryPack = (brief: any): QueryPack => {
     `${targetCharacter} stared`,
     `${targetCharacter} laughed`,
     `${targetCharacter} sarcastically`,
-    ...characters.slice(0, 3).map((c: string) => compressPhrase(c, 3)),
+    // Strip honorifics from secondary characters so AND-token FTS does not
+    // require the title to co-occur with the name in chunk text.
+    ...characters.slice(0, 3).map((c: string) => compressPhrase(stripCharacterTitle(c), 3)),
   ].filter(Boolean), 15);
 
   // Fallbacks
