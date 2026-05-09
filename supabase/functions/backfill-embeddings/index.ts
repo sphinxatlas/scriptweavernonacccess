@@ -8,6 +8,11 @@ const corsHeaders = {
 
 const BATCH_SIZE = 100;
 const TIME_BUDGET_MS = 100_000; // stay under edge-function timeout
+// text-embedding-3-small caps inputs at 8192 tokens (~32k chars). We truncate
+// at 30,000 chars to leave headroom and avoid 400 errors that crash a batch.
+const MAX_INPUT_CHARS = 30_000;
+const truncateForEmbedding = (s: string) =>
+  s.length > MAX_INPUT_CHARS ? s.slice(0, MAX_INPUT_CHARS) : s;
 
 async function embedTexts(texts: string[], apiKey: string): Promise<number[][]> {
   const resp = await fetch("https://api.openai.com/v1/embeddings", {
@@ -43,7 +48,10 @@ serve(async (req) => {
       if (error) throw error;
       if (!rows || rows.length === 0) break;
 
-      const vecs = await embedTexts(rows.map((r: any) => r.content), apiKey);
+      const vecs = await embedTexts(
+        rows.map((r: any) => truncateForEmbedding(r.content)),
+        apiKey,
+      );
 
       // Batch update via upsert on PK — single round-trip per batch.
       // We include the NOT-NULL columns so the row passes PostgREST validation;
