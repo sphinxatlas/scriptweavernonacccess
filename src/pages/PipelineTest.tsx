@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -27,9 +27,17 @@ import {
   getFormatReferenceTranscripts,
   getBriefTopicTranscripts,
   getAlternativeSources,
+  getSourceFiles,
+  getEvidencePoints,
+  replaceEvidencePoints,
+  setEvidencePointApproval,
+  type EvidencePoint,
   type HookOption,
   type CreateBriefInput,
 } from "@/lib/api";
+import { parseEvidenceTable } from "@/lib/parseEvidenceTable";
+import { EvidenceTableView } from "@/components/pipeline/EvidenceTableView";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 type StepKey =
@@ -182,6 +190,14 @@ export default function PipelineTest() {
     Object.fromEntries(STEP_ORDER.map((k) => [k, { status: "pending", output: "", notes: "", warnings: [] }])) as any,
   );
   const [history, setHistory] = useState<HistoryEntry[]>(() => loadHistory());
+  // Test runs use a synthetic UUID brief id so evidence_points can be
+  // persisted, approved/rejected, and threaded into Beat Plan / SEP / Full
+  // Script the same way as a real run. Rows are deleted at run end / unmount.
+  const [testBriefId, setTestBriefId] = useState<string | null>(null);
+  const [phase, setPhase] = useState<"idle" | "awaiting_approval" | "phase2" | "done">("idle");
+  const pendingOutputsRef = useRef<Partial<Record<StepKey, string>>>({});
+  const [evidenceRows, setEvidenceRows] = useState<EvidencePoint[]>([]);
+  const [continuing, setContinuing] = useState(false);
 
   const { data: formatRefs = [] } = useQuery({
     queryKey: ["format-references"],
@@ -195,6 +211,27 @@ export default function PipelineTest() {
     queryKey: ["alternative-sources"],
     queryFn: getAlternativeSources,
   });
+  const { data: sourceFiles = [] } = useQuery({
+    queryKey: ["source-files"],
+    queryFn: getSourceFiles,
+  });
+  const libraryFileNames = (sourceFiles as any[]).map((f: any) => f.name);
+
+  // Best-effort cleanup of synthetic evidence_points rows when the page is
+  // closed mid-run.
+  useEffect(() => {
+    return () => {
+      if (testBriefId) {
+        supabase.from("evidence_points").delete().eq("brief_id", testBriefId);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const refetchTestEvidence = async (id: string) => {
+    const rows = await getEvidencePoints(id);
+    setEvidenceRows(rows);
+  };
 
   const updateForm = (key: keyof CreateBriefInput, value: any) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -220,12 +257,13 @@ export default function PipelineTest() {
   const runStep = async (
     step: Exclude<StepKey, "hook_options" | "melty_voice" | "anti_ai">,
     outputs: Partial<Record<StepKey, string>>,
+    briefIdArg: string,
   ): Promise<{ text: string; diagnostics?: any }> => {
     update(step, { status: "running" });
     let text = "";
     let diagnostics: any = null;
     await streamGenerateStep(
-      "test-mode",
+      briefIdArg,
       step as any,
       (delta) => { text += delta; },
       () => {},
@@ -238,6 +276,20 @@ export default function PipelineTest() {
       },
     );
     return { text, diagnostics };
+  };
+
+  const handleApproval = async (
+    id: string,
+    status: "approved" | "rejected",
+    note?: string | null,
+  ) => {
+    if (!testBriefId) return;
+    try {
+      await setEvidencePointApproval(id, status, note);
+      await refetchTestEvidence(testBriefId);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update approval");
+    }
   };
 
   const handleRun = async () => {
