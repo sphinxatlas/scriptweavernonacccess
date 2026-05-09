@@ -614,6 +614,12 @@ The following must NEVER appear in the spoken script body:
 - Bold or italic emphasis markers
 - Bulleted or numbered lists
 - The phrases 'in this video', 'today we are going to', 'let us dive into', 'in this episode', 'we will explore'
+- The word 'tagging' when used to describe how a source codes or labels a character (e.g. 'the film keeps tagging him with exertion')
+- The word 'texture' when used to describe source material quality (e.g. 'physical, grindy texture')
+- The word 'coded' or 'coding' when describing how a film or book presents a character (e.g. 'the film keeps coding him as expressive')
+- The phrase 'the films keep coding'
+- The phrase 'the books code'
+- Any word or phrase that describes source material as a document being analyzed rather than a story being narrated. These are writer-facing analytical terms that belong in the SEP, not in spoken voiceover.
 
 Any of the above appearing in the spoken body invalidates the output.
 
