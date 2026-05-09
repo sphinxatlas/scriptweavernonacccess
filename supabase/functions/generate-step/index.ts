@@ -1088,25 +1088,125 @@ const compressPhrase = (value: string, maxTerms = 8) => {
   return dedupeStrings(terms, maxTerms).join(" ");
 };
 
+// Strip honorifics / titles from a character name so AND-token FTS does not
+// require the prefix to appear next to the name in canon text. Example:
+// "Lord Voldemort" → "Voldemort", "Professor McGonagall" → "McGonagall".
+// Most book/film chunks reference characters by surname or first name only,
+// so multi-word "Title Name" queries return zero hits via plainto_tsquery.
+const TITLE_PREFIX_RE = /^(?:lord|lady|professor|prof\.?|mr\.?|mrs\.?|ms\.?|miss|master|madam|madame|sir|dame|aunt|uncle|the)\s+/i;
+const stripCharacterTitle = (name: string): string => {
+  let out = normalizeWhitespace(name || "");
+  // Strip repeatedly in case of stacked titles (e.g. "Professor Sir ...")
+  for (let i = 0; i < 3; i++) {
+    const next = out.replace(TITLE_PREFIX_RE, "");
+    if (next === out) break;
+    out = next;
+  }
+  return normalizeWhitespace(out);
+};
+
 // Infer primary target character from brief fields
 const inferTargetCharacter = (brief: any): string => {
   const characters = (brief.characters || []).map((v: string) => normalizeWhitespace(v)).filter(Boolean);
-  if (characters.length > 0) return normalizeWhitespace(characters[0].split(",")[0]) || "Harry";
-  
+  if (characters.length > 0) {
+    const first = normalizeWhitespace(characters[0].split(",")[0]) || "Harry";
+    return stripCharacterTitle(first) || first;
+  }
+
   // Try to detect from title
   const title = (brief.title || "").toLowerCase();
   const knownCharacters = ["harry", "hermione", "ron", "snape", "dumbledore", "voldemort", "draco", "neville", "luna", "sirius", "hagrid", "mcgonagall", "lupin", "ginny", "dobby", "fred", "george"];
   for (const name of knownCharacters) {
     if (title.includes(name)) return name.charAt(0).toUpperCase() + name.slice(1);
   }
-  
+
   // Try thesis
   const thesis = (brief.thesis || "").toLowerCase();
   for (const name of knownCharacters) {
     if (thesis.includes(name)) return name.charAt(0).toUpperCase() + name.slice(1);
   }
-  
+
   return "Harry";
+};
+
+// ── FOCUS-AREA CANON-LANGUAGE EXPANSION MAP ──────────────────────────────
+// User-entered focus areas are typically editorial labels ("graveyard rebirth
+// scene", "physical description", "loss of humanity") that do not appear
+// verbatim in canon and therefore return zero FTS hits via plainto_tsquery.
+// This static lookup translates common HP focus-area substrings into
+// canon-plausible token strings that DO appear in book/film chunks. Pure
+// synchronous string ops — no model call, no extra latency.
+//
+// Keys are lowercased substrings; if any key is contained in a focus area,
+// its mapped queries are added to the seeded subqueries pool. To extend:
+// just append more entries.
+const FOCUS_AREA_CANON_EXPANSIONS: Record<string, string[]> = {
+  // ── Voldemort / Tom Riddle ──
+  "graveyard": ["Wormtail knees", "Voldemort lazily", "cauldron rebirth", "Death Eaters circle"],
+  "rebirth": ["Wormtail knees", "Voldemort lazily", "cauldron"],
+  "voldemort death": ["feeble shrunken", "rebounding curse", "Tom Riddle body", "Voldemort dead"],
+  "death scene": ["body floor", "rebounding curse", "shivering silence"],
+  "mundane finality": ["feeble shrunken", "Voldemort dead", "rebounding curse"],
+  "ash death": ["feeble shrunken", "Voldemort dead"],
+  "physical description": ["red eyes", "serpentine face", "pallor", "skeletal"],
+  "loss of humanity": ["snakelike", "no nose", "horcrux fragment", "soul split"],
+  "horcrux": ["soul fragment", "diary", "diadem", "locket", "Hufflepuff cup"],
+  "horcrux ideology": ["soul fragment", "Slughorn memory", "seven pieces"],
+  "death eater": ["Death Eaters circle", "Lucius Malfoy", "Bellatrix Lestrange"],
+  "tom riddle": ["Tom Riddle diary", "Slughorn memory", "Riddle orphanage"],
+  "ralph fiennes": ["serpentine face", "no nose", "red eyes"],
+  "theatricality": ["dramatic", "shouted", "cackled"],
+  "missing memories": ["Slughorn memory", "Pensieve", "Dumbledore showed"],
+  "hepzibah smith": ["Hepzibah", "Hufflepuff cup", "locket"],
+  "gaunt": ["Marvolo Gaunt", "ring", "Slytherin locket"],
+  "hogwarts job interview": ["Defence Against Dark Arts", "Dumbledore office"],
+  "chamber of secrets": ["basilisk", "diary", "Tom Riddle"],
+
+  // ── Snape ──
+  "snape loyalty": ["Lily", "always", "Dumbledore trust"],
+  "always": ["Lily", "doe Patronus"],
+  "snape death": ["Shrieking Shack", "Nagini", "memories vial"],
+
+  // ── Dumbledore ──
+  "dumbledore plan": ["Snape kill", "Harry Horcrux", "King's Cross"],
+  "dumbledore death": ["tower", "Avada Kedavra Snape", "falling"],
+  "grindelwald": ["Godric's Hollow", "Ariana", "Nurmengard"],
+
+  // ── Harry ──
+  "harry sacrifice": ["walk forest", "Resurrection Stone", "King's Cross"],
+  "harry anger": ["shouted Harry", "Harry yelled", "fury"],
+
+  // ── Draco ──
+  "draco redemption": ["lowering wand", "tower hesitation", "Vanishing Cabinet"],
+  "draco family": ["Lucius", "Narcissa", "Malfoy Manor"],
+  "vanishing cabinet": ["Room of Requirement", "Borgin Burkes", "broken cabinet"],
+
+  // ── Ginny ──
+  "ginny diary": ["Tom Riddle diary", "Chamber", "possessed"],
+  "ginny film": ["Ginny tied shoe", "Burrow fire"],
+
+  // ── Worldbuilding ──
+  "worldbuilding": ["Ministry of Magic", "Statute of Secrecy", "wizarding world"],
+  "ministry": ["Ministry of Magic", "Fudge", "Scrimgeour"],
+
+  // ── Adaptation framing (these never match canon directly, but expand
+  // into film-side anchors) ──
+  "adaptation gaps": ["scene cut", "memory removed", "subplot dropped"],
+  "film changes": ["scene cut", "Ginny shoe", "Burrow fire"],
+};
+
+const expandFocusAreasToCanonQueries = (focusAreas: string[]): string[] => {
+  const out: string[] = [];
+  for (const raw of focusAreas) {
+    const lower = raw.toLowerCase();
+    for (const key of Object.keys(FOCUS_AREA_CANON_EXPANSIONS)) {
+      if (lower.includes(key)) {
+        out.push(...FOCUS_AREA_CANON_EXPANSIONS[key]);
+      }
+    }
+  }
+  // Cap the expansion bucket so it cannot dominate the query pack.
+  return dedupeStrings(out, 12);
 };
 
 // Score how relevant a chunk is to the target character
