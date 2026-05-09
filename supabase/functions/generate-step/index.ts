@@ -1487,6 +1487,27 @@ const inferTargetCharacter = (brief: any): string => {
 // just append more entries.
 const FOCUS_AREA_CANON_EXPANSIONS: Record<string, string[]> = {
   // ── Voldemort / Tom Riddle ──
+  "malfoy manor meeting": [
+    "diseased pruning family trees",
+    "Bellatrix silenced hand raised",
+    "tiny flick captive table",
+    "Charity Burbage Nagini dinner"
+  ],
+  "neville recruitment": [
+    "Neville pure-blood spirit bravery valuable",
+    "we need your kind Voldemort",
+    "Voldemort recruiting battle Hogwarts"
+  ],
+  "seven potters chase": [
+    "Voldemort screams Mine NO wand fails",
+    "Harry escapes Voldemort battle seven potters",
+    "Voldemort loses control wand connection"
+  ],
+  "voldemort death scene": [
+    "mundane finality feeble shrunken floor",
+    "Tom Riddle body falls vacant unknowing",
+    "Voldemort dies corpse witnesses"
+  ],
   "graveyard": ["Wormtail knees", "Voldemort lazily", "cauldron rebirth", "Death Eaters circle"],
   "rebirth": ["Wormtail knees", "Voldemort lazily", "cauldron"],
   "voldemort death": ["feeble shrunken", "rebounding curse", "Tom Riddle body", "Voldemort dead"],
@@ -1824,7 +1845,8 @@ const getPriorityBoost = (fileName: string, prioritySources: string[]) => {
 
 // Per-file ceiling: no single source file can contribute more than this many
 // chunks to the final retrieval set, even if it dominates similarity ranking.
-const PER_FILE_CEILING = 6;
+const PER_FILE_CEILING_PRIORITY = 10;
+const PER_FILE_CEILING_DEFAULT = 6;
 
 // Floor + ceiling quota:
 //  • Caps each file at PER_FILE_CEILING (Fix 2).
@@ -1848,8 +1870,10 @@ const applyFloorAndCeilingQuota = (
   // ── Step 1: per-file ceiling ──
   const ceilingByFile = new Map<string, any[]>();
   for (const c of sortedChunks) {
+    const isPriority = prioritySources.some(p => c.file_name?.includes(p));
+    const ceiling = isPriority ? PER_FILE_CEILING_PRIORITY : PER_FILE_CEILING_DEFAULT;
     const arr = ceilingByFile.get(c.file_id) || [];
-    if (arr.length < PER_FILE_CEILING) arr.push(c);
+    if (arr.length < ceiling) arr.push(c);
     ceilingByFile.set(c.file_id, arr);
   }
   const cappedPool = Array.from(ceilingByFile.values()).flat()
