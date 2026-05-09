@@ -278,6 +278,7 @@ export default function PipelineTest() {
         testInlineAlternativeSourceIds: selectedAltIds,
         testInlineFormatReferenceIds: selectedFormatIds,
         testInlineTopicTranscriptIds: selectedTopicIds,
+        testInlineUseVectorSearch: useVectorSearch,
         onDiagnostics: (d) => { diagnostics = d; },
       },
     );
@@ -523,6 +524,7 @@ export default function PipelineTest() {
             testInlineAlternativeSourceIds: selectedAltIds,
             testInlineFormatReferenceIds: selectedFormatIds,
             testInlineTopicTranscriptIds: selectedTopicIds,
+            testInlineUseVectorSearch: useVectorSearch,
             hookDirection: chosen,
             onDiagnostics: (d) => { fsDiag = d; },
           },
