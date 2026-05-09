@@ -901,6 +901,23 @@ export default function PipelineTest() {
               </div>
             </div>
 
+            {/* Hybrid Vector Search — EXPERIMENTAL, test-mode only */}
+            <div className="flex items-center gap-3 pt-2 border-t border-border">
+              <Switch
+                checked={useVectorSearch}
+                onCheckedChange={setUseVectorSearch}
+              />
+              <div>
+                <Label className="text-xs font-medium flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-primary" />
+                  Use Vector Search (Experimental)
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Hybrid FTS + pgvector with RRF fusion. Test mode only — does not affect the real pipeline. Per-query FTS vs vector rankings appear in step diagnostics.
+                </p>
+              </div>
+            </div>
+
             {/* Format Reference Videos */}
             <div className="pt-2 border-t border-border">
               <Label className="text-xs text-muted-foreground">Format Reference Videos</Label>
