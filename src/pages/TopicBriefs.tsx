@@ -13,6 +13,7 @@ import { MultiSelectChips, type MultiSelectOption } from "@/components/MultiSele
 import {
   getTopicBriefs,
   createTopicBrief,
+  updateTopicBrief,
   deleteTopicBrief,
   duplicateTopicBrief,
   type CreateBriefInput,
@@ -127,6 +128,7 @@ export default function TopicBriefs() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<CreateBriefInput>(blankForm());
   const [creating, setCreating] = useState(false);
+  const [editingBriefId, setEditingBriefId] = useState<string | null>(null);
 
   // Prefill from Angle Lab handoff (sessionStorage), if present.
   useEffect(() => {
@@ -180,6 +182,7 @@ export default function TopicBriefs() {
     setSelectedAltIds([]);
     setShowFormatAdd(false);
     setShowTopicAdd(false);
+    setEditingBriefId(null);
   };
 
   const handleCreate = async () => {
@@ -201,19 +204,28 @@ export default function TopicBriefs() {
     }
     setCreating(true);
     try {
-      const created = await createTopicBrief({
+      const payload = {
         ...form,
         title: form.title.trim(),
         angle_note: form.angle_note.trim(),
-      });
-      await linkFormatReferencesToBrief(created.id, selectedFormatIds);
-      await linkTopicTranscriptsToBrief(created.id, selectedTopicIds);
-      await linkAlternativeSourcesToBrief(created.id, selectedAltIds);
-      toast.success("Brief created");
+      };
+      let briefId: string;
+      if (editingBriefId) {
+        const updated = await updateTopicBrief(editingBriefId, payload);
+        briefId = updated.id;
+      } else {
+        const created = await createTopicBrief(payload);
+        briefId = created.id;
+      }
+      await linkFormatReferencesToBrief(briefId, selectedFormatIds);
+      await linkTopicTranscriptsToBrief(briefId, selectedTopicIds);
+      await linkAlternativeSourcesToBrief(briefId, selectedAltIds);
+      toast.success(editingBriefId ? "Brief saved" : "Brief created");
+      const wasEditing = !!editingBriefId;
       resetForm();
       setShowForm(false);
       refetch();
-      navigate(`/briefs/${created.id}`);
+      if (!wasEditing) navigate(`/briefs/${briefId}`);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -233,10 +245,28 @@ export default function TopicBriefs() {
 
   const handleDuplicate = async (id: string) => {
     try {
-      const created = await duplicateTopicBrief(id);
-      toast.success("Brief duplicated");
+      const created: any = await duplicateTopicBrief(id);
+      toast.success("Brief duplicated — review and edit before running");
       refetch();
-      navigate(`/briefs/${created.id}`);
+      // Open the form in edit mode, prefilled with the cloned brief so the
+      // user can review/edit all fields before kicking off the pipeline.
+      setForm({
+        title: created.title ?? "",
+        angle_note: created.angle_note ?? "",
+        target_minutes: created.target_minutes ?? 10,
+        target_min_words: created.target_min_words ?? 1400,
+        target_max_words: created.target_max_words ?? 1600,
+        comparison_mode: !!created.comparison_mode,
+        characters: created.characters ?? [],
+        focus_areas: created.focus_areas ?? [],
+        priority_sources: created.priority_sources ?? [],
+      });
+      setSelectedFormatIds(created._linkedFormatIds ?? []);
+      setSelectedTopicIds(created._linkedTopicIds ?? []);
+      setSelectedAltIds(created._linkedAltIds ?? []);
+      setEditingBriefId(created.id);
+      setShowForm(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: any) {
       toast.error(err.message || "Failed to duplicate brief");
     }
