@@ -1005,6 +1005,16 @@ export default function PipelineTest() {
           </Card>
         )}
 
+        {results.anti_ai?.status === "pass" && (
+          <div className="mb-4 flex items-center gap-2 rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2 text-xs text-green-600 dark:text-green-400">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span className="font-medium">Anti-AI Polish Complete</span>
+            <span className="text-green-600/70 dark:text-green-400/70">
+              — Test pass finished{results.anti_ai.notes ? ` · ${results.anti_ai.notes}` : ""}
+            </span>
+          </div>
+        )}
+
         {startedAt && (
           <div className="mb-4 flex justify-end">
             <Button variant="outline" size="sm" onClick={handleCopyAll} className="gap-1.5">
