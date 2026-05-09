@@ -799,18 +799,7 @@ QUOTE DISCIPLINE (CRITICAL):
 - Do NOT read sources aloud. The script must sound like a creator SPEAKING, informed by sources, not reciting them.
 
 SOURCE MATERIAL REFERENCE RULE (BINDING — CRITICAL):
-The voiceover must never reference source material as a document or research artifact. Do not write phrases like:
-
-- 'the transcript tags him with'
-- 'the transcript says / marks / describes / has'
-- 'the script notes / marks / has'
-- 'the stage directions indicate'
-- 'the source material says'
-- 'the text tags this as'
-- 'according to the transcript / script'
-- Any phrasing that reveals the writer is reading from a file or document
-
-Natural references are fine and encouraged: 'in the book,' 'in this scene,' 'in Goblet of Fire,' 'in the film,' 'in the chapter.' The distinction is: describe what happens in the story or on screen, not what a document says about it. The viewer should never feel like they are watching someone present research notes.
+Never use the word 'transcript,' 'script,' 'text,' 'passage,' 'excerpt,' 'chapter,' 'narration,' or 'stage direction' as a noun referring to a source document in the voiceover. These words may only appear if they are part of a direct quote being attributed to a character. The test: if the sentence could be rewritten as 'describe what happens in the scene,' do that instead.
 
 SOURCE SPECIFICITY IN NARRATION (CRITICAL):
 - Every evidence-based paragraph MUST naturally mention WHERE the moment happens within the spoken narration itself.
