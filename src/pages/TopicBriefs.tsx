@@ -306,7 +306,9 @@ export default function TopicBriefs() {
 
         {showForm && (
           <div className="border border-primary/30 rounded-lg p-5 mb-6 bg-card">
-            <h3 className="font-mono text-sm font-semibold text-foreground mb-4">New Topic Brief</h3>
+            <h3 className="font-mono text-sm font-semibold text-foreground mb-4">
+              {editingBriefId ? "Edit Topic Brief" : "New Topic Brief"}
+            </h3>
             <div className="space-y-4">
               {/* Video Title */}
               <div>
@@ -569,7 +571,9 @@ export default function TopicBriefs() {
               <div className="flex gap-2 justify-end pt-2">
                 <Button variant="ghost" onClick={() => { setShowForm(false); resetForm(); }}>Cancel</Button>
                 <Button onClick={handleCreate} disabled={creating}>
-                  {creating ? "Creating..." : "Create Brief"}
+                  {creating
+                    ? (editingBriefId ? "Saving..." : "Creating...")
+                    : (editingBriefId ? "Save Brief" : "Create Brief")}
                 </Button>
               </div>
             </div>
