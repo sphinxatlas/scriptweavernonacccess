@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -27,9 +27,17 @@ import {
   getFormatReferenceTranscripts,
   getBriefTopicTranscripts,
   getAlternativeSources,
+  getSourceFiles,
+  getEvidencePoints,
+  replaceEvidencePoints,
+  setEvidencePointApproval,
+  type EvidencePoint,
   type HookOption,
   type CreateBriefInput,
 } from "@/lib/api";
+import { parseEvidenceTable } from "@/lib/parseEvidenceTable";
+import { EvidenceTableView } from "@/components/pipeline/EvidenceTableView";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 type StepKey =
@@ -182,6 +190,14 @@ export default function PipelineTest() {
     Object.fromEntries(STEP_ORDER.map((k) => [k, { status: "pending", output: "", notes: "", warnings: [] }])) as any,
   );
   const [history, setHistory] = useState<HistoryEntry[]>(() => loadHistory());
+  // Test runs use a synthetic UUID brief id so evidence_points can be
+  // persisted, approved/rejected, and threaded into Beat Plan / SEP / Full
+  // Script the same way as a real run. Rows are deleted at run end / unmount.
+  const [testBriefId, setTestBriefId] = useState<string | null>(null);
+  const [phase, setPhase] = useState<"idle" | "awaiting_approval" | "phase2" | "done">("idle");
+  const pendingOutputsRef = useRef<Partial<Record<StepKey, string>>>({});
+  const [evidenceRows, setEvidenceRows] = useState<EvidencePoint[]>([]);
+  const [continuing, setContinuing] = useState(false);
 
   const { data: formatRefs = [] } = useQuery({
     queryKey: ["format-references"],
@@ -195,6 +211,27 @@ export default function PipelineTest() {
     queryKey: ["alternative-sources"],
     queryFn: getAlternativeSources,
   });
+  const { data: sourceFiles = [] } = useQuery({
+    queryKey: ["source-files"],
+    queryFn: getSourceFiles,
+  });
+  const libraryFileNames = (sourceFiles as any[]).map((f: any) => f.name);
+
+  // Best-effort cleanup of synthetic evidence_points rows when the page is
+  // closed mid-run.
+  useEffect(() => {
+    return () => {
+      if (testBriefId) {
+        supabase.from("evidence_points").delete().eq("brief_id", testBriefId);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const refetchTestEvidence = async (id: string) => {
+    const rows = await getEvidencePoints(id);
+    setEvidenceRows(rows);
+  };
 
   const updateForm = (key: keyof CreateBriefInput, value: any) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -220,12 +257,13 @@ export default function PipelineTest() {
   const runStep = async (
     step: Exclude<StepKey, "hook_options" | "melty_voice" | "anti_ai">,
     outputs: Partial<Record<StepKey, string>>,
+    briefIdArg: string,
   ): Promise<{ text: string; diagnostics?: any }> => {
     update(step, { status: "running" });
     let text = "";
     let diagnostics: any = null;
     await streamGenerateStep(
-      "test-mode",
+      briefIdArg,
       step as any,
       (delta) => { text += delta; },
       () => {},
@@ -238,6 +276,20 @@ export default function PipelineTest() {
       },
     );
     return { text, diagnostics };
+  };
+
+  const handleApproval = async (
+    id: string,
+    status: "approved" | "rejected",
+    note?: string | null,
+  ) => {
+    if (!testBriefId) return;
+    try {
+      await setEvidencePointApproval(id, status, note);
+      await refetchTestEvidence(testBriefId);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update approval");
+    }
   };
 
   const handleRun = async () => {
@@ -253,6 +305,17 @@ export default function PipelineTest() {
       toast.error("Angle note is required");
       return;
     }
+    // Clean up any prior synthetic test rows before starting a fresh run.
+    if (testBriefId) {
+      try {
+        await supabase.from("evidence_points").delete().eq("brief_id", testBriefId);
+      } catch {/* ignore */}
+    }
+    const newBriefId = crypto.randomUUID();
+    setTestBriefId(newBriefId);
+    setEvidenceRows([]);
+    setPhase("idle");
+    pendingOutputsRef.current = {};
     setRunning(true);
     setStartedAt(new Date().toISOString());
     reset();
@@ -271,19 +334,20 @@ export default function PipelineTest() {
     const outputs: Partial<Record<StepKey, string>> = {};
     let firstFailedAt: StepKey | null = null;
 
-    const orderedGen: Exclude<StepKey, "hook_options" | "melty_voice" | "anti_ai">[] = [
+    // Phase 1 stops at the Evidence Table so the user can approve / reject
+    // high-risk points and add author notes before Beat Plan / SEP / Full
+    // Script consume them — same flow as the real pipeline.
+    const phase1: Exclude<StepKey, "hook_options" | "melty_voice" | "anti_ai">[] = [
       "creative_brief",
       "six_category_extraction",
       "selected_source_analysis",
       "evidence_table",
-      "outline",
-      "script_evidence_pack",
     ];
 
     try {
-      for (const step of orderedGen) {
+      for (const step of phase1) {
         try {
-          const { text, diagnostics } = await runStep(step, outputs);
+          const { text, diagnostics } = await runStep(step, outputs, newBriefId);
           outputs[step] = text;
           const warnings: string[] = [];
           if (diagnostics?.guidance) {
@@ -306,6 +370,75 @@ export default function PipelineTest() {
             warnings.push(`Model mismatch: got ${diagnostics.model}, expected ${expected}`);
           }
           let notes = `${wordCount(text)} words`;
+          update(step, { status: "pass", output: text, model: diagnostics?.model, diagnostics, notes, warnings });
+        } catch (e: any) {
+          update(step, { status: "fail", notes: e.message || "error" });
+          firstFailedAt = step;
+          throw e;
+        }
+      }
+
+      // Persist parsed evidence rows under the synthetic brief id so the
+      // approve/reject UI + author notes can drive what threads into Beat
+      // Plan, SEP, and Full Script — identical to the real pipeline.
+      try {
+        const drafts = parseEvidenceTable(outputs.evidence_table || "");
+        if (drafts.length > 0) {
+          await replaceEvidencePoints(newBriefId, drafts);
+          await refetchTestEvidence(newBriefId);
+        }
+      } catch (err) {
+        console.warn("Failed to persist test evidence_points:", err);
+      }
+      pendingOutputsRef.current = outputs;
+      setPhase("awaiting_approval");
+    } catch (e) {
+      if (firstFailedAt) {
+        const idx = STEP_ORDER.indexOf(firstFailedAt);
+        for (let i = idx; i < STEP_ORDER.length; i++) {
+          if (results[STEP_ORDER[i]].status !== "fail")
+            update(STEP_ORDER[i], { status: "skip", notes: `upstream failure at ${firstFailedAt}` });
+        }
+      }
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const handleContinueAfterApproval = async () => {
+    if (!testBriefId) return;
+    const outputs = { ...pendingOutputsRef.current };
+    let firstFailedAt: StepKey | null = null;
+    setContinuing(true);
+    setPhase("phase2");
+
+    const phase2Gen: Exclude<StepKey, "hook_options" | "melty_voice" | "anti_ai">[] = [
+      "outline",
+      "script_evidence_pack",
+    ];
+
+    try {
+      for (const step of phase2Gen) {
+        try {
+          const { text, diagnostics } = await runStep(step, outputs, testBriefId);
+          outputs[step] = text;
+          const warnings: string[] = [];
+          if (diagnostics?.guidance) {
+            for (const [k, v] of Object.entries(diagnostics.guidance)) {
+              if ((v as any).truncated) warnings.push(`Guidance doc truncated: ${k}`);
+            }
+          }
+          if (diagnostics?.retrieval) {
+            const r = diagnostics.retrieval;
+            for (const t of ["book", "transcript", "lexicon", "commentary"] as const) {
+              if (r[t] === 0) warnings.push(`Zero retrieval on ${t}`);
+            }
+          }
+          const expected = EXPECTED_MODEL[step];
+          if (diagnostics?.model && diagnostics.model !== expected) {
+            warnings.push(`Model mismatch: got ${diagnostics.model}, expected ${expected}`);
+          }
+          let notes = `${wordCount(text)} words`;
           if (step === "outline") {
             const beats = (text.match(/^\s*(?:beat\s*)?\d+[.)]/gim) || []).length;
             notes += ` • ~${beats} beats detected`;
@@ -318,7 +451,7 @@ export default function PipelineTest() {
         }
       }
 
-      // Hook Options
+      // Hook Options + Full Script + polish passes (unchanged from before)
       try {
         update("hook_options", { status: "running" });
         const resp = await fetch(
@@ -330,7 +463,7 @@ export default function PipelineTest() {
               Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
             },
             body: JSON.stringify({
-              briefId: "test-mode",
+              briefId: testBriefId,
               testMode: true,
               testInlineCreativeBrief: outputs.creative_brief,
               testInlineScriptEvidencePack: outputs.script_evidence_pack,
@@ -357,7 +490,7 @@ export default function PipelineTest() {
         let fsText = "";
         let fsDiag: any = null;
         await streamGenerateStep(
-          "test-mode",
+          testBriefId,
           "full_script",
           (d) => { fsText += d; },
           () => {},
@@ -453,7 +586,13 @@ export default function PipelineTest() {
         }
       }
     } finally {
-      setRunning(false);
+      setContinuing(false);
+      setPhase("done");
+      // Synthetic evidence rows have served their purpose; remove them so
+      // they don't accumulate in the database.
+      try {
+        await supabase.from("evidence_points").delete().eq("brief_id", testBriefId);
+      } catch {/* ignore */}
     }
   };
 
@@ -805,7 +944,10 @@ export default function PipelineTest() {
                 </Label>
               </div>
               <div className="flex justify-end">
-                <Button onClick={handleRun} disabled={running || !confirmed}>
+                <Button
+                  onClick={handleRun}
+                  disabled={running || continuing || phase === "awaiting_approval" || phase === "phase2" || !confirmed}
+                >
                   {running ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Running…</> : "Run Pipeline Test"}
                 </Button>
               </div>
@@ -847,6 +989,46 @@ export default function PipelineTest() {
               Copy All Outputs
             </Button>
           </div>
+        )}
+
+        {(phase === "awaiting_approval" || phase === "phase2") && (
+          <Card className="p-5 mb-6 border-primary/40">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <h3 className="font-mono text-sm font-semibold text-foreground">
+                  Evidence Approval (Test Run)
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Approve or reject high-risk evidence and add optional notes.
+                  Approved rows + notes will be threaded into Beat Plan, SEP,
+                  and Full Script — same as the real pipeline. Rows are
+                  deleted when the run finishes.
+                </p>
+              </div>
+              <Button
+                onClick={handleContinueAfterApproval}
+                disabled={continuing || phase === "phase2"}
+                size="sm"
+              >
+                {continuing ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Continuing…</>
+                ) : (
+                  "Continue Pipeline"
+                )}
+              </Button>
+            </div>
+            {evidenceRows.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic">
+                No evidence rows parsed from the Evidence Table output.
+              </p>
+            ) : (
+              <EvidenceTableView
+                rows={evidenceRows}
+                libraryFileNames={libraryFileNames}
+                onSetApproval={handleApproval}
+              />
+            )}
+          </Card>
         )}
 
         {STEP_ORDER.map((k) => {
