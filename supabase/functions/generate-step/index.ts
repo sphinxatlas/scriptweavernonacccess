@@ -1933,7 +1933,7 @@ serve(async (req) => {
       six_category_extraction:     { script: "medium",  antiAi: "light",   persona: "light"   },
       selected_source_analysis:    { script: "medium",  antiAi: "light",   persona: "light"   },
       evidence_table:              { script: "medium",  antiAi: "light",   persona: "light"   },
-      outline:                     { script: "highest", antiAi: "strong",  persona: "strong"  },
+      outline:                     { script: "highest", antiAi: "strong",  persona: "none"  },
       script_evidence_pack:        { script: "strong",  antiAi: "strong",  persona: "medium"  },
       full_script:                 { script: "highest", antiAi: "highest", persona: "highest" },
       full_script_revision:        { script: "highest", antiAi: "highest", persona: "highest" },
