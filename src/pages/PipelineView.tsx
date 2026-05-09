@@ -306,9 +306,13 @@ export default function PipelineView() {
     return count;
   })();
 
-  const handleSetApproval = async (id: string, status: "approved" | "rejected") => {
+  const handleSetApproval = async (
+    id: string,
+    status: "approved" | "rejected",
+    note?: string | null,
+  ) => {
     try {
-      await setEvidencePointApproval(id, status);
+      await setEvidencePointApproval(id, status, note);
       await refetchEvidence();
     } catch (err: any) {
       toast.error(err.message || "Failed to update approval");
