@@ -223,6 +223,7 @@ export default function PipelineTest() {
     return () => {
       if (testBriefId) {
         supabase.from("evidence_points").delete().eq("brief_id", testBriefId);
+        supabase.from("topic_briefs").delete().eq("id", testBriefId);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -315,6 +316,7 @@ export default function PipelineTest() {
     if (testBriefId) {
       try {
         await supabase.from("evidence_points").delete().eq("brief_id", testBriefId);
+        await supabase.from("topic_briefs").delete().eq("id", testBriefId);
       } catch {/* ignore */}
     }
     const newBriefId = crypto.randomUUID();
@@ -390,6 +392,17 @@ export default function PipelineTest() {
       try {
         const drafts = parseEvidenceTable(outputs.evidence_table || "");
         if (drafts.length > 0) {
+          // evidence_points.brief_id has a FK to topic_briefs, so we need a
+          // placeholder brief row before we can persist parsed rows. It is
+          // deleted alongside the evidence rows when the test ends.
+          const { error: briefErr } = await supabase
+            .from("topic_briefs")
+            .upsert({
+              id: newBriefId,
+              title: `[TEST] ${form.title || "Untitled"}`,
+              description: form.angle_note || "Test pipeline run",
+            });
+          if (briefErr) throw briefErr;
           await replaceEvidencePoints(newBriefId, drafts);
           await refetchTestEvidence(newBriefId);
         }
@@ -601,6 +614,7 @@ export default function PipelineTest() {
       // they don't accumulate in the database.
       try {
         await supabase.from("evidence_points").delete().eq("brief_id", testBriefId);
+        await supabase.from("topic_briefs").delete().eq("id", testBriefId);
       } catch {/* ignore */}
     }
   };
