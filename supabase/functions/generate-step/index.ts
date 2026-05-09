@@ -331,6 +331,114 @@ ARGUMENT REQUIREMENTS
 - Every beat must change the viewer's understanding. A beat that only adds information without shifting understanding is weak and must be strengthened or cut.
 - When Selected Source Analysis appears in previous context, use its Audience Objections, Recurring Fan Signals, and Underdeveloped Opportunities to shape rehooks, escalation rungs, and at least one beat that pre-empts a likely fan objection. Do not treat secondary-source claims as canon proof.
 
+BEAT PLAN PRE-WRITE PROTOCOL
+
+Complete this protocol internally before writing the beat list. Do not output the protocol — only the final beat plan. This protocol enforces the Escalation Rule, Repetition Control, and Section Structure rules from the Script Writing Instructions.
+
+1. ESCALATION CHAIN MAP
+
+For each beat 2..N, write one internal sentence answering:
+
+"What does this beat make the previous beat feel like?"
+
+The answer must name an escalation move. Acceptable moves (from the Escalation Rule):
+
+- Small signal → larger pattern
+
+- Surface take → deeper implication
+
+- Simple answer → more uncomfortable answer
+
+- Common belief → evidence → reversal
+
+- Isolated example → broader consequence
+
+- Confusion → clarity → complication
+
+- Familiar assumption → new lens
+
+A beat that recurs to the same idea is allowed IF it operates one of these moves on it. A beat that restates the same idea at the same level is not allowed. Test: after this beat, does the previous beat feel incomplete? If no, the beat is repetition without escalation. Restructure.
+
+2. REPETITION-VS-ESCALATION TEST
+
+For each beat, ask the four questions from Repetition Control:
+
+- Does this become more specific than the previous beat?
+
+- Does this show a consequence the previous beat didn't reach?
+
+- Does this reveal a pattern the previous beat only hinted at?
+
+- Does this become a contradiction the previous beat assumed away?
+
+At least one must answer yes. If none do, the beat is the same point in different wording. Merge into the adjacent beat or cut.
+
+3. EVIDENCE LEDGER (PRELIMINARY)
+
+List every canon anchor planned for use. For each:
+
+- Beat assignment (primary use)
+
+- Role (primary anchor / contrast anchor)
+
+Rules:
+
+- No scene serves as the primary anchor in more than one beat.
+
+- No book↔film contrast pair serves as the primary contrast in more than one beat.
+
+- If a single source appears as contrast in more than 3 beats, the plan is leaning on a contrast monoculture. Redistribute.
+
+4. FUNCTION-NOT-TOPIC CHECK
+
+For each beat, write its job using a Section Structure function (from the instructions list): set up tension, validate surface interpretation, introduce first complication, establish a rule, test the rule, reveal contradiction, widen the pattern, add emotional consequence, address counterargument, deliver payoff.
+
+If the beat's job can only be described as "covers [topic]," it is topic-assigned. Rewrite as a function before proceeding.
+
+5. CONTRAST CLOSURE PRE-CHECK
+
+For book vs. film comparison scripts: confirm each beat plans a contrast landing before it closes. A beat that builds 80% on one side with no acknowledgment of the other is structurally incomplete per the Contrast Closure Rule. Mark which acceptable contrast form each beat uses: what the other version does instead / omits / changes in emphasis / why the difference matters.
+
+6. REHOOK FORWARD-MOTION CHECK
+
+For each beat's planned rehook, confirm it does one of the following (from Section Endings and Rehooks):
+
+- Raises a new question
+
+- Reveals the explanation is incomplete
+
+- Introduces a contradiction
+
+- Promises a stronger example
+
+- Widens the stakes
+
+- Shifts perspective
+
+- Hints at the final payoff
+
+A rehook that only announces the next topic ("Now let's look at...") fails this check. Rewrite.
+
+7. FINAL CHECK
+
+Before outputting the beat plan, confirm:
+
+- Every beat 2..N has an acceptable escalation move
+
+- Every beat passes the repetition-vs-escalation test
+
+- No primary anchor or contrast pair is duplicated
+
+- No beat is topic-assigned
+
+- For comparison scripts, every beat closes its contrast
+
+- Every rehook generates forward motion, not topic announcement
+
+- The final beat reframes the opening tension rather than summarizing
+
+If any check fails, restructure before writing the output.
+
 EVIDENCE REQUIREMENTS
 - Each beat must name the specific canon anchor (book chapter, film scene). No vague references.
 - Evidence is paraphrased into the beat prose. No raw quotes in the beat plan. Quotes are reserved for the Full Script.
@@ -1825,7 +1933,7 @@ serve(async (req) => {
       six_category_extraction:     { script: "medium",  antiAi: "light",   persona: "light"   },
       selected_source_analysis:    { script: "medium",  antiAi: "light",   persona: "light"   },
       evidence_table:              { script: "medium",  antiAi: "light",   persona: "light"   },
-      outline:                     { script: "highest", antiAi: "strong",  persona: "strong"  },
+      outline:                     { script: "highest", antiAi: "strong",  persona: "none"  },
       script_evidence_pack:        { script: "strong",  antiAi: "strong",  persona: "medium"  },
       full_script:                 { script: "highest", antiAi: "highest", persona: "highest" },
       full_script_revision:        { script: "highest", antiAi: "highest", persona: "highest" },
