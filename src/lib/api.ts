@@ -485,6 +485,7 @@ export async function streamGenerateStep(
     testInlineAlternativeSourceIds?: string[];
     testInlineFormatReferenceIds?: string[];
     testInlineTopicTranscriptIds?: string[];
+    testInlineUseVectorSearch?: boolean;
     onDiagnostics?: (d: any) => void;
   },
 ) {
@@ -508,6 +509,7 @@ export async function streamGenerateStep(
         testInlineAlternativeSourceIds: options?.testInlineAlternativeSourceIds,
         testInlineFormatReferenceIds: options?.testInlineFormatReferenceIds,
         testInlineTopicTranscriptIds: options?.testInlineTopicTranscriptIds,
+        testInlineUseVectorSearch: options?.testInlineUseVectorSearch,
       }),
     }
   );
