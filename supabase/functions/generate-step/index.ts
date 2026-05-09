@@ -2665,7 +2665,7 @@ Generate the Creative Brief now.`;
 
     const bookChunksSorted = Array.from(mergedByType.book.values())
       .sort((a, b) => b._score - a._score);
-    const bookChunks = applyPriorityFloorQuota(bookChunksSorted, prioritySources, bookLimit, 3);
+    const bookChunks = applyFloorAndCeilingQuota(bookChunksSorted, prioritySources, bookLimit, "book");
 
     // For transcripts: filter out chunks where target character has zero mentions (unless very few results)
     const allTranscriptChunks = Array.from(mergedByType.transcript.values())
@@ -2674,7 +2674,7 @@ Generate the Creative Brief now.`;
     const droppedTranscripts = allTranscriptChunks.length - relevantTranscripts.length;
     // Use relevant ones if we have enough, otherwise fall back to all
     const transcriptPool = relevantTranscripts.length >= 3 ? relevantTranscripts : allTranscriptChunks;
-    const transcriptChunks = applyPriorityFloorQuota(transcriptPool, prioritySources, transcriptLimit, 3);
+    const transcriptChunks = applyFloorAndCeilingQuota(transcriptPool, prioritySources, transcriptLimit, "transcript");
 
     const lexiconChunks = Array.from(mergedByType.lexicon.values())
       .sort((a, b) => b._score - a._score)
