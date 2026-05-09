@@ -183,6 +183,9 @@ export default function PipelineTest() {
   const [selectedFormatIds, setSelectedFormatIds] = useState<string[]>([]);
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
   const [selectedAltIds, setSelectedAltIds] = useState<string[]>([]);
+  // EXPERIMENTAL: hybrid vector search toggle. Test mode only — never sent on
+  // real pipeline runs.
+  const [useVectorSearch, setUseVectorSearch] = useState<boolean>(false);
   const [confirmed, setConfirmed] = useState(false);
   const [running, setRunning] = useState(false);
   const [startedAt, setStartedAt] = useState<string | null>(null);
