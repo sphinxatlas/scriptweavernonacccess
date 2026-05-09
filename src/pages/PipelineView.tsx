@@ -412,9 +412,7 @@ export default function PipelineView() {
 
           await savePipelineOutput(briefId, "melty_voice_pass", scriptBody);
 
-          if (changeLog) {
-            await savePipelineOutput(briefId, "full_script", fullScriptContent);
-          }
+          void changeLog;
 
           await refetchOutputs();
           setMeltyRunning(false);
