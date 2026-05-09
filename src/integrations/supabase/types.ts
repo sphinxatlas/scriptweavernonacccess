@@ -312,6 +312,7 @@ export type Database = {
           chunk_index: number
           content: string
           created_at: string
+          embedding: string | null
           file_id: string
           id: string
           search_vector: unknown
@@ -320,6 +321,7 @@ export type Database = {
           chunk_index: number
           content: string
           created_at?: string
+          embedding?: string | null
           file_id: string
           id?: string
           search_vector?: unknown
@@ -328,6 +330,7 @@ export type Database = {
           chunk_index?: number
           content?: string
           created_at?: string
+          embedding?: string | null
           file_id?: string
           id?: string
           search_vector?: unknown
@@ -660,6 +663,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      match_chunks: {
+        Args: {
+          k?: number
+          query_embedding: string
+          source_type: Database["public"]["Enums"]["source_file_type"]
+        }
+        Returns: {
+          chunk_index: number
+          content: string
+          file_id: string
+          file_name: string
+          file_type: Database["public"]["Enums"]["source_file_type"]
+          id: string
+          similarity: number
+        }[]
+      }
       search_chunks: {
         Args: { max_results?: number; search_query: string }
         Returns: {
