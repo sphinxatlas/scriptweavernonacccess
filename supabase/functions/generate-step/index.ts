@@ -2092,7 +2092,7 @@ Generate the Creative Brief now.`;
     // Commentary Transcripts — for idea discovery only, limited
     const commentaryChunks = Array.from(mergedByType.competitor_analysis.values())
       .sort((a, b) => b._score - a._score)
-      .slice(0, isTestMode ? 10 : 8);
+      .slice(0, 8);
 
     // Get total indexed chunk counts for debug
     const [bookChunkCount, transcriptChunkCount, lexiconChunkCount] = await Promise.all([
