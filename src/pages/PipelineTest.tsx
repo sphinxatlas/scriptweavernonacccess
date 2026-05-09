@@ -305,6 +305,17 @@ export default function PipelineTest() {
       toast.error("Angle note is required");
       return;
     }
+    // Clean up any prior synthetic test rows before starting a fresh run.
+    if (testBriefId) {
+      try {
+        await supabase.from("evidence_points").delete().eq("brief_id", testBriefId);
+      } catch {/* ignore */}
+    }
+    const newBriefId = crypto.randomUUID();
+    setTestBriefId(newBriefId);
+    setEvidenceRows([]);
+    setPhase("idle");
+    pendingOutputsRef.current = {};
     setRunning(true);
     setStartedAt(new Date().toISOString());
     reset();
@@ -323,19 +334,20 @@ export default function PipelineTest() {
     const outputs: Partial<Record<StepKey, string>> = {};
     let firstFailedAt: StepKey | null = null;
 
-    const orderedGen: Exclude<StepKey, "hook_options" | "melty_voice" | "anti_ai">[] = [
+    // Phase 1 stops at the Evidence Table so the user can approve / reject
+    // high-risk points and add author notes before Beat Plan / SEP / Full
+    // Script consume them — same flow as the real pipeline.
+    const phase1: Exclude<StepKey, "hook_options" | "melty_voice" | "anti_ai">[] = [
       "creative_brief",
       "six_category_extraction",
       "selected_source_analysis",
       "evidence_table",
-      "outline",
-      "script_evidence_pack",
     ];
 
     try {
-      for (const step of orderedGen) {
+      for (const step of phase1) {
         try {
-          const { text, diagnostics } = await runStep(step, outputs);
+          const { text, diagnostics } = await runStep(step, outputs, newBriefId);
           outputs[step] = text;
           const warnings: string[] = [];
           if (diagnostics?.guidance) {
@@ -358,6 +370,75 @@ export default function PipelineTest() {
             warnings.push(`Model mismatch: got ${diagnostics.model}, expected ${expected}`);
           }
           let notes = `${wordCount(text)} words`;
+          update(step, { status: "pass", output: text, model: diagnostics?.model, diagnostics, notes, warnings });
+        } catch (e: any) {
+          update(step, { status: "fail", notes: e.message || "error" });
+          firstFailedAt = step;
+          throw e;
+        }
+      }
+
+      // Persist parsed evidence rows under the synthetic brief id so the
+      // approve/reject UI + author notes can drive what threads into Beat
+      // Plan, SEP, and Full Script — identical to the real pipeline.
+      try {
+        const drafts = parseEvidenceTable(outputs.evidence_table || "");
+        if (drafts.length > 0) {
+          await replaceEvidencePoints(newBriefId, drafts);
+          await refetchTestEvidence(newBriefId);
+        }
+      } catch (err) {
+        console.warn("Failed to persist test evidence_points:", err);
+      }
+      pendingOutputsRef.current = outputs;
+      setPhase("awaiting_approval");
+    } catch (e) {
+      if (firstFailedAt) {
+        const idx = STEP_ORDER.indexOf(firstFailedAt);
+        for (let i = idx; i < STEP_ORDER.length; i++) {
+          if (results[STEP_ORDER[i]].status !== "fail")
+            update(STEP_ORDER[i], { status: "skip", notes: `upstream failure at ${firstFailedAt}` });
+        }
+      }
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const handleContinueAfterApproval = async () => {
+    if (!testBriefId) return;
+    const outputs = { ...pendingOutputsRef.current };
+    let firstFailedAt: StepKey | null = null;
+    setContinuing(true);
+    setPhase("phase2");
+
+    const phase2Gen: Exclude<StepKey, "hook_options" | "melty_voice" | "anti_ai">[] = [
+      "outline",
+      "script_evidence_pack",
+    ];
+
+    try {
+      for (const step of phase2Gen) {
+        try {
+          const { text, diagnostics } = await runStep(step, outputs, testBriefId);
+          outputs[step] = text;
+          const warnings: string[] = [];
+          if (diagnostics?.guidance) {
+            for (const [k, v] of Object.entries(diagnostics.guidance)) {
+              if ((v as any).truncated) warnings.push(`Guidance doc truncated: ${k}`);
+            }
+          }
+          if (diagnostics?.retrieval) {
+            const r = diagnostics.retrieval;
+            for (const t of ["book", "transcript", "lexicon", "commentary"] as const) {
+              if (r[t] === 0) warnings.push(`Zero retrieval on ${t}`);
+            }
+          }
+          const expected = EXPECTED_MODEL[step];
+          if (diagnostics?.model && diagnostics.model !== expected) {
+            warnings.push(`Model mismatch: got ${diagnostics.model}, expected ${expected}`);
+          }
+          let notes = `${wordCount(text)} words`;
           if (step === "outline") {
             const beats = (text.match(/^\s*(?:beat\s*)?\d+[.)]/gim) || []).length;
             notes += ` • ~${beats} beats detected`;
@@ -370,7 +451,7 @@ export default function PipelineTest() {
         }
       }
 
-      // Hook Options
+      // Hook Options + Full Script + polish passes (unchanged from before)
       try {
         update("hook_options", { status: "running" });
         const resp = await fetch(
@@ -382,7 +463,7 @@ export default function PipelineTest() {
               Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
             },
             body: JSON.stringify({
-              briefId: "test-mode",
+              briefId: testBriefId,
               testMode: true,
               testInlineCreativeBrief: outputs.creative_brief,
               testInlineScriptEvidencePack: outputs.script_evidence_pack,
@@ -409,7 +490,7 @@ export default function PipelineTest() {
         let fsText = "";
         let fsDiag: any = null;
         await streamGenerateStep(
-          "test-mode",
+          testBriefId,
           "full_script",
           (d) => { fsText += d; },
           () => {},
@@ -505,7 +586,13 @@ export default function PipelineTest() {
         }
       }
     } finally {
-      setRunning(false);
+      setContinuing(false);
+      setPhase("done");
+      // Synthetic evidence rows have served their purpose; remove them so
+      // they don't accumulate in the database.
+      try {
+        await supabase.from("evidence_points").delete().eq("brief_id", testBriefId);
+      } catch {/* ignore */}
     }
   };
 
