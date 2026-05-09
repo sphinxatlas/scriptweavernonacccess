@@ -801,6 +801,9 @@ QUOTE DISCIPLINE (CRITICAL):
 SOURCE MATERIAL REFERENCE RULE (BINDING — CRITICAL):
 Never use the word 'transcript,' 'script,' 'text,' 'passage,' 'excerpt,' 'chapter,' 'narration,' or 'stage direction' as a noun referring to a source document in the voiceover. These words may only appear if they are part of a direct quote being attributed to a character. The test: if the sentence could be rewritten as 'describe what happens in the scene,' do that instead.
 
+EVIDENCE DIVERSITY AND REHOOK RULE (BINDING — CRITICAL):
+Each beat must anchor to different primary evidence. Do not use the same film scene, transcript moment, or direct quote in more than one beat. If a film moment has already been used, subsequent beats must draw from different film evidence. The same rule applies to book evidence. Every section must end with a rehook that makes the previous point feel incomplete — not a sentence that announces the next topic.
+
 SOURCE SPECIFICITY IN NARRATION (CRITICAL):
 - Every evidence-based paragraph MUST naturally mention WHERE the moment happens within the spoken narration itself.
 - Always specify the installment: which book (by title or number) or which film (by title or number).
