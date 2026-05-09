@@ -1183,7 +1183,7 @@ Generate the Creative Brief in this EXACT format:
 [The emotional journey the viewer goes on. Drawn from the HP angle, not the format reference.]
 
 ### Argument Structure
-[High-level shape only — 2–4 sentences describing how the argument moves. Do not pre-write beats; Beat Plan owns that. Drawn from the HP angle, not the format reference.]
+[2–3 sentences describing the SHAPE of the argument's logic — e.g. "an accumulation argument that layers three contrast spines before paying off on a final reversal." Do NOT name specific scenes, moments, or beats. Do NOT use sequencing language ("start with… then… escalate into… cash out with…") — that is beat-writing, which Beat Plan owns. If your description could be turned into a numbered outline, you've over-specified. Drawn from the HP angle, not the format reference.]
 
 ### Hook Shape
 [The concrete moment, contradiction, or scene the hook should land on. Drawn from the HP angle. Format reference informs rhythm only, not subject.]
@@ -1211,10 +1211,10 @@ This section operationalizes the retention and escalation layer. Fill every fiel
 - **Viewer Click Question:** [The exact question, curiosity, or emotional promise the title triggers in a viewer's mind.]
 - **Title Promise:** [What the title implicitly promises to deliver by the end of the video.]
 - **Expected Answer:** [What a casual viewer probably expects the answer to be when they click.]
-- **Hypothesized Surprising Answer:** [Best guess from the angle alone, before any canon retrieval. Treat as falsifiable — SEP evidence may overturn it. If overturned, downstream steps follow SEP, not this field.]
+- **Hypothesized Surprising Answer:** [Write this as a HYPOTHESIS, not a thesis. Begin with "The angle suggests…" or "Working guess:" and frame the answer as something to be tested. Do NOT write a committed verdict. One sentence. If you find yourself writing the script's conclusion, stop — that's SEP's job. Example shape: "The angle suggests the real mismatch is X, but this needs SEP to confirm whether the canon evidence supports X or points elsewhere."]
 - **Emotional Arc:** [Ordered progression of feeling, e.g. curiosity → suspicion → tension → realization → payoff. 4–6 stages.]
-- **Escalation Logic:** [In 2–3 sentences, describe how tension should build across the video for THIS specific angle — what gets harder, deeper, or more uncomfortable as the script moves. Do not impose a fixed rung count or pre-write section structure. Beat Plan owns actual section breakdown and will determine it from evidence.]
-- **Hypothesized Final Payoff:** [Best guess at the verdict, twist, or conclusion the final third may land on. Provisional — revisable after SEP. If SEP evidence points elsewhere, downstream steps follow the evidence.]
+- **Escalation Logic:** [ONE sentence describing the SINGLE mechanism by which tension deepens — e.g. "stakes raise from aesthetic to ideological," or "each point exposes a deeper structural choice." Do NOT chain stages with arrows, "then," "move from… into… then into…" — that is a ladder, which is forbidden. Do NOT name sections, beats, or moments. If your sentence contains more than one "then," delete and rewrite. Beat Plan owns sequence; this field owns only the principle.]
+- **Hypothesized Final Payoff:** [Write this as a HYPOTHESIS, not a verdict. Begin with "If the hypothesis holds, the payoff could be…" One sentence. Do NOT write the script's closing argument. Do NOT cash out the thesis. If you find yourself writing the conclusion in committed language ("The book denies X" / "That single choice exposes Y"), stop and reframe as conditional.]
 `;
 
 STEP_PROMPTS["six_category_extraction"] = `You are a research analyst for a Harry Potter YouTube channel.
