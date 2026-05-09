@@ -3030,6 +3030,10 @@ Please generate the ${stepType.replace(/_/g, " ")} based on the above informatio
           ).length,
           total_queries: matchesPerQuery.length,
         },
+        hybrid_vector: useVectorSearch ? {
+          enabled: true,
+          arms: hybridArmDiagnostics,
+        } : { enabled: false },
         guidance: {
           script_instructions: {
             loaded: guidanceLayers.scriptInstructions.chunksRead > 0,
