@@ -458,6 +458,40 @@ For each beat in the Beat Plan, write one paragraph in plain prose. Number each 
 
 Write items 5, 6, and 7 as natural writer-facing sentences inside the same paragraph. Do not turn the beat into a table. Do not add markdown headings or labels like "Function:" inside the paragraph — embed the information in prose the writer can read in one pass.
 
+EVIDENCE LEDGER (MANDATORY — complete before writing any beat paragraph)
+
+Before writing any beat, build an internal evidence ledger. List every primary anchor available in the Evidence Table and Beat Plan — each specific film scene, book moment, or direct quote. Assign each anchor to exactly one beat. No anchor may serve as the primary evidence for more than one beat.
+
+If two beats are currently mapped to the same primary anchor, resolve the conflict before writing:
+
+- Reassign one beat to a different anchor from the Evidence Table.
+
+- If no alternative anchor exists, restructure one beat to argue from book-only or film-only contrast without re-citing the shared moment.
+
+- If neither is possible, flag the beat as a merge candidate in the anti-repetition note and recommend which beat absorbs the other.
+
+Do not write beat paragraphs until every beat has a unique primary anchor assigned. The ledger is internal — do not output it.
+
+QUESTION CHAIN (MANDATORY — complete before writing any beat paragraph)
+
+Before writing any beat, map the question chain across all beats. For each beat 2 through N, write one internal sentence answering: "What does this beat reveal that makes the previous beat feel like only the surface version of the problem?"
+
+A beat passes if it reveals a new consequence, exposes an underlying mechanism, or tightens the argument toward the payoff. A beat fails if the answer is "another example of the same point already proven."
+
+If a beat fails the question chain test, restructure it before writing. Acceptable escalation moves:
+
+- Surface behavior to underlying mechanism
+
+- Isolated moment to systemic pattern  
+
+- What the films do to what that choice costs
+
+- Symptom to cause
+
+- Cause to consequence not yet accounted for
+
+The question chain is internal — do not output it. The beat paragraphs must reflect it.
+
 Wherever a beat is relevant to a Selected Source Analysis Audience Objection, Recurring Fan Signal, Expected Surface Answer, or Underdeveloped Opportunity, you MUST surface that connection in plain prose inside the existing Function, Hook/payoff relation, or Anti-repetition note sentences. This is mandatory, not optional, for every beat where such a signal applies. Do not add a new format field. Do not create a table. Do not treat secondary-source claims as canon proof.
 
 Do not write beat functions, hook payoff relation, or anti repetition notes using mechanical contrast formulas such as "not X, but Y," "the problem is not X, the problem is Y," or "this is not X, this is Y." These upstream phrases leak into Full Script. Use concrete function language instead, such as "This beat proves," "This beat reveals," "This beat escalates," "This beat makes the audience question," or "This beat pays off."
