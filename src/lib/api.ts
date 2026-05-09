@@ -12,7 +12,8 @@ export type PipelineStepType =
   | "evidence_table"
   | "outline"
   | "script_evidence_pack"
-  | "full_script";
+  | "full_script"
+  | "melty_voice_pass";
 
 export const PIPELINE_STEPS: {
   type: PipelineStepType;
