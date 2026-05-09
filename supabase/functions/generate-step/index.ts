@@ -1395,7 +1395,7 @@ const deriveRetrievalQueryPack = (brief: any): QueryPack => {
   if (brief.comparison_mode) {
     comparisonQueries = dedupeStrings([
       ...themeQueries.slice(0, 6).map((theme) => `${theme} book vs movie`),
-      ...characters.slice(0, 4).map((character: string) => `${compressPhrase(character, 3)} book vs movie characterization`),
+      ...characters.slice(0, 4).map((character: string) => `${compressPhrase(stripCharacterTitle(character), 3)} book vs movie characterization`),
       `${targetCharacter} personality adaptation changes`,
       `${targetCharacter} emotional intensity books and films`,
       `${targetCharacter} agency books and films`,
