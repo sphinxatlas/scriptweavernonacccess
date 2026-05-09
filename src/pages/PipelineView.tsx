@@ -330,6 +330,15 @@ export default function PipelineView() {
     setAntiAiStream("");
     let acc = "";
     try {
+      // [DIAGNOSTIC] Confirm what is actually sent to the Anti-AI pass.
+      console.log("[anti_ai-input-diagnostic]", {
+        source: meltyVoicePassContent ? "melty_voice_pass" : "full_script",
+        meltyVoicePassChars: meltyVoicePassContent.length,
+        fullScriptChars: fullScriptContent.length,
+        antiAiInputChars: antiAiInput.length,
+        first300: antiAiInput.slice(0, 300),
+        outputStepTypes: outputs.map((o) => o.step_type),
+      });
       await streamPolishPass(
         { passType: "anti_ai", scope: "full_script", scriptText: antiAiInput },
         (delta) => {
