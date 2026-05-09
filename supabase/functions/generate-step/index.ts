@@ -2290,8 +2290,10 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     // Full Script, so we surface approved high-risk evidence + their author
     // notes here as well, so the model can honour the user's per-point
     // guidance ("use carefully", "frame as interpretation only", etc.) while
-    // structuring the script. Skipped in test mode.
-    if (!isTestMode && (stepType === "outline" || stepType === "script_evidence_pack")) {
+    // structuring the script. Runs in BOTH real and test mode so the approval
+    // flow can be validated end-to-end before a real run; the test
+    // orchestrator persists evidence_points under a synthetic test brief id.
+    if (stepType === "outline" || stepType === "script_evidence_pack") {
       try {
         const { data: evRows } = await supabase
           .from("evidence_points")
@@ -2354,8 +2356,9 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
       // ── APPROVED EVIDENCE POINTS (structured, post-review) ──
       // Pull rows from public.evidence_points for this brief, excluding any
-      // user-rejected rows. Skipped entirely in test mode.
-      if (!isTestMode) try {
+      // user-rejected rows. Runs in both real and test mode (test mode uses a
+      // synthetic brief id persisted by the Pipeline Test orchestrator).
+      try {
         const { data: evRows } = await supabase
           .from("evidence_points")
           .select("*")
