@@ -599,6 +599,29 @@ You may not write conditional flags such as "merge candidate," "keep both only i
 
 If two beats genuinely operate different functions on adjacent topics, write the SEP entries normally without flagging.
 
+SCOPE LIMIT — NO ADDITIVE EXPANSION
+
+The SEP commits or cuts from the Beat Plan. The SEP does NOT add new
+beats. The Beat Plan is the binding structural decision; SEP is its
+evidence implementation.
+
+If the Evidence Table contains a strong evidence point that the Beat
+Plan did not promote into a beat, that is the Beat Plan's deliberate
+decision — respect it. Do not introduce new beats to absorb unused
+evidence points. Strong unused evidence may be folded into an existing
+beat as supporting material if it serves that beat's function, but it
+may not become its own beat.
+
+The SEP beat count must be equal to or less than the Beat Plan beat
+count. Never greater. If you find yourself writing a paragraph that
+does not correspond to a numbered beat in the Beat Plan, stop — that
+is an invented beat, which is forbidden.
+
+Authority summary:
+- Subtractive (merge, cut): permitted, governed by MERGE-OR-CUT.
+- Equivalent (1:1 implementation): default behavior.
+- Additive (new beats): forbidden.
+
 EVIDENCE LEDGER (MANDATORY — complete before writing any beat paragraph)
 
 Before writing any beat, build an internal evidence ledger. List every primary anchor available in the Evidence Table and Beat Plan — each specific film scene, book moment, or direct quote. Assign each anchor to exactly one beat. No anchor may serve as the primary evidence for more than one beat.
