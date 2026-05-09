@@ -2329,6 +2329,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
         if (approved.length > 0) {
           const lines: string[] = [
             "### APPROVED EVIDENCE POINTS (BINDING WHITELIST — only these claims may be used; any AUTHOR NOTE attached to a point must be honoured when planning beats / building the SEP)",
+            "Approval notes attached to evidence points are binding constraints, not optional guidance. If a note specifies a condition (e.g. 'only use after pairing with X evidence,' 'frame as interpretation only,' 'avoid treating as a universal rule'), that condition must be met. If the condition cannot be met with the available evidence, narrow the claim, omit the contrast, or use different evidence entirely. Do not use the evidence as if the condition does not exist.",
           ];
           approved.forEach((r: any, i: number) => {
             const block: string[] = [`#${i + 1} Claim: ${r.claim}`];
@@ -2393,6 +2394,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
         if (approved.length > 0) {
           const lines: string[] = [
             "### APPROVED EVIDENCE POINTS (BINDING WHITELIST — only these claims may be used; rejected points have been removed)",
+            "Approval notes attached to evidence points are binding constraints, not optional guidance. If a note specifies a condition (e.g. 'only use after pairing with X evidence,' 'frame as interpretation only,' 'avoid treating as a universal rule'), that condition must be met. If the condition cannot be met with the available evidence, narrow the claim, omit the contrast, or use different evidence entirely. Do not use the evidence as if the condition does not exist.",
           ];
           approved.forEach((r: any, i: number) => {
             const block: string[] = [`#${i + 1} Claim: ${r.claim}`];
