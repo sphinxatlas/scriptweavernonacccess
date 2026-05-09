@@ -483,6 +483,8 @@ export async function streamGenerateStep(
     testInlineBrief?: Record<string, any>;
     testInlineOutputs?: Record<string, string>;
     testInlineAlternativeSourceIds?: string[];
+    testInlineFormatReferenceIds?: string[];
+    testInlineTopicTranscriptIds?: string[];
     onDiagnostics?: (d: any) => void;
   },
 ) {
@@ -504,6 +506,8 @@ export async function streamGenerateStep(
         testInlineBrief: options?.testInlineBrief,
         testInlineOutputs: options?.testInlineOutputs,
         testInlineAlternativeSourceIds: options?.testInlineAlternativeSourceIds,
+        testInlineFormatReferenceIds: options?.testInlineFormatReferenceIds,
+        testInlineTopicTranscriptIds: options?.testInlineTopicTranscriptIds,
       }),
     }
   );
