@@ -234,6 +234,19 @@ PARAPHRASE-FIRST DISCIPLINE (CRITICAL):
 - Every evidence point MUST cite its source file name.
 - No long excerpts anywhere in the table.
 
+MICRO-QUOTE PROVENANCE RULE (CRITICAL):
+A Micro-Quote is a verbatim string. It must appear word-for-word in the retrieved chunks of the Source File listed for that evidence point. If the phrase appears only in upstream pipeline steps (Brief, SSA), in secondary sources, or in your own paraphrase, it is NOT a valid Micro-Quote — leave the field empty and set Evidence Type to "paraphrase" or "interpretation."
+
+A book Micro-Quote must come from a book chunk; a movie Micro-Quote must come from a movie transcript chunk.
+
+FACT VALIDATION VS QUOTATION — these are different operations:
+- Secondary sources (Lexicon, commentary transcripts, fan wikis) CAN validate that a scene, event, or visual fact exists in canon. Use them freely in Book Evidence, Movie Evidence, Contrast, and Paraphrase fields when they support the underlying claim.
+- Secondary sources CANNOT supply a Micro-Quote attributed to a primary Source File. The Micro-Quote field is reserved for verbatim strings from the primary source's retrieved chunks only.
+
+Example — death scene:
+- VALID: "Voldemort's body dissolves into ash" as paraphrase in Movie Evidence, supported by Lexicon entry on the final duel. Micro-Quote field empty. Evidence Type: paraphrase.
+- INVALID: "slowly crumbles into ash" in the Micro-Quote field tagged to the DH2 transcript file, when that exact string is not in the retrieved DH2 chunks.
+
 Create the evidence table in this EXACT markdown format for each evidence point:
 
 ### Evidence Point [number]
