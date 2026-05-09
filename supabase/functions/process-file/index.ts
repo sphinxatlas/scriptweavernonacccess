@@ -8,6 +8,10 @@ const corsHeaders = {
 
 const CHUNK_SIZE = 1500;
 const CHUNK_OVERLAP = 200;
+// text-embedding-3-small caps inputs at 8192 tokens (~32k chars). Chunks are
+// normally ~1500 chars so this rarely triggers, but we truncate defensively
+// to prevent a single oversized chunk from failing an entire upload batch.
+const MAX_EMBED_INPUT_CHARS = 30_000;
 
 // OpenAI embeddings — keep optional so file processing still succeeds if the
 // key is missing. The Pipeline Test vector toggle simply won't see embeddings
@@ -18,11 +22,14 @@ async function embedTexts(texts: string[]): Promise<(string | null)[]> {
     console.warn("[process-file] OPENAI_API_KEY missing — skipping embeddings");
     return texts.map(() => null);
   }
+  const safeTexts = texts.map((t) =>
+    t.length > MAX_EMBED_INPUT_CHARS ? t.slice(0, MAX_EMBED_INPUT_CHARS) : t,
+  );
   try {
     const resp = await fetch("https://api.openai.com/v1/embeddings", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "text-embedding-3-small", input: texts }),
+      body: JSON.stringify({ model: "text-embedding-3-small", input: safeTexts }),
     });
     if (!resp.ok) {
       console.error("[process-file] OpenAI embedding error:", resp.status, await resp.text());
