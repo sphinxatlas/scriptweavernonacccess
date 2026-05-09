@@ -53,6 +53,27 @@ import { toast } from "sonner";
 
 type ActiveStep = PipelineStepType;
 
+const MELTY_REVISED_SCRIPT_MARKER = "### REVISED SCRIPT (MELTY VOICE PASS APPLIED)";
+
+function splitMeltyVoicePassOutput(text: string): { scriptBody: string; changeLog: string | null } {
+  const markerIndex = text.indexOf(MELTY_REVISED_SCRIPT_MARKER);
+
+  if (markerIndex === -1) {
+    return {
+      scriptBody: text,
+      changeLog: null,
+    };
+  }
+
+  const beforeMarker = text.slice(0, markerIndex).trim();
+  const afterMarker = text.slice(markerIndex + MELTY_REVISED_SCRIPT_MARKER.length).trim();
+
+  return {
+    scriptBody: afterMarker,
+    changeLog: beforeMarker || null,
+  };
+}
+
 export default function PipelineView() {
   const { briefId } = useParams<{ briefId: string }>();
   const [activeStep, setActiveStep] = useState<ActiveStep>("creative_brief");
@@ -387,7 +408,14 @@ export default function PipelineView() {
             toast.error("Melty Voice Pass returned no content.");
             return;
           }
-          await savePipelineOutput(briefId, "melty_voice_pass" as PipelineStepType, acc);
+          const { scriptBody, changeLog } = splitMeltyVoicePassOutput(acc);
+
+          await savePipelineOutput(briefId, "melty_voice_pass", scriptBody);
+
+          if (changeLog) {
+            await savePipelineOutput(briefId, "full_script", fullScriptContent);
+          }
+
           await refetchOutputs();
           setMeltyRunning(false);
           setMeltyStream("");
