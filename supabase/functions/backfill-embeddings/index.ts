@@ -37,7 +37,7 @@ serve(async (req) => {
     while (Date.now() - startedAt < TIME_BUDGET_MS) {
       const { data: rows, error } = await supabase
         .from("file_chunks")
-        .select("id, content")
+        .select("id, content, file_id, chunk_index")
         .is("embedding", null)
         .limit(BATCH_SIZE);
       if (error) throw error;
@@ -46,15 +46,16 @@ serve(async (req) => {
       const vecs = await embedTexts(rows.map((r: any) => r.content), apiKey);
 
       // Batch update via upsert on PK — single round-trip per batch.
+      // We include the NOT-NULL columns so the row passes PostgREST validation;
+      // since the id already exists, the conflict path runs and only embedding
+      // is effectively changed.
       const payload = rows.map((r: any, i: number) => ({
         id: r.id,
-        file_id: r.file_id, // included only because PostgREST upsert sends full row; ignored on conflict update
+        file_id: r.file_id,
         content: r.content,
         chunk_index: r.chunk_index,
         embedding: `[${vecs[i].join(",")}]`,
       }));
-      // Re-fetch the NOT-NULL fields we omitted above (we only selected id,content).
-      // Cheaper: fetch ids + needed fields up-front.
       const { error: upErr } = await supabase
         .from("file_chunks")
         .upsert(payload, { onConflict: "id" });
