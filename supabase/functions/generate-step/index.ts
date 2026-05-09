@@ -1762,55 +1762,114 @@ const getPriorityBoost = (fileName: string, prioritySources: string[]) => {
   return matched ? 0.15 : 0;
 };
 
-// Per-file floor quota: guarantee a minimum number of chunks per priority file
-// (additive on top of the soft boost — does not filter out non-priority files).
-const applyPriorityFloorQuota = (
+// Per-file ceiling: no single source file can contribute more than this many
+// chunks to the final retrieval set, even if it dominates similarity ranking.
+const PER_FILE_CEILING = 6;
+
+// Floor + ceiling quota:
+//  • Caps each file at PER_FILE_CEILING (Fix 2).
+//  • Reserves a minimum number of chunks per file (Fix 1 + Fix 3):
+//      - Priority files:  6 (book) / 4 (transcript)
+//      - Non-priority:    2 (additive — applied to every file in the pool;
+//                            in comparison mode this means every file in the
+//                            corpus that returned at least one chunk).
+//  • If sum(floors) > totalLimit, scales floors proportionally rather than
+//    dropping any file to zero.
+const applyFloorAndCeilingQuota = (
   sortedChunks: any[],
   prioritySources: string[],
   totalLimit: number,
-  perFileFloor = 3,
+  sourceType: "book" | "transcript",
 ): any[] => {
-  if (!sortedChunks.length || !prioritySources.length || totalLimit <= 0) {
+  if (!sortedChunks.length || totalLimit <= 0) {
     return sortedChunks.slice(0, totalLimit);
   }
-  const tokens = prioritySources
+
+  // ── Step 1: per-file ceiling ──
+  const ceilingByFile = new Map<string, any[]>();
+  for (const c of sortedChunks) {
+    const arr = ceilingByFile.get(c.file_id) || [];
+    if (arr.length < PER_FILE_CEILING) arr.push(c);
+    ceilingByFile.set(c.file_id, arr);
+  }
+  const cappedPool = Array.from(ceilingByFile.values()).flat()
+    .sort((a, b) => b._score - a._score);
+
+  // ── Step 2: identify priority tokens (capped at 8 entries) ──
+  const priorityTokens = prioritySources
     .map((s) => PRIORITY_LABEL_TO_TOKEN[s])
     .filter(Boolean)
+    .slice(0, 8)
     .map((t) => t.toLowerCase());
-  if (!tokens.length) return sortedChunks.slice(0, totalLimit);
-
-  const matchToken = (fileName: string) => {
+  const isPriorityFile = (fileName: string) => {
     const lower = (fileName || "").toLowerCase();
-    return tokens.find((t) => lower.includes(t)) || null;
+    return priorityTokens.some((t) => lower.includes(t));
   };
 
-  // Reserve top-N per priority token (chunks already sorted by score desc)
-  const reservedIds = new Set<string>();
-  const reserved: any[] = [];
-  const perTokenCount: Record<string, number> = {};
-  for (const chunk of sortedChunks) {
-    const token = matchToken(chunk.file_name || "");
-    if (!token) continue;
-    const count = perTokenCount[token] || 0;
-    if (count >= perFileFloor) continue;
-    reserved.push(chunk);
-    reservedIds.add(chunk.id);
-    perTokenCount[token] = count + 1;
+  const priorityFloor = sourceType === "book" ? 6 : 4;
+  const nonPriorityFloor = 2;
+
+  // ── Step 3: build per-file floor map (over files present in the pool) ──
+  const perFileChunks = new Map<string, any[]>();
+  for (const c of cappedPool) {
+    const arr = perFileChunks.get(c.file_id) || [];
+    arr.push(c);
+    perFileChunks.set(c.file_id, arr);
+  }
+  const fileFloors = new Map<string, number>();
+  for (const [fileId, chunks] of perFileChunks) {
+    const fname = chunks[0].file_name || "";
+    const wantedFloor = isPriorityFile(fname) ? priorityFloor : nonPriorityFloor;
+    // Can't reserve more than we actually have for this file.
+    fileFloors.set(fileId, Math.min(wantedFloor, chunks.length));
   }
 
-  // Cap reserved at totalLimit (defensive)
-  const reservedCapped = reserved.slice(0, totalLimit);
-  const reservedCappedIds = new Set(reservedCapped.map((c) => c.id));
+  // ── Step 4: scale proportionally if total floor > limit ──
+  let totalFloor = Array.from(fileFloors.values()).reduce((a, b) => a + b, 0);
+  if (totalFloor > totalLimit) {
+    const scale = totalLimit / totalFloor;
+    let assigned = 0;
+    for (const [fileId, f] of fileFloors) {
+      const scaled = Math.max(1, Math.floor(f * scale));
+      fileFloors.set(fileId, scaled);
+      assigned += scaled;
+    }
+    // If rounding overshot, trim the largest floors first.
+    while (assigned > totalLimit) {
+      let maxFile: string | null = null;
+      let maxVal = -1;
+      for (const [fid, v] of fileFloors) {
+        if (v > maxVal) { maxVal = v; maxFile = fid; }
+      }
+      if (!maxFile || maxVal <= 1) break;
+      fileFloors.set(maxFile, maxVal - 1);
+      assigned -= 1;
+    }
+    totalFloor = assigned;
+  }
 
-  const remainingSlots = totalLimit - reservedCapped.length;
+  // ── Step 5: reserve top-N per file from cappedPool ──
+  const reserved: any[] = [];
+  const reservedIds = new Set<string>();
+  const perFileTaken: Record<string, number> = {};
+  for (const c of cappedPool) {
+    const target = fileFloors.get(c.file_id) || 0;
+    const taken = perFileTaken[c.file_id] || 0;
+    if (taken >= target) continue;
+    reserved.push(c);
+    reservedIds.add(c.id);
+    perFileTaken[c.file_id] = taken + 1;
+  }
+
+  // ── Step 6: fill remaining slots with highest-scoring unreserved chunks ──
+  const remainingSlots = totalLimit - reserved.length;
   const filler = remainingSlots > 0
-    ? sortedChunks.filter((c) => !reservedCappedIds.has(c.id)).slice(0, remainingSlots)
+    ? cappedPool.filter((c) => !reservedIds.has(c.id)).slice(0, remainingSlots)
     : [];
 
-  // Merge & re-sort by score so the final list keeps rank order
-  const merged = [...reservedCapped, ...filler];
+  const merged = [...reserved, ...filler];
   merged.sort((a, b) => b._score - a._score);
-  return merged;
+  return merged.slice(0, totalLimit);
 };
 
 serve(async (req) => {
