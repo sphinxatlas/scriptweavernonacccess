@@ -346,7 +346,27 @@ serve(async (req) => {
       body.passType === "anti_ai" ? "anti_ai" :
       body.passType === "melty_voice" ? "melty_voice" :
       "script_writing";
-    const scriptText: string = (body.scriptText || "").toString();
+    const rawScriptText: string = (body.scriptText || "").toString();
+    // Anti-AI Cleanup must operate on the script body only. The Melty Voice Pass
+    // appends an internal log (beat counts, beat tables, handoff flags) after a
+    // `---` separator. Strip that trailing log so it never reaches the model or
+    // the final output.
+    const stripTrailingLog = (text: string): string => {
+      const lines = text.split(/\r?\n/);
+      const sepRe = /^\s*-{3,}\s*$/;
+      const logMarkerRe = /(beat\s*count|beat\s*table|handoff|personality\s*beat|internal\s*log|pass\s*documentation|melty\s*voice\s*pass|\|\s*beat\s*#|^\s*\|.*\|\s*$)/i;
+      for (let i = 0; i < lines.length; i++) {
+        if (sepRe.test(lines[i])) {
+          const after = lines.slice(i + 1).join("\n");
+          if (logMarkerRe.test(after)) {
+            return lines.slice(0, i).join("\n").replace(/\s+$/, "");
+          }
+        }
+      }
+      return text;
+    };
+    const scriptText: string =
+      body.passType === "anti_ai" ? stripTrailingLog(rawScriptText) : rawScriptText;
     const scope: PassScope = body.scope === "passage" ? "passage" : "full_script";
     const userFeedback: string = (body.userFeedback || "").toString().trim();
 
