@@ -823,10 +823,14 @@ export async function replaceEvidencePoints(
 export async function setEvidencePointApproval(
   id: string,
   status: "approved" | "rejected" | null,
+  note?: string | null,
 ): Promise<void> {
+  const payload: Record<string, any> = { approval_status: status };
+  // Only persist the note when it's explicitly provided. Pass `null` to clear.
+  if (typeof note !== "undefined") payload.approval_note = note;
   const { error } = await supabase
     .from("evidence_points")
-    .update({ approval_status: status })
+    .update(payload)
     .eq("id", id);
   if (error) throw error;
 }
