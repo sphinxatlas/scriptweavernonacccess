@@ -347,18 +347,21 @@ serve(async (req) => {
       body.passType === "melty_voice" ? "melty_voice" :
       "script_writing";
     const rawScriptText: string = (body.scriptText || "").toString();
-    // Anti-AI Cleanup must operate on the script body only. The Melty Voice Pass
-    // appends an internal log (beat counts, beat tables, handoff flags) after a
-    // `---` separator. Strip that trailing log so it never reaches the model or
-    // the final output.
+    // Anti-AI Cleanup must operate on the script body only. If a pass appends an
+    // internal log after a `---` separator, strip it only when the trailing block
+    // contains an unambiguous log-table header.
     const stripTrailingLog = (text: string): string => {
       const lines = text.split(/\r?\n/);
       const sepRe = /^\s*-{3,}\s*$/;
-      const logMarkerRe = /(beat\s*count|beat\s*table|handoff|personality\s*beat|internal\s*log|pass\s*documentation|melty\s*voice\s*pass|\|\s*beat\s*#|^\s*\|.*\|\s*$)/i;
       for (let i = 0; i < lines.length; i++) {
         if (sepRe.test(lines[i])) {
-          const after = lines.slice(i + 1).join("\n");
-          if (logMarkerRe.test(after)) {
+          const trailingLines = lines.slice(i + 1);
+          const hasUnambiguousLogTable = trailingLines.some((line) => {
+            const normalized = line.trim().toLowerCase().replace(/\s+/g, " ");
+            return normalized.includes("| location | beat type |") || normalized.includes("| beat # |") || normalized.includes("| location | original | revised |");
+          });
+
+          if (hasUnambiguousLogTable) {
             return lines.slice(0, i).join("\n").replace(/\s+$/, "");
           }
         }
