@@ -133,6 +133,20 @@ HARD PRESERVATION RULES
   The original is stronger. Keep it.
 - Do NOT make the script more polished, more neutral, or more essay-like. The goal is LESS AI, not MORE smooth.
 
+SOURCE MATERIAL REFERENCE RULE (BINDING — must be removed if present):
+The voiceover must never reference source material as a document or research artifact. Do not write phrases like:
+
+- 'the transcript tags him with'
+- 'the transcript says / marks / describes / has'
+- 'the script notes / marks / has'
+- 'the stage directions indicate'
+- 'the source material says'
+- 'the text tags this as'
+- 'according to the transcript / script'
+- Any phrasing that reveals the writer is reading from a file or document
+
+Natural references are fine and encouraged: 'in the book,' 'in this scene,' 'in Goblet of Fire,' 'in the film,' 'in the chapter.' The distinction is: describe what happens in the story or on screen, not what a document says about it. The viewer should never feel like they are watching someone present research notes.
+
 ================================================================
 OUTPUT
 ================================================================
