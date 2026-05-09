@@ -6,6 +6,35 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// ─── HYBRID VECTOR SEARCH (test-mode only) ───────────────────────────────
+// Embeds query strings via OpenAI text-embedding-3-small (1536d) for use with
+// the match_chunks(vector, source_type, k) RPC. Returns null entries when the
+// API key is missing or the call fails — callers must fall back gracefully.
+async function embedQueriesBatch(texts: string[]): Promise<(number[] | null)[]> {
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  if (!apiKey || texts.length === 0) {
+    return texts.map(() => null);
+  }
+  try {
+    const resp = await fetch("https://api.openai.com/v1/embeddings", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "text-embedding-3-small", input: texts }),
+    });
+    if (!resp.ok) {
+      console.error("[generate-step] OpenAI embeddings error:", resp.status, await resp.text());
+      return texts.map(() => null);
+    }
+    const data = await resp.json();
+    return (data.data as any[]).map((d) => d.embedding as number[]);
+  } catch (e) {
+    console.error("[generate-step] embedding fetch failed:", e);
+    return texts.map(() => null);
+  }
+}
+
+const RRF_K = 60;
+
 function getModelForStep(stepType: string) {
   if (
     [
@@ -1573,6 +1602,10 @@ serve(async (req) => {
       // Creative Brief receive the same inputs as a real run.
       testInlineFormatReferenceIds,
       testInlineTopicTranscriptIds,
+      // Test-mode-only flag. When true (and we are in test mode), the retrieval
+      // block runs hybrid Reciprocal Rank Fusion over FTS + pgvector match_chunks
+      // instead of FTS only. The real pipeline never reads this flag.
+      testInlineUseVectorSearch,
     } = await req.json();
     if (!stepType) throw new Error("stepType is required");
     if (!testMode && !briefId) throw new Error("briefId is required");
@@ -2140,15 +2173,13 @@ Generate the Creative Brief now.`;
       ...queryPack.allQueries.slice(0, 5).map((query) => ({ query, sourceType: "competitor_analysis" as const, maxResults: 5 })),
     ];
 
-    const retrievalResponses = await Promise.all(
-      retrievalPlan.map((plan) =>
-        supabase.rpc("search_chunks_by_type", {
-          search_query: plan.query,
-          source_type: plan.sourceType,
-          max_results: plan.maxResults,
-        }),
-      ),
-    );
+    // ── Test-mode-only hybrid vector toggle ──
+    // The real pipeline NEVER enables this. When isTestMode === true and the
+    // form toggle is on, we run FTS + pgvector match_chunks per (query, source)
+    // and fuse with Reciprocal Rank Fusion. All downstream scoring (priority
+    // boost, primary-query boost, character boost, floor quota) is unchanged.
+    const useVectorSearch = isTestMode && testInlineUseVectorSearch === true;
+    const hybridArmDiagnostics: any[] = [];
 
     const perQueryCounts: Record<string, { book: number; transcript: number; lexicon: number }> = {};
     const mergedByType: Record<SearchSourceType, Map<string, any>> = {
@@ -2160,36 +2191,169 @@ Generate the Creative Brief now.`;
 
     const targetCharacter = queryPack.targetCharacter;
 
-    retrievalPlan.forEach((plan, idx) => {
-      const rows = retrievalResponses[idx].data || [];
+    if (!useVectorSearch) {
+      // ── Original FTS-only path (UNCHANGED for real pipeline) ──
+      const retrievalResponses = await Promise.all(
+        retrievalPlan.map((plan) =>
+          supabase.rpc("search_chunks_by_type", {
+            search_query: plan.query,
+            source_type: plan.sourceType,
+            max_results: plan.maxResults,
+          }),
+        ),
+      );
 
-      if (!perQueryCounts[plan.query]) {
-        perQueryCounts[plan.query] = { book: 0, transcript: 0, lexicon: 0 };
-      }
-      perQueryCounts[plan.query][plan.sourceType] = rows.length;
+      retrievalPlan.forEach((plan, idx) => {
+        const rows = retrievalResponses[idx].data || [];
 
-      rows.forEach((row: any) => {
-        const priorityBoost = getPriorityBoost(row.file_name || "", prioritySources);
-        const primaryQueryBoost = plan.query === queryPack.primaryQuery ? 0.05 : 0;
-        
-        // Character relevance boost — especially important for transcripts
-        const charRelevance = getCharacterRelevanceScore(row.content || "", targetCharacter);
-        const charBoost = plan.sourceType === "transcript" ? charRelevance.score * 1.5 : charRelevance.score * 0.5;
-        
-        const score = (row.rank ?? 0) + priorityBoost + primaryQueryBoost + charBoost;
-
-        const existing = mergedByType[plan.sourceType].get(row.id);
-        if (!existing || score > existing._score) {
-          mergedByType[plan.sourceType].set(row.id, {
-            ...row,
-            _score: score,
-            _matched_query: plan.query,
-            _char_mentions: charRelevance.mentions,
-            _char_likely_speaker: charRelevance.likelySpeaker,
-          });
+        if (!perQueryCounts[plan.query]) {
+          perQueryCounts[plan.query] = { book: 0, transcript: 0, lexicon: 0 };
         }
+        perQueryCounts[plan.query][plan.sourceType] = rows.length;
+
+        rows.forEach((row: any) => {
+          const priorityBoost = getPriorityBoost(row.file_name || "", prioritySources);
+          const primaryQueryBoost = plan.query === queryPack.primaryQuery ? 0.05 : 0;
+
+          // Character relevance boost — especially important for transcripts
+          const charRelevance = getCharacterRelevanceScore(row.content || "", targetCharacter);
+          const charBoost = plan.sourceType === "transcript" ? charRelevance.score * 1.5 : charRelevance.score * 0.5;
+
+          const score = (row.rank ?? 0) + priorityBoost + primaryQueryBoost + charBoost;
+
+          const existing = mergedByType[plan.sourceType].get(row.id);
+          if (!existing || score > existing._score) {
+            mergedByType[plan.sourceType].set(row.id, {
+              ...row,
+              _score: score,
+              _matched_query: plan.query,
+              _char_mentions: charRelevance.mentions,
+              _char_likely_speaker: charRelevance.likelySpeaker,
+            });
+          }
+        });
       });
-    });
+    } else {
+      // ── Hybrid FTS + Vector with Reciprocal Rank Fusion (TEST MODE ONLY) ──
+      console.log("[generate-step] HYBRID VECTOR SEARCH ENABLED (test mode)");
+
+      // 1. Embed every unique query string ONCE.
+      const uniqueQueries = Array.from(new Set(retrievalPlan.map((p) => p.query)));
+      const embeddings = await embedQueriesBatch(uniqueQueries);
+      const queryToEmbedding = new Map<string, number[] | null>();
+      uniqueQueries.forEach((q, i) => queryToEmbedding.set(q, embeddings[i]));
+      const embeddingFailures = embeddings.filter((e) => e === null).length;
+      if (embeddingFailures === uniqueQueries.length) {
+        console.warn("[generate-step] All embeddings failed — vector arm will be empty, FTS arm still runs.");
+      }
+
+      // 2. For each (query, sourceType) plan item, run FTS + vector in parallel.
+      const armResults = await Promise.all(
+        retrievalPlan.map(async (plan) => {
+          const emb = queryToEmbedding.get(plan.query);
+          const [ftsRes, vecRes] = await Promise.all([
+            supabase.rpc("search_chunks_by_type", {
+              search_query: plan.query,
+              source_type: plan.sourceType,
+              max_results: plan.maxResults,
+            }),
+            emb
+              ? supabase.rpc("match_chunks", {
+                  query_embedding: `[${emb.join(",")}]`,
+                  source_type: plan.sourceType,
+                  k: plan.maxResults,
+                })
+              : Promise.resolve({ data: [] as any[], error: null }),
+          ]);
+          return {
+            plan,
+            ftsRows: (ftsRes.data || []) as any[],
+            vecRows: (vecRes.data || []) as any[],
+          };
+        }),
+      );
+
+      // 3. Per plan item: RRF-fuse FTS + vector, then apply existing boosts.
+      armResults.forEach(({ plan, ftsRows, vecRows }) => {
+        if (!perQueryCounts[plan.query]) {
+          perQueryCounts[plan.query] = { book: 0, transcript: 0, lexicon: 0 };
+        }
+
+        // Build per-chunk RRF state for THIS plan item.
+        const fused = new Map<string, { row: any; rrf: number; ftsRank: number | null; vecRank: number | null }>();
+        ftsRows.forEach((row: any, i: number) => {
+          fused.set(row.id, {
+            row,
+            rrf: 1 / (RRF_K + i + 1),
+            ftsRank: i + 1,
+            vecRank: null,
+          });
+        });
+        vecRows.forEach((row: any, i: number) => {
+          const cur = fused.get(row.id);
+          if (cur) {
+            cur.rrf += 1 / (RRF_K + i + 1);
+            cur.vecRank = i + 1;
+          } else {
+            fused.set(row.id, {
+              // match_chunks returns `similarity` instead of `rank`; normalise so
+              // downstream logging that reads `row.rank` doesn't blow up.
+              row: { ...row, rank: row.similarity ?? 0 },
+              rrf: 1 / (RRF_K + i + 1),
+              ftsRank: null,
+              vecRank: i + 1,
+            });
+          }
+        });
+
+        perQueryCounts[plan.query][plan.sourceType] = fused.size;
+
+        fused.forEach(({ row, rrf, ftsRank, vecRank }) => {
+          const priorityBoost = getPriorityBoost(row.file_name || "", prioritySources);
+          const primaryQueryBoost = plan.query === queryPack.primaryQuery ? 0.05 : 0;
+          const charRelevance = getCharacterRelevanceScore(row.content || "", targetCharacter);
+          const charBoost = plan.sourceType === "transcript" ? charRelevance.score * 1.5 : charRelevance.score * 0.5;
+
+          // Scale RRF by 10 so its magnitude (~0.0–0.33) sits in the same range
+          // as ts_rank-based scores (~0.05–0.5), letting the existing boosts
+          // (+0.15 priority, +0.05 primary) keep their intended weight.
+          const score = rrf * 10 + priorityBoost + primaryQueryBoost + charBoost;
+
+          const existing = mergedByType[plan.sourceType].get(row.id);
+          if (!existing || score > existing._score) {
+            mergedByType[plan.sourceType].set(row.id, {
+              ...row,
+              _score: score,
+              _matched_query: plan.query,
+              _char_mentions: charRelevance.mentions,
+              _char_likely_speaker: charRelevance.likelySpeaker,
+              _fts_rank: ftsRank,
+              _vec_rank: vecRank,
+              _rrf: rrf,
+            });
+          }
+        });
+
+        // Per-arm top-5 for diagnostics SSE comment.
+        hybridArmDiagnostics.push({
+          query: plan.query,
+          source_type: plan.sourceType,
+          fts_top: ftsRows.slice(0, 5).map((r: any, i: number) => ({
+            rank: i + 1,
+            file: r.file_name,
+            score: Number((r.rank ?? 0).toFixed(4)),
+            id: r.id,
+          })),
+          vec_top: vecRows.slice(0, 5).map((r: any, i: number) => ({
+            rank: i + 1,
+            file: r.file_name,
+            similarity: Number((r.similarity ?? 0).toFixed(4)),
+            id: r.id,
+          })),
+          fused_count: fused.size,
+        });
+      });
+    }
 
     // In comparison mode, enforce balanced limits; otherwise use standard limits.
     // Test mode caps every source type at 10 chunks (per spec).
@@ -2866,6 +3030,10 @@ Please generate the ${stepType.replace(/_/g, " ")} based on the above informatio
           ).length,
           total_queries: matchesPerQuery.length,
         },
+        hybrid_vector: useVectorSearch ? {
+          enabled: true,
+          arms: hybridArmDiagnostics,
+        } : { enabled: false },
         guidance: {
           script_instructions: {
             loaded: guidanceLayers.scriptInstructions.chunksRead > 0,

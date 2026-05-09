@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { MultiSelectChips, type MultiSelectOption } from "@/components/MultiSelectChips";
-import { ChevronDown, FlaskConical, Loader2, Clock, GitCompare, Copy, History, Trash2, CheckCircle2 } from "lucide-react";
+import { ChevronDown, FlaskConical, Loader2, Clock, GitCompare, Copy, History, Trash2, CheckCircle2, Sparkles } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -183,6 +183,9 @@ export default function PipelineTest() {
   const [selectedFormatIds, setSelectedFormatIds] = useState<string[]>([]);
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
   const [selectedAltIds, setSelectedAltIds] = useState<string[]>([]);
+  // EXPERIMENTAL: hybrid vector search toggle. Test mode only — never sent on
+  // real pipeline runs.
+  const [useVectorSearch, setUseVectorSearch] = useState<boolean>(false);
   const [confirmed, setConfirmed] = useState(false);
   const [running, setRunning] = useState(false);
   const [startedAt, setStartedAt] = useState<string | null>(null);
@@ -275,6 +278,7 @@ export default function PipelineTest() {
         testInlineAlternativeSourceIds: selectedAltIds,
         testInlineFormatReferenceIds: selectedFormatIds,
         testInlineTopicTranscriptIds: selectedTopicIds,
+        testInlineUseVectorSearch: useVectorSearch,
         onDiagnostics: (d) => { diagnostics = d; },
       },
     );
@@ -520,6 +524,7 @@ export default function PipelineTest() {
             testInlineAlternativeSourceIds: selectedAltIds,
             testInlineFormatReferenceIds: selectedFormatIds,
             testInlineTopicTranscriptIds: selectedTopicIds,
+            testInlineUseVectorSearch: useVectorSearch,
             hookDirection: chosen,
             onDiagnostics: (d) => { fsDiag = d; },
           },
@@ -893,6 +898,23 @@ export default function PipelineTest() {
                   Book vs Movie Comparison Mode
                 </Label>
                 <p className="text-xs text-muted-foreground">Forces paired retrieval and contrast-based analysis</p>
+              </div>
+            </div>
+
+            {/* Hybrid Vector Search — EXPERIMENTAL, test-mode only */}
+            <div className="flex items-center gap-3 pt-2 border-t border-border">
+              <Switch
+                checked={useVectorSearch}
+                onCheckedChange={setUseVectorSearch}
+              />
+              <div>
+                <Label className="text-xs font-medium flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-primary" />
+                  Use Vector Search (Experimental)
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Hybrid FTS + pgvector with RRF fusion. Test mode only — does not affect the real pipeline. Per-query FTS vs vector rankings appear in step diagnostics.
+                </p>
               </div>
             </div>
 

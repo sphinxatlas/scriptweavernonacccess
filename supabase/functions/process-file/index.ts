@@ -9,6 +9,33 @@ const corsHeaders = {
 const CHUNK_SIZE = 1500;
 const CHUNK_OVERLAP = 200;
 
+// OpenAI embeddings — keep optional so file processing still succeeds if the
+// key is missing. The Pipeline Test vector toggle simply won't see embeddings
+// for files processed without a key.
+async function embedTexts(texts: string[]): Promise<(string | null)[]> {
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  if (!apiKey) {
+    console.warn("[process-file] OPENAI_API_KEY missing — skipping embeddings");
+    return texts.map(() => null);
+  }
+  try {
+    const resp = await fetch("https://api.openai.com/v1/embeddings", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "text-embedding-3-small", input: texts }),
+    });
+    if (!resp.ok) {
+      console.error("[process-file] OpenAI embedding error:", resp.status, await resp.text());
+      return texts.map(() => null);
+    }
+    const data = await resp.json();
+    return (data.data as any[]).map((d) => `[${(d.embedding as number[]).join(",")}]`);
+  } catch (e) {
+    console.error("[process-file] embedding fetch failed:", e);
+    return texts.map(() => null);
+  }
+}
+
 function chunkText(text: string): string[] {
   const chunks: string[] = [];
   const paragraphs = text.split(/\n\s*\n/);
@@ -75,10 +102,13 @@ serve(async (req) => {
     // Insert new chunks in batches
     const batchSize = 50;
     for (let i = 0; i < chunks.length; i += batchSize) {
-      const batch = chunks.slice(i, i + batchSize).map((content, idx) => ({
+      const slice = chunks.slice(i, i + batchSize);
+      const embeddings = await embedTexts(slice);
+      const batch = slice.map((content, idx) => ({
         file_id: fileId,
         content,
         chunk_index: i + idx,
+        embedding: embeddings[idx],
       }));
 
       const { error: insertError } = await supabase.from("file_chunks").insert(batch);
