@@ -2285,6 +2285,49 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
           .join("\n\n")
       : "";
 
+    // ── APPROVED EVIDENCE INJECTION (Beat Plan / SEP) ──────────────────────
+    // The Beat Plan (outline) and Script Evidence Pack are built before the
+    // Full Script, so we surface approved high-risk evidence + their author
+    // notes here as well, so the model can honour the user's per-point
+    // guidance ("use carefully", "frame as interpretation only", etc.) while
+    // structuring the script. Skipped in test mode.
+    if (!isTestMode && (stepType === "outline" || stepType === "script_evidence_pack")) {
+      try {
+        const { data: evRows } = await supabase
+          .from("evidence_points")
+          .select("*")
+          .eq("brief_id", briefId)
+          .order("created_at", { ascending: true });
+        const approved = (evRows || []).filter(
+          (r: any) => r.approval_status !== "rejected",
+        );
+        if (approved.length > 0) {
+          const lines: string[] = [
+            "### APPROVED EVIDENCE POINTS (BINDING WHITELIST — only these claims may be used; any AUTHOR NOTE attached to a point must be honoured when planning beats / building the SEP)",
+          ];
+          approved.forEach((r: any, i: number) => {
+            const block: string[] = [`#${i + 1} Claim: ${r.claim}`];
+            if (r.source_file) block.push(`Source File: ${r.source_file}`);
+            block.push(`Source Type: ${r.source_type}`);
+            block.push(`Confidence: ${r.confidence} | Evidence Type: ${r.evidence_type}`);
+            if (r.book_evidence) block.push(`Book Evidence: ${r.book_evidence}`);
+            if (r.movie_evidence) block.push(`Movie Evidence: ${r.movie_evidence}`);
+            if (r.difference_note) block.push(`Contrast: ${r.difference_note}`);
+            if (r.exact_quote) block.push(`Micro-Quote: ${r.exact_quote}`);
+            if (r.paraphrase) block.push(`Paraphrase: ${r.paraphrase}`);
+            if (r.lexicon_support) block.push(`Lexicon Support: ${r.lexicon_support}`);
+            if (r.approval_note) block.push(`AUTHOR NOTE (binding): ${r.approval_note}`);
+            lines.push(block.join("\n"));
+          });
+          previousContext = previousContext
+            ? `${previousContext}\n\n${lines.join("\n\n")}`
+            : lines.join("\n\n");
+        }
+      } catch (err) {
+        console.warn("Failed to load approved evidence_points for", stepType, err);
+      }
+    }
+
     // ── FULL SCRIPT TRANSFORMATION BOUNDARY ────────────────────────────────
     // The Full Script reads ONLY the Creative Brief (argument framing) and
     // the Script Evidence Pack (canon, beat-mapped). It must NOT see the
@@ -2336,6 +2379,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
             if (r.exact_quote) block.push(`Micro-Quote: ${r.exact_quote}`);
             if (r.paraphrase) block.push(`Paraphrase: ${r.paraphrase}`);
             if (r.lexicon_support) block.push(`Lexicon Support: ${r.lexicon_support}`);
+            if (r.approval_note) block.push(`AUTHOR NOTE (binding — honour this guidance when using this point): ${r.approval_note}`);
             lines.push(block.join("\n"));
           });
           parts.push(lines.join("\n\n"));
