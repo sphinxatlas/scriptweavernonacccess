@@ -241,6 +241,7 @@ export type Database = {
       }
       evidence_points: {
         Row: {
+          approval_note: string | null
           approval_status: string | null
           book_evidence: string | null
           brief_id: string
@@ -259,6 +260,7 @@ export type Database = {
           starred: boolean
         }
         Insert: {
+          approval_note?: string | null
           approval_status?: string | null
           book_evidence?: string | null
           brief_id: string
@@ -277,6 +279,7 @@ export type Database = {
           starred?: boolean
         }
         Update: {
+          approval_note?: string | null
           approval_status?: string | null
           book_evidence?: string | null
           brief_id?: string

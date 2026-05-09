@@ -1,0 +1,1 @@
+ALTER TABLE public.evidence_points ADD COLUMN IF NOT EXISTS approval_note text;
