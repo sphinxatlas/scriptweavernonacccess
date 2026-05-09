@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   ChevronDown,
   ChevronRight,
@@ -26,7 +27,11 @@ type RiskFilter = "all" | "high" | "low";
 interface Props {
   rows: EvidencePoint[];
   libraryFileNames: string[];
-  onSetApproval: (id: string, status: "approved" | "rejected") => void;
+  onSetApproval: (
+    id: string,
+    status: "approved" | "rejected",
+    note?: string | null,
+  ) => void;
 }
 
 const FIELDS: { key: keyof EvidencePointDraft | "why_this_matters"; label: string }[] = [
@@ -52,6 +57,10 @@ export function EvidenceTableView({ rows, libraryFileNames, onSetApproval }: Pro
   const [confFilter, setConfFilter] = useState<ConfidenceFilter>("all");
   const [riskFilter, setRiskFilter] = useState<RiskFilter>("all");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  // Local draft notes per row, keyed by evidence id. Falls back to the saved
+  // approval_note when the user hasn't started editing.
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+  const [savingNote, setSavingNote] = useState<Record<string, boolean>>({});
 
   const enriched = useMemo(() => {
     return rows.map((r) => {
@@ -243,7 +252,13 @@ export function EvidenceTableView({ rows, libraryFileNames, onSetApproval }: Pro
                       <Button
                         size="sm"
                         variant={status === "approved" ? "default" : "outline"}
-                        onClick={() => onSetApproval(r.id, "approved")}
+                        onClick={() =>
+                          onSetApproval(
+                            r.id,
+                            "approved",
+                            (noteDrafts[r.id] ?? (r as any).approval_note ?? "") || null,
+                          )
+                        }
                         className="h-7 text-xs gap-1"
                       >
                         <ThumbsUp className="w-3 h-3" />
