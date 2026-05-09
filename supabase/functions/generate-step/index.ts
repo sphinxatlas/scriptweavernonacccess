@@ -1107,6 +1107,15 @@ STEP_PROMPTS["creative_brief"] = `You are a creative director for a Harry Potter
 
 Your job: take the video title, angle note, format reference transcript(s), and any brief-specific HP topic transcripts provided, and generate a structured Creative Brief that will guide every subsequent step of the script pipeline.
 
+PRESERVATION RULE
+The Creator's Raw Angle is the source of truth for intent, framing, and
+specific phrasings. Preserve the creator's wording wherever a field can
+hold it. Do not re-encode their framings into your own language. Do not
+replace their specific examples, scenes, or contradictions with
+generalized versions. The brief's job is to organize their thinking,
+not rewrite it. When a field could be filled either by quoting the
+creator or by paraphrasing, quote.
+
 WRITING CONSTITUTION FOR CREATIVE BRIEF
 
 The Script Writing Instructions loaded under SCRIPT_WRAPPER govern the structure of this step. They control hook strength, title promise, viewer click logic, opening pressure, central contention, emotional tension, argument route, escalation logic, repetition control, rehooks, and what the script must avoid repeating.
@@ -1122,6 +1131,13 @@ The Creative Brief must not phrase the Core Thesis, Hook Shape, Video Engine, Es
 
 The inline format below is a summary. If anything inline conflicts with the Script Writing Instructions, the Script Writing Instructions win.
 
+LENGTH DISCIPLINE
+Target length: 350–500 words total. Briefs over 500 words are
+over-specifying — trim. Every field should be the shortest version that
+still carries usable signal to downstream steps. If a field would
+require inventing content not present in the Creator's Raw Angle or
+topic transcripts to fill, leave it minimal rather than padding.
+
 ${VIDEO_RETENTION_STRUCTURE_INSTRUCTION}
 
 FORMAT REFERENCE RULES:
@@ -1129,6 +1145,14 @@ FORMAT REFERENCE RULES:
 - Extract: hook shape, argument structure, emotional arc, stacking technique, fairness move, closing reframe
 - NEVER use format references for HP content, facts, or information of any kind
 - Format references are from completely different topics — structural templates only
+
+FORMAT REFERENCE SCOPE LIMIT
+The format reference informs pacing, hook rhythm, and tonal cadence
+only. It does NOT dictate argument structure, stacking technique,
+emotional arc, or escalation shape — those are determined by the HP
+angle and (downstream) by the evidence retrieved in SEP. Do not import
+structural decisions from the format reference that the Creator's Raw
+Angle has not asked for.
 
 HP TOPIC TRANSCRIPT RULES:
 - These are HP videos covering similar topics to this video
@@ -1156,13 +1180,13 @@ Generate the Creative Brief in this EXACT format:
 [One of: Comparison / Movie-Focus / Book-Focus / Character Study / Plot Hole Dive / Grievance Analysis]
 
 ### Emotional Arc
-[The emotional journey the viewer goes on. Extracted from format reference structure.]
+[The emotional journey the viewer goes on. Drawn from the HP angle, not the format reference.]
 
 ### Argument Structure
-[Beat-by-beat structure extracted from the format reference. Label each beat clearly.]
+[High-level shape only — 2–4 sentences describing how the argument moves. Do not pre-write beats; Beat Plan owns that. Drawn from the HP angle, not the format reference.]
 
 ### Hook Shape
-[Exact hook structure to use, derived from format reference.]
+[The concrete moment, contradiction, or scene the hook should land on. Drawn from the HP angle. Format reference informs rhythm only, not subject.]
 
 ### Tone Temperature
 [How the host should feel in this video. Calibrated to the host persona.]
@@ -2409,7 +2433,7 @@ serve(async (req) => {
       const userMessage = `## Video Title
 ${brief.title}
 
-## Creator Angle Note
+## Creator's Raw Angle (preserve framings and wording where fields allow)
 ${brief.angle_note || brief.description || "(No angle note provided)"}
 
 ## Format Reference Transcripts (non-HP — structure and positioning only)
