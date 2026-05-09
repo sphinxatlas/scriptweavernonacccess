@@ -63,6 +63,7 @@ export default function PipelineView() {
   const [antiAiRunning, setAntiAiRunning] = useState(false);
   const [antiAiStream, setAntiAiStream] = useState("");
   const [confirmAntiAiOpen, setConfirmAntiAiOpen] = useState(false);
+  const [antiAiCompletedAt, setAntiAiCompletedAt] = useState<Date | null>(null);
   const [meltyRunning, setMeltyRunning] = useState(false);
   const [meltyStream, setMeltyStream] = useState("");
   const [passageInput, setPassageInput] = useState("");
@@ -341,6 +342,7 @@ export default function PipelineView() {
           await refetchOutputs();
           setAntiAiRunning(false);
           setAntiAiStream("");
+          setAntiAiCompletedAt(new Date());
           toast.success("Full Script Anti AI cleanup saved.");
         },
       );
@@ -865,6 +867,16 @@ export default function PipelineView() {
                             <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                             Streaming Anti AI cleanup... will save when complete.
                           </div>
+                        </div>
+                      )}
+                      {!antiAiRunning && antiAiCompletedAt && (
+                        <div className="flex items-center gap-2 rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2 text-xs text-green-600 dark:text-green-400">
+                          <CheckCircle2 className="w-4 h-4 shrink-0" />
+                          <span className="font-medium">Anti-AI Polish Complete</span>
+                          <span className="text-green-600/70 dark:text-green-400/70">
+                            — Full Script overwritten at{" "}
+                            {antiAiCompletedAt.toLocaleTimeString()}
+                          </span>
                         </div>
                       )}
                     </div>
