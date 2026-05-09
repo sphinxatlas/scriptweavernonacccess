@@ -1443,6 +1443,11 @@ serve(async (req) => {
       // supplied, the function fetches these from alternative_sources by id
       // and injects them into SSA exactly as the real pipeline does.
       testInlineAlternativeSourceIds,
+      // Optional inline format reference + HP topic transcript IDs (test
+      // mode only). Wired through identically to the real pipeline so SSA /
+      // Creative Brief receive the same inputs as a real run.
+      testInlineFormatReferenceIds,
+      testInlineTopicTranscriptIds,
     } = await req.json();
     if (!stepType) throw new Error("stepType is required");
     if (!testMode && !briefId) throw new Error("briefId is required");
@@ -1764,6 +1769,24 @@ serve(async (req) => {
       alternativeSources = (altRows || []).filter(Boolean);
     }
 
+    // Test-mode passthrough for format reference + HP topic transcript IDs.
+    // The real pipeline reads these from brief_*_links; in test mode the
+    // orchestrator supplies the IDs directly so the same data flows through.
+    if (isTestMode && Array.isArray(testInlineFormatReferenceIds) && testInlineFormatReferenceIds.length > 0) {
+      const { data: rows } = await supabase
+        .from("format_reference_transcripts")
+        .select("channel_name, video_title, transcript")
+        .in("id", testInlineFormatReferenceIds);
+      formatRefs = (rows || []).filter(Boolean);
+    }
+    if (isTestMode && Array.isArray(testInlineTopicTranscriptIds) && testInlineTopicTranscriptIds.length > 0) {
+      const { data: rows } = await supabase
+        .from("brief_topic_transcripts")
+        .select("channel_name, video_title, transcript")
+        .in("id", testInlineTopicTranscriptIds);
+      topicTranscripts = (rows || []).filter(Boolean);
+    }
+
     // ─────────────────────────────────────────────────────────────────────
     // SECONDARY SOURCE TOKEN BUDGETS
     //
@@ -2069,7 +2092,7 @@ Generate the Creative Brief now.`;
     // Commentary Transcripts — for idea discovery only, limited
     const commentaryChunks = Array.from(mergedByType.competitor_analysis.values())
       .sort((a, b) => b._score - a._score)
-      .slice(0, isTestMode ? 10 : 8);
+      .slice(0, 8);
 
     // Get total indexed chunk counts for debug
     const [bookChunkCount, transcriptChunkCount, lexiconChunkCount] = await Promise.all([

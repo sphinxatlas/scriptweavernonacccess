@@ -272,6 +272,8 @@ export default function PipelineTest() {
         testInlineBrief: inlineBrief(),
         testInlineOutputs: outputs as Record<string, string>,
         testInlineAlternativeSourceIds: selectedAltIds,
+        testInlineFormatReferenceIds: selectedFormatIds,
+        testInlineTopicTranscriptIds: selectedTopicIds,
         onDiagnostics: (d) => { diagnostics = d; },
       },
     );
@@ -303,6 +305,10 @@ export default function PipelineTest() {
     }
     if (!form.angle_note.trim()) {
       toast.error("Angle note is required");
+      return;
+    }
+    if (selectedFormatIds.length === 0) {
+      toast.error("Select at least one Format Reference Video — required for the Creative Brief.");
       return;
     }
     // Clean up any prior synthetic test rows before starting a fresh run.
@@ -498,6 +504,9 @@ export default function PipelineTest() {
             testMode: true,
             testInlineBrief: inlineBrief(),
             testInlineOutputs: outputs as Record<string, string>,
+            testInlineAlternativeSourceIds: selectedAltIds,
+            testInlineFormatReferenceIds: selectedFormatIds,
+            testInlineTopicTranscriptIds: selectedTopicIds,
             hookDirection: chosen,
             onDiagnostics: (d) => { fsDiag = d; },
           },
