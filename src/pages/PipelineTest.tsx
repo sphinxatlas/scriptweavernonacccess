@@ -944,7 +944,10 @@ export default function PipelineTest() {
                 </Label>
               </div>
               <div className="flex justify-end">
-                <Button onClick={handleRun} disabled={running || !confirmed}>
+                <Button
+                  onClick={handleRun}
+                  disabled={running || continuing || phase === "awaiting_approval" || phase === "phase2" || !confirmed}
+                >
                   {running ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Running…</> : "Run Pipeline Test"}
                 </Button>
               </div>
