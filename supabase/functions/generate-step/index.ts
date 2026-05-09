@@ -247,6 +247,37 @@ Example — death scene:
 - VALID: "Voldemort's body dissolves into ash" as paraphrase in Movie Evidence, supported by Lexicon entry on the final duel. Micro-Quote field empty. Evidence Type: paraphrase.
 - INVALID: "slowly crumbles into ash" in the Micro-Quote field tagged to the DH2 transcript file, when that exact string is not in the retrieved DH2 chunks.
 
+SECONDARY SOURCE ESCALATION RULE (CRITICAL):
+When an evidence point is assigned Confidence: Medium or Low because primary canon retrieval does not fully support the claim, do NOT leave the secondary fields empty. Run the following escalation before finalising the evidence point:
+1. Check topic transcripts (commentary creators, fan analysis) for any reference to the same scene, moment, or claim.
+2. Check the Lexicon for a canonical entry covering the same claim.
+3. Check secondary source blocks in the retrieved material for corroborating references.
+
+If secondary sources contain supporting evidence, populate the **Secondary Source Support** field for that evidence point with the source name(s) + what they confirm, in plain prose. Example: "MediaRetrospective confirms Voldemort prowls and rips Death Eater masks in the GOF graveyard film scene. Bretts Thoughts corroborates. Neither provides transcript timecode."
+
+Then update the Commentary Angle field to state explicitly:
+- What the secondary sources confirm
+- What still requires primary canon verification before the claim can be scripted as fact
+- Whether the secondary evidence is strong enough to use the claim as a qualified assertion ("according to commentary" / "widely noted by fans" / "per the Lexicon") rather than dropping it
+
+If no secondary source supports the claim either, write in Secondary Source Support: "No secondary source corroboration found. Recommend dropping or heavily qualifying this claim in the Beat Plan."
+
+WHAT SECONDARY SOURCES CAN AND CANNOT DO:
+Secondary sources CAN:
+- Confirm that a scene, moment, or visual beat exists in canon
+- Provide audience-level description of what happens on screen
+- Validate that a claim is widely accepted in fandom
+- Supply a qualified assertion ("the scene is widely described as…")
+- Unlock a Medium-confidence claim for scripting as a fan-verified observation rather than a primary-quoted fact
+
+Secondary sources CANNOT:
+- Supply a Micro-Quote attributed to a primary Source File
+- Upgrade a claim to High confidence
+- Replace primary retrieval for claims that will be quoted verbatim
+- Confirm exact wording, blocking details, or timecodes
+
+The **Confidence** field reflects PRIMARY source status only and does not change based on secondary corroboration. The **Secondary Source Support** field is additive — it tells the user what they have to work with beyond the primary retrieval gap.
+
 Create the evidence table in this EXACT markdown format for each evidence point:
 
 ### Evidence Point [number]
@@ -259,6 +290,7 @@ Create the evidence table in this EXACT markdown format for each evidence point:
 | **Movie Evidence** | [Paraphrased evidence from movie transcript, if any — leave blank if none] |
 | **Contrast** | [What differs between book and movie, if both present] |
 | **Lexicon Support** | [Only if genuinely useful — mark as SECONDARY] |
+| **Secondary Source Support** | [REQUIRED when Confidence is Medium or Low — name the secondary source(s) + what they confirm in plain prose. If none corroborates, write: "No secondary source corroboration found. Recommend dropping or heavily qualifying this claim in the Beat Plan." Leave blank only when Confidence is High.] |
 | **Micro-Quote** | [Optional: verbatim quote UNDER 12 words, in quotation marks — leave blank if not essential] |
 | **Paraphrase** | [Paraphrased version of the evidence — REQUIRED for every point] |
 | **Why This Matters** | [Why this is a strong argument point for the video] |
