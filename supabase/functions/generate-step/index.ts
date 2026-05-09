@@ -542,6 +542,10 @@ If a banned construction appears in the draft, the output is invalid. Rewrite us
 EVIDENCE PACK GROUNDING (HIGHEST-PRIORITY BINDING — READ FIRST):
 You must use only the evidence points provided in the approved evidence pack below. Do not introduce examples, references, named works, spin-offs, films, or claims from outside this set regardless of your training knowledge. If the argument requires a point that has no supporting evidence in the pack, insert [NEEDS EVIDENCE: one-line description of what is missing] as a placeholder and continue. Do not invent support. Do not silently include unsourced material.
 
+EVIDENCE TRACKING DURING WRITING
+
+As you write each beat, internally track which primary evidence anchors you have already spent. An anchor is a specific scene, specific quote, or specific moment. Once spent, an anchor is closed for the rest of the script. If you find yourself reaching for a closed anchor in a later beat, the beat is structurally weak — restructure it to use a different anchor or to argue from contrast alone (book-only or film-only) without re-citing the spent moment.
+
 Given the topic brief, evidence, analysis, and outline, write a FULL SCRIPT.
 
 WRITING CONSTITUTION
@@ -705,6 +709,46 @@ This audit is mandatory. Do not mention the audit in the output. Only return the
 
 If any contrast flip or three-part symmetry stack remains, the output is invalid.
 
+FINAL STRUCTURAL SELF-AUDIT BEFORE OUTPUT
+
+Run this audit AFTER the anti-AI audit and BEFORE returning the script.
+
+1. EVIDENCE REPETITION SCAN
+
+Identify every primary evidence reference in the spoken script (specific scenes, specific quotes, specific moments). If any single anchor appears in more than one beat, the output is invalid. Rewrite the duplicate beat using different evidence or fold it into the original beat.
+
+2. ESCALATION SCAN
+
+Read the closing sentence of each major section. Does each section end with the viewer feeling "it's worse than I thought" — or does it end with the same thesis restated? If two consecutive sections land on the same emotional note, the second one fails escalation. Tighten or restructure.
+
+3. HOOK PAYOFF SCAN
+
+Compare the opening 3 sentences against the final 3 paragraphs. If the opening contains the climactic reveal, the script has front-loaded its payoff. Rewrite the opening to pose the question the ending answers.
+
+4. REHOOK SCAN
+
+Search for these banned rehook patterns and rewrite any matches:
+
+- "And the books are ruthless about showing you"
+
+- "And once you notice that"
+
+- "And now we can finally talk about"
+
+- "This brings us to"
+
+- "Now let's look at"
+
+- "Which brings us to"
+
+- Any sentence that names the next topic, section, or example
+
+- Any transition that describes what the script is about to do
+
+Replacement standard: the rehook must create a question, reveal a consequence, or make the prior section feel incomplete. It must not narrate structure.
+
+If any structural scan fails, the output is invalid. Rewrite before returning. Do not mention the audit in the output.
+
 ${SOURCE_HIERARCHY_INSTRUCTION}
 
 ${TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION}
@@ -712,13 +756,6 @@ ${TOPIC_TRANSCRIPTS_FRAMING_INSTRUCTION}
 ${COMMENTARY_TRANSCRIPTS_FRAMING_INSTRUCTION}
 
 ${VIDEO_RETENTION_STRUCTURE_INSTRUCTION}
-
-HOOK VALIDATION RULE (MANDATORY — run before writing the body):
-- Before writing the full script, compare the opening 2–3 sentences against the brief's Title, Title Promise, Viewer Click Question, and central contention from the outline.
-- If the opening does not create immediate pressure, curiosity, tension, or a recognizable reason to keep watching, REWRITE the hook before continuing.
-- The hook must NOT begin as polite setup, biography, neutral context, or summary.
-- It must immediately make the viewer feel: "This is the video I clicked for, and there is a real tension here."
-- Specific opening tension is required — name a concrete moment, contradiction, scene, or question. Vague atmospheric openings fail this check.
 
 BANNED CONTRAST STRUCTURES (HARD RULE — applies at generation time, not just polish):
 Any sentence remotely similar to the "not X, but Y" setup must be written in a different shape. Remove or rewrite patterns like:
@@ -757,8 +794,53 @@ BEAT PLAN FIDELITY
 
 The Full Script must follow the beat order and argument moves established in the Beat Plan. Each beat in the Beat Plan corresponds to one movement in the script.
 
+STRUCTURAL PRE-WRITE PROTOCOL (MANDATORY — complete before writing the first sentence)
+
+Before writing any prose, complete this internal checklist silently. Do not output it.
+
+1. EVIDENCE LEDGER
+
+List every primary evidence anchor in the SEP (specific film scene, specific book moment, specific direct quote). Assign each anchor to exactly one beat. No anchor may appear in more than one beat. If two beats currently share an anchor, reassign one beat to a different anchor or restructure that beat to use book-only or film-only evidence.
+
+2. ESCALATION CHAIN
+
+For each beat 2 through N, write one sentence answering: "What does this beat reveal that makes the previous beat feel like the surface version?" If the answer is "another example of the same point," the beat fails escalation. Restructure before writing.
+
+Acceptable escalation moves:
+
+- Surface behavior to underlying mechanism
+
+- Isolated choice to systemic pattern
+
+- What the films do to what the films cost
+
+- Symptom to cause
+
+- Cause to consequence the viewer didn't see coming
+
+Unacceptable: another scene that proves the thesis already proven.
+
+3. HOOK TENSION CHECK
+
+The hook must pose the question the script answers. It must NOT contain the answer.
+
+Fail test: if the opening 3 sentences include the central reveal, the climactic contrast, or the final-third payoff, the hook is spending the ending. Rewrite to open on the question, the contradiction, or the moment that makes the question urgent — not on the resolution.
+
+4. REHOOK MAP
+
+For each section transition, draft the rehook function before writing it:
+
+- What loop does this rehook open?
+
+- What does it make the previous section feel incomplete about?
+
+A rehook is invalid if it announces the next topic, names what is coming, or describes structure. A rehook is valid if it creates a question, raises a stake, or reveals a consequence the prior section didn't account for.
+
+If any of the four checks fails, restructure before writing prose. Do not write the script and hope to fix it in revision.
+
 STRUCTURAL ENFORCEMENT (binding — applies in addition to BEAT PLAN FIDELITY)
 
+- HOOK VALIDATION RULE (MANDATORY — run before writing the body): Before writing the full script, compare the opening 2–3 sentences against the brief's Title, Title Promise, Viewer Click Question, and central contention from the outline. If the opening does not create immediate pressure, curiosity, tension, or a recognizable reason to keep watching, REWRITE the hook before continuing. The hook must NOT begin as polite setup, biography, neutral context, or summary. It must immediately make the viewer feel: "This is the video I clicked for, and there is a real tension here." Specific opening tension is required — name a concrete moment, contradiction, scene, or question. Vague atmospheric openings fail this check.
 - The opening must confirm the title promise quickly. The viewer should recognize within the first few sentences that this is the video they clicked for.
 - The opening must start with pressure — a concrete moment, contradiction, scene, or tension. Not broad context, not biography, not polite setup.
 - The hook must create an open loop: surface the central question or tension without giving away the full answer. The payoff is not spent in the hook.
