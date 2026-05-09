@@ -1023,7 +1023,7 @@ The Full Script does not copy the Beat Plan's wording. The Beat Plan is neutral 
 If the Beat Plan has 10 beats, the Full Script has 10 corresponding movements. Beat order is fixed unless the user requests a structural revision.
 
 Additional fidelity rules:
-- Preserve the Creative Brief's Video Engine: Viewer Click Question, Title Promise, Expected Answer, Surprising Actual Answer, Emotional Arc, Escalation Ladder, and Final Payoff must all be honored in the spoken script.
+- Honor the Creative Brief's Video Engine where the SEP supports it: Viewer Click Question and Title Promise are binding (the script must answer the question and deliver the title's promise). Hypothesized Surprising Answer, Hypothesized Final Payoff, and Escalation Logic are provisional — if SEP evidence and Beat Plan structure point elsewhere, follow the evidence. The brief sets intent; SEP and Beat Plan set truth.
 - Include casual viewer context for any HP concept the argument depends on, EARLY — before the first beat that relies on it.
 - Build toward ONE clear climax in the final third of the script. The conclusion must feel like a payoff and a verdict, not a summary.
 - Avoid circular argumentation. If two beats are saying the same thing, the second one must escalate or be cut.
@@ -1170,8 +1170,8 @@ Generate the Creative Brief in this EXACT format:
 
 ## Creative Brief: [Video Title]
 
-### Core Thesis
-[One sharp sentence stating the video's central argument. A claim, not a question.]
+### Working Thesis
+[One sentence stating the angle's central claim as currently understood. This is provisional — Beat Plan and SEP may revise or overturn it once evidence is retrieved. Write the sharpest version of what the Creator's Raw Angle is arguing, not a hedge.]
 
 ### Proof Goal
 [What must be demonstrated by the end for the thesis to land. 1-2 sentences.]
@@ -1211,10 +1211,10 @@ This section operationalizes the retention and escalation layer. Fill every fiel
 - **Viewer Click Question:** [The exact question, curiosity, or emotional promise the title triggers in a viewer's mind.]
 - **Title Promise:** [What the title implicitly promises to deliver by the end of the video.]
 - **Expected Answer:** [What a casual viewer probably expects the answer to be when they click.]
-- **Surprising Actual Answer:** [The non-obvious, more interesting answer this video will deliver. This is the engine of the payoff.]
+- **Hypothesized Surprising Answer:** [Best guess from the angle alone, before any canon retrieval. Treat as falsifiable — SEP evidence may overturn it. If overturned, downstream steps follow SEP, not this field.]
 - **Emotional Arc:** [Ordered progression of feeling, e.g. curiosity → suspicion → tension → realization → payoff. 4–6 stages.]
-- **Escalation Ladder:** [Beat-by-beat ladder showing how each section escalates beyond the previous one. Hook → Context → Section 1 surface problem → Section 2 deeper problem → Section 3 counterargument test → Final climax. Each rung must add a NEW layer.]
-- **Final Payoff:** [The verdict, twist, or unexpected conclusion the final third of the script will deliver. This must directly answer the Viewer Click Question.]
+- **Escalation Logic:** [In 2–3 sentences, describe how tension should build across the video for THIS specific angle — what gets harder, deeper, or more uncomfortable as the script moves. Do not impose a fixed rung count or pre-write section structure. Beat Plan owns actual section breakdown and will determine it from evidence.]
+- **Hypothesized Final Payoff:** [Best guess at the verdict, twist, or conclusion the final third may land on. Provisional — revisable after SEP. If SEP evidence points elsewhere, downstream steps follow the evidence.]
 `;
 
 STEP_PROMPTS["six_category_extraction"] = `You are a research analyst for a Harry Potter YouTube channel.
