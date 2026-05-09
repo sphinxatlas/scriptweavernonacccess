@@ -294,6 +294,70 @@ export function EvidenceTableView({ rows, libraryFileNames, onSetApproval }: Pro
                 </div>
               )}
 
+              {e.risk === "high" && status === "approved" && (() => {
+                const savedNote = ((r as any).approval_note as string | null) ?? "";
+                const draft = noteDrafts[r.id] ?? savedNote;
+                const dirty = draft !== savedNote;
+                const saving = !!savingNote[r.id];
+                return (
+                  <div className="px-3 pb-3 -mt-1 space-y-1.5">
+                    <label className="text-[11px] font-medium text-muted-foreground">
+                      Approval note (optional) — passed to Beat Plan, SEP, and Full Script
+                    </label>
+                    <Textarea
+                      value={draft}
+                      onChange={(ev) =>
+                        setNoteDrafts((prev) => ({ ...prev, [r.id]: ev.target.value }))
+                      }
+                      rows={2}
+                      placeholder='e.g. "use carefully," "frame as interpretation only," "only if book evidence supports it"'
+                      className="text-xs bg-background border-border resize-none"
+                    />
+                    <div className="flex justify-end gap-2">
+                      {dirty && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 text-[11px] px-2"
+                          onClick={() =>
+                            setNoteDrafts((prev) => {
+                              const next = { ...prev };
+                              delete next[r.id];
+                              return next;
+                            })
+                          }
+                          disabled={saving}
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 text-[11px] px-2"
+                        disabled={saving || !dirty}
+                        onClick={async () => {
+                          setSavingNote((p) => ({ ...p, [r.id]: true }));
+                          try {
+                            await onSetApproval(r.id, "approved", draft.trim() || null);
+                            setNoteDrafts((prev) => {
+                              const next = { ...prev };
+                              delete next[r.id];
+                              return next;
+                            });
+                            toast.success("Approval note saved");
+                          } finally {
+                            setSavingNote((p) => ({ ...p, [r.id]: false }));
+                          }
+                        }}
+                      >
+                        {saving ? "Saving..." : "Save note"}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="border-t border-border">
                 <table className="w-full text-xs">
                   <tbody>
