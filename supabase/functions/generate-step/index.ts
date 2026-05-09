@@ -2173,12 +2173,13 @@ Generate the Creative Brief now.`;
       ...queryPack.allQueries.slice(0, 5).map((query) => ({ query, sourceType: "competitor_analysis" as const, maxResults: 5 })),
     ];
 
-    // ── Test-mode-only hybrid vector toggle ──
-    // The real pipeline NEVER enables this. When isTestMode === true and the
-    // form toggle is on, we run FTS + pgvector match_chunks per (query, source)
-    // and fuse with Reciprocal Rank Fusion. All downstream scoring (priority
-    // boost, primary-query boost, character boost, floor quota) is unchanged.
-    const useVectorSearch = isTestMode && testInlineUseVectorSearch === true;
+    // ── Hybrid vector search (always on) ──
+    // Runs FTS + pgvector match_chunks per (query, source) and fuses with
+    // Reciprocal Rank Fusion. All downstream scoring (priority boost,
+    // primary-query boost, character boost, floor quota) is unchanged.
+    // The legacy testInlineUseVectorSearch flag is retained for back-compat
+    // but no longer gates execution.
+    const useVectorSearch = true;
     const hybridArmDiagnostics: any[] = [];
 
     const perQueryCounts: Record<string, { book: number; transcript: number; lexicon: number }> = {};
