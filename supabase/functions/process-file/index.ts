@@ -8,6 +8,9 @@ const corsHeaders = {
 
 const CHUNK_SIZE = 1500;
 const CHUNK_OVERLAP = 200;
+// Hard ceiling per chunk. Even an unparagraphed wall of text must be split
+// to stay below this length (prevents the 34k-char HPB6 anomaly recurring).
+const MAX_CHUNK_CHARS = 2000;
 // text-embedding-3-small caps inputs at 8192 tokens (~32k chars). Chunks are
 // normally ~1500 chars so this rarely triggers, but we truncate defensively
 // to prevent a single oversized chunk from failing an entire upload batch.
@@ -48,7 +51,40 @@ function chunkText(text: string): string[] {
   const paragraphs = text.split(/\n\s*\n/);
   let currentChunk = "";
 
+  // Pre-split any oversized paragraphs on sentence/word boundaries so a
+  // single mega-paragraph can never produce a chunk above MAX_CHUNK_CHARS.
+  const splitOversized = (para: string): string[] => {
+    if (para.length <= MAX_CHUNK_CHARS) return [para];
+    const out: string[] = [];
+    // Try sentence boundaries first.
+    const sentences = para.split(/(?<=[.!?])\s+/);
+    let buf = "";
+    for (const s of sentences) {
+      if (s.length > MAX_CHUNK_CHARS) {
+        // Sentence itself too long — hard slice on word boundaries.
+        if (buf) { out.push(buf); buf = ""; }
+        for (let i = 0; i < s.length; i += MAX_CHUNK_CHARS) {
+          out.push(s.slice(i, i + MAX_CHUNK_CHARS));
+        }
+        continue;
+      }
+      if (buf.length + s.length + 1 > MAX_CHUNK_CHARS) {
+        out.push(buf);
+        buf = s;
+      } else {
+        buf = buf ? buf + " " + s : s;
+      }
+    }
+    if (buf) out.push(buf);
+    return out;
+  };
+
+  const expandedParas: string[] = [];
   for (const para of paragraphs) {
+    expandedParas.push(...splitOversized(para));
+  }
+
+  for (const para of expandedParas) {
     const trimmed = para.trim();
     if (!trimmed) continue;
 
@@ -67,7 +103,15 @@ function chunkText(text: string): string[] {
     chunks.push(currentChunk.trim());
   }
 
-  return chunks;
+  // Final defensive pass: hard-slice any chunk that still exceeds the ceiling.
+  const final: string[] = [];
+  for (const c of chunks) {
+    if (c.length <= MAX_CHUNK_CHARS) { final.push(c); continue; }
+    for (let i = 0; i < c.length; i += MAX_CHUNK_CHARS) {
+      final.push(c.slice(i, i + MAX_CHUNK_CHARS));
+    }
+  }
+  return final;
 }
 
 serve(async (req) => {
