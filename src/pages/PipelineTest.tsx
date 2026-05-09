@@ -988,6 +988,46 @@ export default function PipelineTest() {
           </div>
         )}
 
+        {(phase === "awaiting_approval" || phase === "phase2") && (
+          <Card className="p-5 mb-6 border-primary/40">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <h3 className="font-mono text-sm font-semibold text-foreground">
+                  Evidence Approval (Test Run)
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Approve or reject high-risk evidence and add optional notes.
+                  Approved rows + notes will be threaded into Beat Plan, SEP,
+                  and Full Script — same as the real pipeline. Rows are
+                  deleted when the run finishes.
+                </p>
+              </div>
+              <Button
+                onClick={handleContinueAfterApproval}
+                disabled={continuing || phase === "phase2"}
+                size="sm"
+              >
+                {continuing ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Continuing…</>
+                ) : (
+                  "Continue Pipeline"
+                )}
+              </Button>
+            </div>
+            {evidenceRows.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic">
+                No evidence rows parsed from the Evidence Table output.
+              </p>
+            ) : (
+              <EvidenceTableView
+                rows={evidenceRows}
+                libraryFileNames={libraryFileNames}
+                onSetApproval={handleApproval}
+              />
+            )}
+          </Card>
+        )}
+
         {STEP_ORDER.map((k) => {
           const r = results[k];
           if (!r.output && r.status === "pending") return null;
