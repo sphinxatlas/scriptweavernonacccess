@@ -333,15 +333,39 @@ ARGUMENT REQUIREMENTS
 
 BEAT PLAN PRE-WRITE PROTOCOL
 
-Complete this protocol internally before writing the beat list. Do not output the protocol — only the final beat plan. This protocol enforces the Escalation Rule, Repetition Control, and Section Structure rules from the Script Writing Instructions.
+This protocol is mandatory. You must produce the audit as visible output before the beat plan, then remove the audit block from your final output. The audit is not optional and not internal. Producing the beat plan without producing the audit first is a failure of this step.
 
-1. ESCALATION CHAIN MAP
+OUTPUT ORDER:
 
-For each beat 2..N, write one internal sentence answering:
+1. First, output a \`<beat_plan_audit>\` block containing all six audit sections below.
 
-"What does this beat make the previous beat feel like?"
+2. Then output the beat plan.
 
-The answer must name an escalation move. Acceptable moves (from the Escalation Rule):
+3. Then re-read your \`<beat_plan_audit>\` block. If any section reveals a structural problem (duplicated function, contrast monoculture, topic-assigned beat, weak rehook, missing escalation), restructure the beat plan and rewrite the audit.
+
+4. Finally, remove the \`<beat_plan_audit>\` block from your output. Submit only the beat plan.
+
+AUDIT SECTIONS (all required):
+
+SECTION 1 — FUNCTION DIFF
+
+For each beat, write its function in this exact sentence form:
+
+"Beat N reveals that [X]."
+
+Then for each consecutive pair (1→2, 2→3, 3→4, ... N-1→N), check if the two sentences could be swapped without changing the meaning of the script. If yes, the beats are functionally duplicate. Merge or cut. Two beats sharing a topic is allowed; two beats sharing a function is not.
+
+Example of failure: "Beat 2 reveals that book Voldemort uses stillness as power" and "Beat 4 reveals that book Voldemort treats power as effortless." These are paraphrases. Merge.
+
+Example of pass: "Beat 5 reveals that book Voldemort dominates by controlling other people's bodies" and "Beat 6 reveals that book Voldemort runs entire rooms through ideology and micro-control." Different function (one-on-one vs. group), different mechanism.
+
+SECTION 2 — ESCALATION CHAIN
+
+For each beat 2..N, write one sentence answering:
+
+"What does this beat make beat N-1 feel like?"
+
+The answer must name an escalation move:
 
 - Small signal → larger pattern
 
@@ -357,23 +381,9 @@ The answer must name an escalation move. Acceptable moves (from the Escalation R
 
 - Familiar assumption → new lens
 
-A beat that recurs to the same idea is allowed IF it operates one of these moves on it. A beat that restates the same idea at the same level is not allowed. Test: after this beat, does the previous beat feel incomplete? If no, the beat is repetition without escalation. Restructure.
+If the answer is "more evidence for the same point" or any synonym, the beat is repetition. Restructure.
 
-2. REPETITION-VS-ESCALATION TEST
-
-For each beat, ask the four questions from Repetition Control:
-
-- Does this become more specific than the previous beat?
-
-- Does this show a consequence the previous beat didn't reach?
-
-- Does this reveal a pattern the previous beat only hinted at?
-
-- Does this become a contradiction the previous beat assumed away?
-
-At least one must answer yes. If none do, the beat is the same point in different wording. Merge into the adjacent beat or cut.
-
-3. EVIDENCE LEDGER (PRELIMINARY)
+SECTION 3 — EVIDENCE LEDGER
 
 List every canon anchor planned for use. For each:
 
@@ -381,27 +391,27 @@ List every canon anchor planned for use. For each:
 
 - Role (primary anchor / contrast anchor)
 
-Rules:
+Hard rules:
 
-- No scene serves as the primary anchor in more than one beat.
+- No scene serves as primary anchor in more than one beat.
 
-- No book↔film contrast pair serves as the primary contrast in more than one beat.
+- No book↔film contrast pair serves as primary contrast in more than one beat.
 
-- If a single source appears as contrast in more than 3 beats, the plan is leaning on a contrast monoculture. Redistribute.
+- If a single source appears as contrast anchor in more than 3 beats: STOP. The plan is a contrast monoculture. Restructure or surface this as a retrieval gap in the audit.
 
-4. FUNCTION-NOT-TOPIC CHECK
+SECTION 4 — FUNCTION-NOT-TOPIC CHECK
 
-For each beat, write its job using a Section Structure function (from the instructions list): set up tension, validate surface interpretation, introduce first complication, establish a rule, test the rule, reveal contradiction, widen the pattern, add emotional consequence, address counterargument, deliver payoff.
+For each beat, confirm its job is named using a Section Structure function (set up tension / validate surface interpretation / introduce first complication / establish a rule / test the rule / reveal contradiction / widen the pattern / add emotional consequence / address counterargument / deliver payoff).
 
-If the beat's job can only be described as "covers [topic]," it is topic-assigned. Rewrite as a function before proceeding.
+If a beat's job can only be described as "covers [topic]," it is topic-assigned. Rewrite as a function.
 
-5. CONTRAST CLOSURE PRE-CHECK
+SECTION 5 — CONTRAST CLOSURE
 
-For book vs. film comparison scripts: confirm each beat plans a contrast landing before it closes. A beat that builds 80% on one side with no acknowledgment of the other is structurally incomplete per the Contrast Closure Rule. Mark which acceptable contrast form each beat uses: what the other version does instead / omits / changes in emphasis / why the difference matters.
+For book vs. film comparison scripts: confirm each beat plans a contrast landing before it closes. Mark which acceptable contrast form each beat uses (what the other version does instead / omits / changes in emphasis / why the difference matters).
 
-6. REHOOK FORWARD-MOTION CHECK
+SECTION 6 — REHOOK FORWARD-MOTION
 
-For each beat's planned rehook, confirm it does one of the following (from Section Endings and Rehooks):
+For each beat's planned rehook, confirm it does one of:
 
 - Raises a new question
 
@@ -417,27 +427,25 @@ For each beat's planned rehook, confirm it does one of the following (from Secti
 
 - Hints at the final payoff
 
-A rehook that only announces the next topic ("Now let's look at...") fails this check. Rewrite.
+A rehook that announces the next topic ("Now let's look at...") fails. Rewrite.
 
-7. FINAL CHECK
+FINAL CHECK BEFORE REMOVING THE AUDIT BLOCK:
 
-Before outputting the beat plan, confirm:
+- Section 1: no consecutive pair shares a function
 
-- Every beat 2..N has an acceptable escalation move
+- Section 2: every beat 2..N has an escalation move
 
-- Every beat passes the repetition-vs-escalation test
+- Section 3: no anchor or contrast pair duplicated; no source dominates contrast slot
 
-- No primary anchor or contrast pair is duplicated
+- Section 4: every beat is function-assigned
 
-- No beat is topic-assigned
+- Section 5: every beat closes its contrast (for comparison scripts)
 
-- For comparison scripts, every beat closes its contrast
+- Section 6: every rehook generates forward motion
 
-- Every rehook generates forward motion, not topic announcement
+- Final beat reframes opening tension, not summarizes
 
-- The final beat reframes the opening tension rather than summarizing
-
-If any check fails, restructure before writing the output.
+If any check fails, restructure the beat plan and rewrite the audit. Only after all checks pass, remove the \`<beat_plan_audit>\` block from your final output.
 
 EVIDENCE REQUIREMENTS
 - Each beat must name the specific canon anchor (book chapter, film scene). No vague references.
@@ -562,9 +570,21 @@ For each beat in the Beat Plan, write one paragraph in plain prose. Number each 
 4. Any meaningful contradiction between book and film worth noting in narration, in one sentence.
 5. Function: state in one short sentence whether this beat proves, complicates, reveals, rehooks, or pays off. Name what specifically it proves / complicates / reveals / rehooks / pays off.
 6. Hook/payoff relation: state in one short sentence how this beat keeps the opening hook question alive, complicates it, or moves toward paying it off.
-7. Anti-repetition note: compare this beat's function to all prior beats in the Pack. If a prior beat already does the same job without escalation, flag the pair as a merge or cut candidate and recommend which one to keep. If the function repeats but escalates, name the new layer this beat adds.
+Write items 5 and 6 as natural writer-facing sentences inside the same paragraph. Do not turn the beat into a table. Do not add markdown headings or labels like "Function:" inside the paragraph — embed the information in prose the writer can read in one pass.
 
-Write items 5, 6, and 7 as natural writer-facing sentences inside the same paragraph. Do not turn the beat into a table. Do not add markdown headings or labels like "Function:" inside the paragraph — embed the information in prose the writer can read in one pass.
+MERGE-OR-CUT RULE
+
+The SEP is the final authority on beat structure before the Full Script is written. There is no human review step between the SEP and the Full Script.
+
+If during writing the SEP, you sense that two beats share a function (not just a topic — see Function Diff logic), you must do one of two things in the SEP itself:
+
+1. Merge the two beats into a single beat that carries both pieces of evidence.
+
+2. Cut the weaker beat entirely.
+
+You may not write conditional flags such as "merge candidate," "keep both only if," "if the writer feels Beat X covers this." Conditional flags assume a human editor downstream. There is no human editor downstream. The SEP either commits to the beat or removes it.
+
+If two beats genuinely operate different functions on adjacent topics, write the SEP entries normally without flagging.
 
 EVIDENCE LEDGER (MANDATORY — complete before writing any beat paragraph)
 
@@ -576,7 +596,7 @@ If two beats are currently mapped to the same primary anchor, resolve the confli
 
 - If no alternative anchor exists, restructure one beat to argue from book-only or film-only contrast without re-citing the shared moment.
 
-- If neither is possible, flag the beat as a merge candidate in the anti-repetition note and recommend which beat absorbs the other.
+- If neither is possible, apply the Merge-or-Cut Rule above: merge the two beats or cut the weaker one. Do not flag conditionally.
 
 Do not write beat paragraphs until every beat has a unique primary anchor assigned. The ledger is internal — do not output it.
 
@@ -600,14 +620,14 @@ If a beat fails the question chain test, restructure it before writing. Acceptab
 
 The question chain is internal — do not output it. The beat paragraphs must reflect it.
 
-Wherever a beat is relevant to a Selected Source Analysis Audience Objection, Recurring Fan Signal, Expected Surface Answer, or Underdeveloped Opportunity, you MUST surface that connection in plain prose inside the existing Function, Hook/payoff relation, or Anti-repetition note sentences. This is mandatory, not optional, for every beat where such a signal applies. Do not add a new format field. Do not create a table. Do not treat secondary-source claims as canon proof.
+Wherever a beat is relevant to a Selected Source Analysis Audience Objection, Recurring Fan Signal, Expected Surface Answer, or Underdeveloped Opportunity, you MUST surface that connection in plain prose inside the existing Function or Hook/payoff relation sentences. This is mandatory, not optional, for every beat where such a signal applies. Do not add a new format field. Do not create a table. Do not treat secondary-source claims as canon proof.
 
-Do not write beat functions, hook payoff relation, or anti repetition notes using mechanical contrast formulas such as "not X, but Y," "the problem is not X, the problem is Y," or "this is not X, this is Y." These upstream phrases leak into Full Script. Use concrete function language instead, such as "This beat proves," "This beat reveals," "This beat escalates," "This beat makes the audience question," or "This beat pays off."
+Do not write beat functions or hook payoff relation using mechanical contrast formulas such as "not X, but Y," "the problem is not X, the problem is Y," or "this is not X, this is Y." These upstream phrases leak into Full Script. Use concrete function language instead, such as "This beat proves," "This beat reveals," "This beat escalates," "This beat makes the audience question," or "This beat pays off."
 
 ENFORCEMENT (structural, runs before the Full Script step):
-- If two beats share the same function without escalation, the Pack must say so explicitly and recommend a fix (merge, cut, or re-aim one beat).
-- If a beat does not help sustain, complicate, or pay off the opening hook tension established in the Creative Brief, the Pack must flag it as weak or optional and explain why.
-- The purpose of these notes is to stop repeated evidence functions before Full Script generation and to preserve the hook-to-payoff route end to end.
+- If two beats share the same function without escalation, apply the Merge-or-Cut Rule: merge them or cut the weaker beat in the SEP itself. Do not emit conditional flags.
+- If a beat does not help sustain, complicate, or pay off the opening hook tension established in the Creative Brief, cut it from the SEP. Do not mark it "weak" or "optional" — there is no downstream editor.
+- The purpose of these rules is to stop repeated evidence functions before Full Script generation and to preserve the hook-to-payoff route end to end.
 
 EXAMPLE FORMAT (copy this shape, not this content):
 
