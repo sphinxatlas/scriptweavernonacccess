@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { MultiSelectChips, type MultiSelectOption } from "@/components/MultiSelectChips";
-import { ChevronDown, FlaskConical, Loader2, Clock, GitCompare, Copy, History, Trash2 } from "lucide-react";
+import { ChevronDown, FlaskConical, Loader2, Clock, GitCompare, Copy, History, Trash2, CheckCircle2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1003,6 +1003,16 @@ export default function PipelineTest() {
             <div>ESTIMATED TOKEN USAGE: ~{estTokens.toLocaleString()}</div>
             <div className="font-bold mt-2">OVERALL: {overallStatus}</div>
           </Card>
+        )}
+
+        {results.anti_ai?.status === "pass" && (
+          <div className="mb-4 flex items-center gap-2 rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2 text-xs text-green-600 dark:text-green-400">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span className="font-medium">Anti-AI Polish Complete</span>
+            <span className="text-green-600/70 dark:text-green-400/70">
+              — Test pass finished{results.anti_ai.notes ? ` · ${results.anti_ai.notes}` : ""}
+            </span>
+          </div>
         )}
 
         {startedAt && (
