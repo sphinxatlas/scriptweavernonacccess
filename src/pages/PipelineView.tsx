@@ -63,6 +63,7 @@ export default function PipelineView() {
   const [antiAiRunning, setAntiAiRunning] = useState(false);
   const [antiAiStream, setAntiAiStream] = useState("");
   const [confirmAntiAiOpen, setConfirmAntiAiOpen] = useState(false);
+  const [antiAiCompletedAt, setAntiAiCompletedAt] = useState<Date | null>(null);
   const [meltyRunning, setMeltyRunning] = useState(false);
   const [meltyStream, setMeltyStream] = useState("");
   const [passageInput, setPassageInput] = useState("");
@@ -341,6 +342,7 @@ export default function PipelineView() {
           await refetchOutputs();
           setAntiAiRunning(false);
           setAntiAiStream("");
+          setAntiAiCompletedAt(new Date());
           toast.success("Full Script Anti AI cleanup saved.");
         },
       );
