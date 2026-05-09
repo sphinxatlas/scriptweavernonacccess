@@ -1602,6 +1602,10 @@ serve(async (req) => {
       // Creative Brief receive the same inputs as a real run.
       testInlineFormatReferenceIds,
       testInlineTopicTranscriptIds,
+      // Test-mode-only flag. When true (and we are in test mode), the retrieval
+      // block runs hybrid Reciprocal Rank Fusion over FTS + pgvector match_chunks
+      // instead of FTS only. The real pipeline never reads this flag.
+      testInlineUseVectorSearch,
     } = await req.json();
     if (!stepType) throw new Error("stepType is required");
     if (!testMode && !briefId) throw new Error("briefId is required");
