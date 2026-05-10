@@ -16,6 +16,7 @@ export interface EvidencePointDraft {
   confidence: string;
   evidence_type: string;
   commentary_angle: string | null;
+  secondary_source_support: string | null;
 }
 
 const FIELD_MAP: Record<string, keyof EvidencePointDraft | "why_this_matters"> = {
@@ -29,6 +30,7 @@ const FIELD_MAP: Record<string, keyof EvidencePointDraft | "why_this_matters"> =
   "difference note": "difference_note",
   "lexicon support": "lexicon_support",
   "lexicon": "lexicon_support",
+  "secondary source support": "secondary_source_support",
   "micro-quote": "exact_quote",
   "micro quote": "exact_quote",
   "exact quote": "exact_quote",
@@ -126,6 +128,7 @@ export function parseEvidenceTable(markdown: string): EvidencePointDraft[] {
       confidence,
       evidence_type,
       commentary_angle: fields.commentary_angle || null,
+      secondary_source_support: (fields as any).secondary_source_support || null,
     });
   }
 

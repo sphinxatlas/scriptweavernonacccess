@@ -824,6 +824,9 @@ export async function replaceEvidencePoints(
     paraphrase: d.paraphrase,
     confidence: d.confidence,
     evidence_type: d.evidence_type,
+    secondary_source_support: d.secondary_source_support,
+    why_this_matters: d.why_this_matters,
+    commentary_angle: d.commentary_angle,
   }));
   const { error } = await supabase.from("evidence_points").insert(rows);
   if (error) throw error;
