@@ -1593,14 +1593,14 @@ const FOCUS_AREA_CANON_EXPANSIONS: Record<string, string[]> = {
   "film changes": ["scene cut", "Ginny shoe", "Burrow fire"],
 
   // ── Worldbuilding / Lore ──
-  "diagon alley": ["cauldrons Gringotts", "Madam Malkin robes", "Ollivanders wand", "Hagrid Diagon Alley", "tiny grubby pub Leaky Cauldron"],
-  "room of requirement": ["come and go room", "Room of Requirement Dobby", "Dumbledore's Army hidden room", "room appears when needed"],
+  "diagon alley": ["middle o Diagon Alley", "Ollivanders wand shop", "counting bricks wall trash can", "cauldrons pewter standard size"],
+  "room of requirement": ["Come and Go Room", "Room of Requirement Dobby", "room that is always there when you need it"],
   "pensieve": ["stone basin memories", "Pensieve Dumbledore office", "stored memories silver"],
-  "the trace": ["Hover Charm Harry didn't", "Underage Sorcery Ministry warning", "magic performed near underage"],
-  "underage magic": ["Hover Charm Harry didn't", "Underage Sorcery Ministry warning", "magic performed near underage"],
-  "deathly hallows myth": ["Tale of Three Brothers", "Elder Wand Resurrection Stone Cloak", "three brothers Death"],
-  "hallows": ["Tale of Three Brothers", "Elder Wand Resurrection Stone Cloak", "three brothers Death"],
-  "horcrux naming": ["Dumbledore Horcrux diary", "soul fragment", "making Horcruxes Slughorn"],
+  "the trace": ["Decree Reasonable Restriction Underage Sorcery", "improper use of magic underage"],
+  "underage magic": ["Decree Reasonable Restriction Underage Sorcery", "improper use of magic underage", "Hover Charm performed"],
+  "deathly hallows myth": ["Elder Wand Resurrection Stone Cloak", "Death picked up stone riverbank", "Peverell family", "Cloak of Invisibility Death"],
+  "hallows": ["Elder Wand Resurrection Stone Cloak", "Death picked up stone riverbank", "Peverell family"],
+  "horcrux naming": ["I don't know anything about Horcruxes", "Slughorn Horcrux memory", "soul fragment Horcrux"],
 };
 
 const expandFocusAreasToCanonQueries = (focusAreas: string[]): string[] => {
