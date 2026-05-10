@@ -3049,6 +3049,9 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
             if (r.exact_quote) block.push(`Micro-Quote: ${r.exact_quote}`);
             if (r.paraphrase) block.push(`Paraphrase: ${r.paraphrase}`);
             if (r.lexicon_support) block.push(`Lexicon Support: ${r.lexicon_support}`);
+            if (r.secondary_source_support) block.push(`Secondary Source Support: ${r.secondary_source_support}`);
+            if (r.why_this_matters) block.push(`Why This Matters: ${r.why_this_matters}`);
+            if (r.commentary_angle) block.push(`Commentary Angle: ${r.commentary_angle}`);
             if (r.approval_note) block.push(`AUTHOR NOTE (binding): ${r.approval_note}`);
             lines.push(block.join("\n"));
           });
@@ -3114,6 +3117,9 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
             if (r.exact_quote) block.push(`Micro-Quote: ${r.exact_quote}`);
             if (r.paraphrase) block.push(`Paraphrase: ${r.paraphrase}`);
             if (r.lexicon_support) block.push(`Lexicon Support: ${r.lexicon_support}`);
+            if (r.secondary_source_support) block.push(`Secondary Source Support: ${r.secondary_source_support}`);
+            if (r.why_this_matters) block.push(`Why This Matters: ${r.why_this_matters}`);
+            if (r.commentary_angle) block.push(`Commentary Angle: ${r.commentary_angle}`);
             if (r.approval_note) block.push(`AUTHOR NOTE (binding — honour this guidance when using this point): ${r.approval_note}`);
             lines.push(block.join("\n"));
           });
