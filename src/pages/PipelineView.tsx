@@ -518,7 +518,7 @@ export default function PipelineView() {
               {/* Final Voice Pass moved into Advanced options below */}
               <Button
                 size="sm"
-                onClick={() => handleGenerate()}
+                onClick={() => (currentOutput ? handleRegenerate() : handleGenerate())}
                 disabled={
                   generating || (isFullScriptStep && pendingHighRiskCount > 0)
                 }
