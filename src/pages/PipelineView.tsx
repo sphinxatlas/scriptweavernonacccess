@@ -257,6 +257,27 @@ export default function PipelineView() {
     }
   };
 
+  const handleRegenerate = async () => {
+    if (!briefId) return;
+    // If feedback was typed (currently only the Creative Brief step exposes a
+    // feedback field), persist it to the brief BEFORE regenerating so the
+    // edge function picks it up on read, then clear the field locally.
+    if (activeStep === "creative_brief" && feedbackText.trim()) {
+      try {
+        await updateBriefCreativeBriefFields(briefId, {
+          creative_brief_feedback: feedbackText.trim(),
+        });
+        await refetchBrief();
+        setFeedbackText("");
+        toast.success("Feedback applied — regenerating");
+      } catch (err: any) {
+        toast.error(err.message || "Failed to save feedback");
+        return;
+      }
+    }
+    await handleGenerate();
+  };
+
   const handleCopy = () => {
     navigator.clipboard.writeText(displayContent);
     toast.success("Copied to clipboard");
@@ -497,7 +518,7 @@ export default function PipelineView() {
               {/* Final Voice Pass moved into Advanced options below */}
               <Button
                 size="sm"
-                onClick={() => handleGenerate()}
+                onClick={() => (currentOutput ? handleRegenerate() : handleGenerate())}
                 disabled={
                   generating || (isFullScriptStep && pendingHighRiskCount > 0)
                 }
