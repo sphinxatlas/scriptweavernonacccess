@@ -3416,6 +3416,22 @@ Please generate the ${stepType.replace(/_/g, " ")} based on the above informatio
       userMessage += `\n\n## Previous Full Script\n${prevScript || "(No previous Full Script available.)"}\n\n## User Revision Feedback\n${revisionFeedback.trim()}\n\n## Revision Task\nRevise the previous Full Script using the user feedback. Do not simply patch a few sentences. Rebuild the script where necessary while preserving the strongest material. Use the full pipeline context again, including the Topic Brief, Creative Brief, Insights & Research, Evidence Table, Outline, source excerpts, Script Writing Instructions, Anti AI Guide, Host Persona, HP topic transcripts, and commentary transcripts where relevant.\n\nThe revised script must directly address the feedback and produce a cleaner, stronger, less repetitive, more source-grounded, more host-voiced final script.\n\nOutput only the revised Full Script.`;
     }
 
+    // ── GENERIC PER-STEP REVISION FEEDBACK ──
+    // Every pipeline step (other than full_script, which has its own dedicated
+    // revision mode above, and creative_brief, which reads creator feedback
+    // from the persisted topic_briefs.creative_brief_feedback field) accepts
+    // free-form feedback typed in the UI before the user clicks Regenerate.
+    // When provided, append it to the user message so the model treats it as
+    // a binding revision directive on top of the normal step context.
+    const hasGenericRevisionFeedback =
+      stepType !== "full_script" &&
+      stepType !== "creative_brief" &&
+      typeof revisionFeedback === "string" &&
+      revisionFeedback.trim().length > 0;
+    if (hasGenericRevisionFeedback) {
+      userMessage += `\n\n## Creator Revision Feedback (BINDING)\nThe creator reviewed the previous output of the ${stepType.replace(/_/g, " ")} step and provided the following feedback before regenerating. Treat it as a binding directive: directly apply it, rebuild affected sections rather than cosmetically patching them, and keep all other guardrails (source hierarchy, quote discipline, anti-AI rules, lexicon discipline) intact.\n\n${revisionFeedback.trim()}`;
+    }
+
     // Call Lovable AI
     // Append unified guidance block (intensity per STEP_GUIDANCE). For
     // full_script revisions, use the revision-specific intensity entry.

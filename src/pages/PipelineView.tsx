@@ -152,6 +152,7 @@ export default function PipelineView() {
 
   const handleGenerate = async (
     overrideStep?: PipelineStepType,
+    overrideRevisionFeedback?: string,
   ) => {
     if (!briefId) return;
     const step: PipelineStepType = overrideStep || (activeStep as PipelineStepType);
@@ -161,6 +162,13 @@ export default function PipelineView() {
     let accumulated = "";
 
     try {
+      const extraOptions: Record<string, any> = {};
+      if (step === "full_script" && selectedHookDirection.trim()) {
+        extraOptions.hookDirection = selectedHookDirection.trim();
+      }
+      if (overrideRevisionFeedback && overrideRevisionFeedback.trim()) {
+        extraOptions.revisionFeedback = overrideRevisionFeedback.trim();
+      }
       await streamGenerateStep(
         briefId,
         step,
@@ -185,9 +193,7 @@ export default function PipelineView() {
           setGenerating(false);
           toast.success(`${PIPELINE_STEPS.find((s) => s.type === step)?.label} generated`);
         },
-        step === "full_script" && selectedHookDirection.trim()
-          ? { hookDirection: selectedHookDirection.trim() }
-          : undefined,
+        Object.keys(extraOptions).length ? extraOptions : undefined,
       );
     } catch (err: any) {
       setGenerating(false);
@@ -274,8 +280,17 @@ export default function PipelineView() {
         toast.error(err.message || "Failed to save feedback");
         return;
       }
+      await handleGenerate();
+      return;
     }
-    await handleGenerate();
+    // For all other steps, pass typed feedback through as revisionFeedback so
+    // the edge function appends it to that step's user message. Clear after.
+    const fb = feedbackText.trim();
+    if (fb) {
+      toast.success("Feedback applied — regenerating");
+    }
+    await handleGenerate(undefined, fb || undefined);
+    if (fb) setFeedbackText("");
   };
 
   const handleCopy = () => {
@@ -299,6 +314,12 @@ export default function PipelineView() {
       contentRef.current.scrollTop = contentRef.current.scrollHeight;
     }
   }, [streamContent, generating]);
+
+  // Clear the per-step feedback draft when the user switches steps so
+  // feedback typed for one step never leaks into another step's regenerate.
+  useEffect(() => {
+    setFeedbackText("");
+  }, [activeStep]);
 
   if (!briefId) return null;
 
@@ -637,6 +658,34 @@ export default function PipelineView() {
                   <div className="flex items-center gap-2 mt-4 text-xs text-primary">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                     Generating from source material...
+                  </div>
+                )}
+
+                {currentOutput && !generating && activeStep !== "creative_brief" && (
+                  <div className="mt-8 border-t border-border pt-6 max-w-3xl space-y-3">
+                    <Label className="text-sm font-medium">Feedback (optional)</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Add direction before regenerating this step. The feedback is
+                      passed into the prompt and cleared after the run completes.
+                    </p>
+                    <Textarea
+                      value={feedbackText}
+                      onChange={(e) => setFeedbackText(e.target.value)}
+                      placeholder='e.g. "tighten the middle beats", "lean harder on book evidence", "drop the speculative paragraph"'
+                      rows={3}
+                      className="bg-secondary border-border resize-none"
+                    />
+                    <div className="flex justify-end">
+                      <Button
+                        size="sm"
+                        onClick={handleRegenerate}
+                        disabled={generating}
+                        className="gap-1.5"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        Regenerate{feedbackText.trim() ? " with feedback" : ""}
+                      </Button>
+                    </div>
                   </div>
                 )}
 
