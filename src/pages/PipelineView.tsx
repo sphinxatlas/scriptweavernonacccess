@@ -363,7 +363,7 @@ export default function PipelineView() {
             toast.error("Anti AI cleanup returned no content. Nothing was overwritten.");
             return;
           }
-          await savePipelineOutput(briefId, "full_script", acc);
+          await savePipelineOutput(briefId, "anti_ai_output", acc);
           await refetchOutputs();
           setAntiAiRunning(false);
           setAntiAiStream("");

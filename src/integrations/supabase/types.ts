@@ -723,6 +723,7 @@ export type Database = {
         | "script_evidence_pack"
         | "melty_voice_pass"
         | "melty_voice_pass_log"
+        | "anti_ai_output"
       source_file_type:
         | "book"
         | "transcript"
@@ -874,6 +875,7 @@ export const Constants = {
         "script_evidence_pack",
         "melty_voice_pass",
         "melty_voice_pass_log",
+        "anti_ai_output",
       ],
       source_file_type: [
         "book",
