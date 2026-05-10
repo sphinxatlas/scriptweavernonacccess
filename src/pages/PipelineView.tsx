@@ -293,6 +293,9 @@ export default function PipelineView() {
   const meltyVoicePassContent =
     (outputs.find((o) => (o.step_type as string) === "melty_voice_pass")?.content as string | undefined) || "";
 
+  const antiAiOutputContent =
+    (outputs.find((o) => (o.step_type as string) === "anti_ai_output")?.content as string | undefined) || "";
+
   // Anti-AI prefers the Melty Voice Pass output when it exists, otherwise falls back to the raw Full Script.
   const antiAiInput = meltyVoicePassContent || fullScriptContent;
 
