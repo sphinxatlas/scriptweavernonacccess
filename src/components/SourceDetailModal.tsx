@@ -130,7 +130,7 @@ export function SourceDetailModal({
           </div>
         </div>
 
-        <ScrollArea className="flex-1 min-h-[300px] border border-border rounded-md bg-background">
+        <div className="flex-1 min-h-[300px] max-h-[60vh] overflow-y-auto border border-border rounded-md bg-background">
           {loading ? (
             <div className="p-4 space-y-2">
               <Skeleton className="h-3 w-full" />
@@ -144,7 +144,7 @@ export function SourceDetailModal({
           ) : (
             <div className="p-6 text-center text-sm text-muted-foreground">No content available.</div>
           )}
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
