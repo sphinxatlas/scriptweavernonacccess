@@ -315,6 +315,12 @@ export default function PipelineView() {
     }
   }, [streamContent, generating]);
 
+  // Clear the per-step feedback draft when the user switches steps so
+  // feedback typed for one step never leaks into another step's regenerate.
+  useEffect(() => {
+    setFeedbackText("");
+  }, [activeStep]);
+
   if (!briefId) return null;
 
   const isCreativeBrief = activeStep === "creative_brief";
