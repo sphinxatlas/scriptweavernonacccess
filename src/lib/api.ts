@@ -13,7 +13,8 @@ export type PipelineStepType =
   | "outline"
   | "script_evidence_pack"
   | "full_script"
-  | "melty_voice_pass";
+  | "melty_voice_pass"
+  | "melty_voice_pass_log";
 
 export const PIPELINE_STEPS: {
   type: PipelineStepType;
