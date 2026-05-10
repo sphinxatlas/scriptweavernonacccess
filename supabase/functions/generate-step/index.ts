@@ -1591,6 +1591,16 @@ const FOCUS_AREA_CANON_EXPANSIONS: Record<string, string[]> = {
   // into film-side anchors) ──
   "adaptation gaps": ["scene cut", "memory removed", "subplot dropped"],
   "film changes": ["scene cut", "Ginny shoe", "Burrow fire"],
+
+  // ── Worldbuilding / Lore ──
+  "diagon alley": ["cauldrons Gringotts", "Madam Malkin robes", "Ollivanders wand", "Hagrid Diagon Alley", "tiny grubby pub Leaky Cauldron"],
+  "room of requirement": ["come and go room", "Room of Requirement Dobby", "Dumbledore's Army hidden room", "room appears when needed"],
+  "pensieve": ["stone basin memories", "Pensieve Dumbledore office", "stored memories silver"],
+  "the trace": ["Hover Charm Harry didn't", "Underage Sorcery Ministry warning", "magic performed near underage"],
+  "underage magic": ["Hover Charm Harry didn't", "Underage Sorcery Ministry warning", "magic performed near underage"],
+  "deathly hallows myth": ["Tale of Three Brothers", "Elder Wand Resurrection Stone Cloak", "three brothers Death"],
+  "hallows": ["Tale of Three Brothers", "Elder Wand Resurrection Stone Cloak", "three brothers Death"],
+  "horcrux naming": ["Dumbledore Horcrux diary", "soul fragment", "making Horcruxes Slughorn"],
 };
 
 const expandFocusAreasToCanonQueries = (focusAreas: string[]): string[] => {
