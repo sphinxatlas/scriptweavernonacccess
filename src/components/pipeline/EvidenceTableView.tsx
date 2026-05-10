@@ -45,8 +45,10 @@ const FIELDS: { key: keyof EvidencePointDraft | "why_this_matters"; label: strin
   { key: "movie_evidence", label: "Movie Evidence" },
   { key: "difference_note", label: "Contrast" },
   { key: "lexicon_support", label: "Lexicon Support" },
+  { key: "secondary_source_support", label: "Secondary Source Support" },
   { key: "exact_quote", label: "Micro-Quote" },
   { key: "paraphrase", label: "Paraphrase" },
+  { key: "commentary_angle", label: "Commentary Angle" },
 ];
 
 const COLLAPSED_KEYS = new Set(["claim", "source_file", "confidence", "why_this_matters"]);
@@ -153,6 +155,7 @@ export function EvidenceTableView({ rows, libraryFileNames, onSetApproval }: Pro
       confidence: row.confidence,
       evidence_type: row.evidence_type,
       commentary_angle: null,
+      secondary_source_support: null,
     };
     navigator.clipboard.writeText(formatPointAsText(draft, idx));
     toast.success(`Copied Evidence Point #${idx + 1}`);
