@@ -869,8 +869,8 @@ export default function PipelineView() {
                         </h4>
                         <p className="text-xs text-muted-foreground mt-1">
                           Runs the {meltyVoicePassContent ? "saved Melty Voice Pass" : "saved Full Script"}{" "}
-                          through the Anti AI document. Overwrites the saved Full Script after you
-                          confirm and the run completes.
+                          through the Anti AI document. Saves the result as a separate Anti-AI Output —
+                          the original Full Script is never modified.
                         </p>
                       </div>
                       <Button
@@ -905,7 +905,7 @@ export default function PipelineView() {
                           <CheckCircle2 className="w-4 h-4 shrink-0" />
                           <span className="font-medium">Anti-AI Polish Complete</span>
                           <span className="text-green-600/70 dark:text-green-400/70">
-                            — Full Script overwritten at{" "}
+                            — Saved as Anti-AI Output at{" "}
                             {antiAiCompletedAt.toLocaleTimeString()}
                           </span>
                         </div>
@@ -993,16 +993,16 @@ export default function PipelineView() {
       <AlertDialog open={confirmAntiAiOpen} onOpenChange={setConfirmAntiAiOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Overwrite saved Full Script?</AlertDialogTitle>
+            <AlertDialogTitle>Run Anti-AI Cleanup?</AlertDialogTitle>
             <AlertDialogDescription>
-              This runs the entire saved Full Script through the Anti AI Writing Instructions
-              document. When the stream finishes successfully, the revised version will replace the
-              saved Full Script. This cannot be undone.
+              This runs the entire saved script through the Anti AI Writing Instructions document.
+              When the stream finishes successfully, the revised version will be saved as a separate
+              Anti-AI Output. The original Full Script will not be modified.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={runFullScriptAntiAi}>Run & Overwrite</AlertDialogAction>
+            <AlertDialogAction onClick={runFullScriptAntiAi}>Run Anti-AI Cleanup</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
