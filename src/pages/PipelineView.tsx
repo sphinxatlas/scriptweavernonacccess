@@ -293,6 +293,9 @@ export default function PipelineView() {
   const meltyVoicePassContent =
     (outputs.find((o) => (o.step_type as string) === "melty_voice_pass")?.content as string | undefined) || "";
 
+  const antiAiOutputContent =
+    (outputs.find((o) => (o.step_type as string) === "anti_ai_output")?.content as string | undefined) || "";
+
   // Anti-AI prefers the Melty Voice Pass output when it exists, otherwise falls back to the raw Full Script.
   const antiAiInput = meltyVoicePassContent || fullScriptContent;
 
@@ -908,6 +911,30 @@ export default function PipelineView() {
                             — Saved as Anti-AI Output at{" "}
                             {antiAiCompletedAt.toLocaleTimeString()}
                           </span>
+                        </div>
+                      )}
+                      {!antiAiRunning && antiAiOutputContent && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-[11px] text-muted-foreground">
+                              Anti-AI Output (saved)
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                navigator.clipboard.writeText(antiAiOutputContent);
+                                toast.success("Copied Anti-AI Output");
+                              }}
+                              className="gap-1.5 text-xs h-7"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              Copy
+                            </Button>
+                          </div>
+                          <div className="max-h-96 overflow-auto rounded border border-border bg-background p-3 text-xs whitespace-pre-wrap text-foreground">
+                            {antiAiOutputContent}
+                          </div>
                         </div>
                       )}
                     </div>
