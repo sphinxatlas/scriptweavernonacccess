@@ -661,6 +661,34 @@ export default function PipelineView() {
                   </div>
                 )}
 
+                {currentOutput && !generating && activeStep !== "creative_brief" && (
+                  <div className="mt-8 border-t border-border pt-6 max-w-3xl space-y-3">
+                    <Label className="text-sm font-medium">Feedback (optional)</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Add direction before regenerating this step. The feedback is
+                      passed into the prompt and cleared after the run completes.
+                    </p>
+                    <Textarea
+                      value={feedbackText}
+                      onChange={(e) => setFeedbackText(e.target.value)}
+                      placeholder='e.g. "tighten the middle beats", "lean harder on book evidence", "drop the speculative paragraph"'
+                      rows={3}
+                      className="bg-secondary border-border resize-none"
+                    />
+                    <div className="flex justify-end">
+                      <Button
+                        size="sm"
+                        onClick={handleRegenerate}
+                        disabled={generating}
+                        className="gap-1.5"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        Regenerate{feedbackText.trim() ? " with feedback" : ""}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 {isFullScriptStep && !generating && (
                   <div className="mt-10 border-t border-border pt-6 max-w-3xl space-y-8">
                     {/* Hook Options (optional) — transient UI state only, never persisted */}
