@@ -1743,10 +1743,12 @@ const deriveRetrievalQueryPack = (brief: any): QueryPack => {
   const seededParts: string[] = [];
   if (themeQueries.length > 0) {
     seededParts.push(...themeQueries.map((theme) => `${targetCharacter} ${theme}`));
-    seededParts.push(...themeQueries);
   }
   if (focusAreaCanonQueries.length > 0) {
     seededParts.push(...focusAreaCanonQueries);
+  }
+  if (themeQueries.length > 0) {
+    seededParts.push(...themeQueries);
   }
   if (characterQueries.length > 0) seededParts.push(...characterQueries);
   const compressedTitle = compressPhrase(title, 8);
