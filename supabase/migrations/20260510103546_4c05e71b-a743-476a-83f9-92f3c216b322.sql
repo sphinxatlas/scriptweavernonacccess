@@ -1,0 +1,1 @@
+ALTER TYPE pipeline_step_type ADD VALUE IF NOT EXISTS 'melty_voice_pass_log';
