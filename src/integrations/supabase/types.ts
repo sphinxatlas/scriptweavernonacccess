@@ -246,6 +246,7 @@ export type Database = {
           book_evidence: string | null
           brief_id: string
           claim: string
+          commentary_angle: string | null
           confidence: string
           created_at: string
           difference_note: string | null
@@ -255,9 +256,11 @@ export type Database = {
           lexicon_support: string | null
           movie_evidence: string | null
           paraphrase: string | null
+          secondary_source_support: string | null
           source_file: string | null
           source_type: string
           starred: boolean
+          why_this_matters: string | null
         }
         Insert: {
           approval_note?: string | null
@@ -265,6 +268,7 @@ export type Database = {
           book_evidence?: string | null
           brief_id: string
           claim: string
+          commentary_angle?: string | null
           confidence?: string
           created_at?: string
           difference_note?: string | null
@@ -274,9 +278,11 @@ export type Database = {
           lexicon_support?: string | null
           movie_evidence?: string | null
           paraphrase?: string | null
+          secondary_source_support?: string | null
           source_file?: string | null
           source_type: string
           starred?: boolean
+          why_this_matters?: string | null
         }
         Update: {
           approval_note?: string | null
@@ -284,6 +290,7 @@ export type Database = {
           book_evidence?: string | null
           brief_id?: string
           claim?: string
+          commentary_angle?: string | null
           confidence?: string
           created_at?: string
           difference_note?: string | null
@@ -293,9 +300,11 @@ export type Database = {
           lexicon_support?: string | null
           movie_evidence?: string | null
           paraphrase?: string | null
+          secondary_source_support?: string | null
           source_file?: string | null
           source_type?: string
           starred?: boolean
+          why_this_matters?: string | null
         }
         Relationships: [
           {
