@@ -399,9 +399,12 @@ export default function PipelineView() {
             toast.error("Melty Voice Pass returned no content.");
             return;
           }
-          const { scriptBody } = splitMeltyVoicePassOutput(acc);
+          const { scriptBody, changeLog } = splitMeltyVoicePassOutput(acc);
 
           await savePipelineOutput(briefId, "melty_voice_pass", scriptBody);
+          if (changeLog && changeLog.trim()) {
+            await savePipelineOutput(briefId, "melty_voice_pass_log", changeLog);
+          }
 
           await refetchOutputs();
           setMeltyRunning(false);
