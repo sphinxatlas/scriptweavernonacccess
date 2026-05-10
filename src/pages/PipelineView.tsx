@@ -152,6 +152,7 @@ export default function PipelineView() {
 
   const handleGenerate = async (
     overrideStep?: PipelineStepType,
+    overrideRevisionFeedback?: string,
   ) => {
     if (!briefId) return;
     const step: PipelineStepType = overrideStep || (activeStep as PipelineStepType);
@@ -161,6 +162,13 @@ export default function PipelineView() {
     let accumulated = "";
 
     try {
+      const extraOptions: Record<string, any> = {};
+      if (step === "full_script" && selectedHookDirection.trim()) {
+        extraOptions.hookDirection = selectedHookDirection.trim();
+      }
+      if (overrideRevisionFeedback && overrideRevisionFeedback.trim()) {
+        extraOptions.revisionFeedback = overrideRevisionFeedback.trim();
+      }
       await streamGenerateStep(
         briefId,
         step,
@@ -185,9 +193,7 @@ export default function PipelineView() {
           setGenerating(false);
           toast.success(`${PIPELINE_STEPS.find((s) => s.type === step)?.label} generated`);
         },
-        step === "full_script" && selectedHookDirection.trim()
-          ? { hookDirection: selectedHookDirection.trim() }
-          : undefined,
+        Object.keys(extraOptions).length ? extraOptions : undefined,
       );
     } catch (err: any) {
       setGenerating(false);
@@ -274,8 +280,17 @@ export default function PipelineView() {
         toast.error(err.message || "Failed to save feedback");
         return;
       }
+      await handleGenerate();
+      return;
     }
-    await handleGenerate();
+    // For all other steps, pass typed feedback through as revisionFeedback so
+    // the edge function appends it to that step's user message. Clear after.
+    const fb = feedbackText.trim();
+    if (fb) {
+      toast.success("Feedback applied — regenerating");
+    }
+    await handleGenerate(undefined, fb || undefined);
+    if (fb) setFeedbackText("");
   };
 
   const handleCopy = () => {
