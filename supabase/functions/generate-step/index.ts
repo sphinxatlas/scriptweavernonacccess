@@ -2537,7 +2537,7 @@ ${brief.title}
 
 ## Creator's Raw Angle (preserve framings and wording where fields allow)
 ${brief.angle_note || brief.description || "(No angle note provided)"}
-
+${brief.creative_brief_feedback ? `\n## Creator Feedback on Previous Creative Brief (BINDING — address these revisions in this regeneration)\n${brief.creative_brief_feedback}\n` : ""}
 ## Format Reference Transcripts (non-HP — structure and positioning only)
 ${formatRefBlock}
 
