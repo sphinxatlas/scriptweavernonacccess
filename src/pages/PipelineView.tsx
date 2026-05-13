@@ -332,11 +332,27 @@ export default function PipelineView() {
   const fullScriptContent =
     (outputs.find((o) => o.step_type === "full_script")?.content as string | undefined) || "";
 
-  const meltyVoicePassContent =
-    (outputs.find((o) => (o.step_type as string) === "melty_voice_pass")?.content as string | undefined) || "";
+  const latestOutputFor = (type: string) => {
+    const matches = outputs.filter((o) => (o.step_type as string) === type);
+    if (matches.length === 0) return undefined;
+    return matches.reduce((a, b) =>
+      new Date((a as any).created_at).getTime() > new Date((b as any).created_at).getTime() ? a : b,
+    );
+  };
 
-  const antiAiOutputContent =
-    (outputs.find((o) => (o.step_type as string) === "anti_ai_output")?.content as string | undefined) || "";
+  const meltyVoicePassOutput = latestOutputFor("melty_voice_pass");
+  const antiAiOutputRow = latestOutputFor("anti_ai_output");
+
+  const meltyVoicePassContent = (meltyVoicePassOutput?.content as string | undefined) || "";
+  const antiAiOutputContent = (antiAiOutputRow?.content as string | undefined) || "";
+
+  const formatLastRun = (row: any) => {
+    if (!row?.created_at) return "Not yet run";
+    const d = new Date(row.created_at);
+    const date = d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+    return `Last run: ${date} at ${time}`;
+  };
 
   // Anti-AI prefers the Melty Voice Pass output when it exists, otherwise falls back to the raw Full Script.
   const antiAiInput = meltyVoicePassContent || fullScriptContent;
@@ -896,6 +912,9 @@ export default function PipelineView() {
                           </>
                         )}
                       </Button>
+                      <p className="text-[11px] text-muted-foreground">
+                        {formatLastRun(meltyVoicePassOutput)}
+                      </p>
                       {meltyRunning && meltyStream && (
                         <div className="mt-2 max-h-64 overflow-auto rounded border border-border bg-background p-3 text-xs whitespace-pre-wrap text-foreground/80">
                           {meltyStream}
@@ -964,6 +983,9 @@ export default function PipelineView() {
                           </>
                         )}
                       </Button>
+                      <p className="text-[11px] text-muted-foreground">
+                        {formatLastRun(antiAiOutputRow)}
+                      </p>
                       {antiAiRunning && antiAiStream && (
                         <div className="mt-2 max-h-64 overflow-auto rounded border border-border bg-background p-3 text-xs whitespace-pre-wrap text-foreground/80">
                           {antiAiStream}
