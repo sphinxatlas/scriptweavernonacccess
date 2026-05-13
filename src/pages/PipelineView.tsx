@@ -983,6 +983,9 @@ export default function PipelineView() {
                           </>
                         )}
                       </Button>
+                      <p className="text-[11px] text-muted-foreground">
+                        {formatLastRun(antiAiOutputRow)}
+                      </p>
                       {antiAiRunning && antiAiStream && (
                         <div className="mt-2 max-h-64 overflow-auto rounded border border-border bg-background p-3 text-xs whitespace-pre-wrap text-foreground/80">
                           {antiAiStream}
