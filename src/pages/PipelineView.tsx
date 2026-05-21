@@ -53,25 +53,70 @@ import { toast } from "sonner";
 
 type ActiveStep = PipelineStepType;
 
-const MELTY_REVISED_SCRIPT_MARKER = "### REVISED SCRIPT (MELTY VOICE PASS APPLIED)";
+// Recognized log section headers the Melty Voice Pass prompt instructs the model to emit.
+// Order doesn't matter; we just need to detect that log content is present.
+const MELTY_LOG_HEADER_PATTERNS: RegExp[] = [
+  /^\s*#{0,4}\s*\*{0,2}HOOK AUDIT LOG/im,
+  /^\s*#{0,4}\s*\*{0,2}PERSONALITY BEAT LOG/im,
+  /^\s*#{0,4}\s*\*{0,2}BEAT LOG/im,
+  /^\s*#{0,4}\s*\*{0,2}MELTY VOICE PASS LOG/im,
+  /^\s*#{0,4}\s*\*{0,2}PARENTHETICAL ASIDE LOG/im,
+  /^\s*#{0,4}\s*\*{0,2}MOCK FORMAL REGISTER LOG/im,
+  /^\s*#{0,4}\s*\*{0,2}I VS WE AUDIT LOG/im,
+  /^\s*#{0,4}\s*\*{0,2}RESISTED SECTIONS/im,
+];
+
+// Fallback headers some model variants use instead of the "---" separator.
+const MELTY_REVISED_SCRIPT_HEADER_PATTERNS: RegExp[] = [
+  /^#{2,4}\s*REVISED SCRIPT/im,
+  /^#{2,4}\s*MELTY VOICE PASS APPLIED/im,
+];
 
 function splitMeltyVoicePassOutput(text: string): { scriptBody: string; changeLog: string | null } {
-  const markerIndex = text.indexOf(MELTY_REVISED_SCRIPT_MARKER);
+  const lines = text.split(/\r?\n/);
 
-  if (markerIndex === -1) {
-    return {
-      scriptBody: text,
-      changeLog: null,
-    };
+  // Detect whether any recognized log header appears in the first 60% of the
+  // output. Logs are always near the top; the script is usually much longer.
+  const scanLimit = Math.max(1, Math.floor(lines.length * 0.6));
+  let hasLogHeader = false;
+  for (let i = 0; i < scanLimit; i++) {
+    if (MELTY_LOG_HEADER_PATTERNS.some((re) => re.test(lines[i]))) {
+      hasLogHeader = true;
+      break;
+    }
   }
 
-  const beforeMarker = text.slice(0, markerIndex).trim();
-  const afterMarker = text.slice(markerIndex + MELTY_REVISED_SCRIPT_MARKER.length).trim();
+  if (!hasLogHeader) {
+    // No log structure detected — treat everything as the script.
+    return { scriptBody: text, changeLog: null };
+  }
 
-  return {
-    scriptBody: afterMarker,
-    changeLog: beforeMarker || null,
-  };
+  // Primary: split on the first standalone "---" line that produces a
+  // substantial body afterwards (the prompt instructs "A line containing only: ---").
+  for (let i = 0; i < lines.length; i++) {
+    if (/^\s*-{3,}\s*$/.test(lines[i])) {
+      const before = lines.slice(0, i).join("\n").trim();
+      const after = lines.slice(i + 1).join("\n").trim();
+      if (after.length >= 200) {
+        return { scriptBody: after, changeLog: before || null };
+      }
+    }
+  }
+
+  // Fallback: split on a "## REVISED SCRIPT" / "### MELTY VOICE PASS APPLIED" heading.
+  for (let i = 0; i < lines.length; i++) {
+    if (MELTY_REVISED_SCRIPT_HEADER_PATTERNS.some((re) => re.test(lines[i]))) {
+      const before = lines.slice(0, i).join("\n").trim();
+      const after = lines.slice(i + 1).join("\n").trim();
+      if (after.length >= 200) {
+        return { scriptBody: after, changeLog: before || null };
+      }
+    }
+  }
+
+  // Logs detected but no separator found — preserve current behavior
+  // (save the whole blob) rather than guessing where the script starts.
+  return { scriptBody: text, changeLog: null };
 }
 
 export default function PipelineView() {
