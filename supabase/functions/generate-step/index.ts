@@ -66,12 +66,71 @@ TIER 2 — SECONDARY CANON SUPPORT:
 - Lexicon = SECONDARY reference only (lower priority)
 - Never overrides books or movie transcripts
 
-TIER 3 — SECONDARY COMMENTARY CONTEXT:
-- Commentary Transcripts (from YouTube commentary videos)
-- Allowed: angle discovery, framing ideas, alternative interpretations, lists of differences to investigate, thematic lenses, psychological readings, terminology that helps explain concepts
-- NOT allowed: never cite as proof of canon, never treat claims as true unless confirmed in books or movie transcripts, never use as direct script wording, never copy structure too closely, never quote verbatim into the final script
-- RULE: If a point originates from Commentary Transcripts, the system MUST confirm it using books or movie transcripts before presenting it as a factual claim
-- Mark internally as: "Angle inspired by commentary transcript — requires canon confirmation"
+TIER 2 — UNIVERSAL RULE FOR ALL SECONDARY SOURCES (applies to every tier below):
+No secondary source — at any tier — is ever named, quoted verbatim, or paraphrased closely in the final script output. The writer absorbs the information and writes in their own voice. Source names like "MediaRetrospective", "Bretts Thoughts", a specific blogger, or a Reddit thread MUST NEVER appear in the script body. The tier governs RELIABILITY of claims (how confidently the writer can make a claim), not VISIBILITY of sources (which is always zero).
+
+Universal anti-copy rules:
+- Never reproduce a secondary source's sentence structure or distinctive phrasings
+- Never copy a recurring metaphor, image, or framing verbatim — rephrase entirely
+- A claim drawn from secondary material should read as the writer's own informed observation
+
+TIER 2.5 — USER-VETTED HIGH-QUALITY SECONDARY SOURCES (tagged [STRONG]):
+The user has manually marked these sources as trustworthy. Treat their content as high-grade research the writer has already done.
+
+CAN do:
+- Inform factual claims, interpretive framings, audience-signal awareness, and recurring fandom observations
+- Be used as supporting evidence for claims when Tier 1 canon does not cover the specific detail
+- Provide the confirmation needed to promote a [USEFUL] or [LIMITED] observation into a usable claim
+- Shape the writer's confident voice on a topic, even where canon is thin
+
+CANNOT do:
+- Override Tier 1 canon when Tier 1 evidence exists
+- Supply Micro-Quotes attributed to primary Source Files (books or film transcripts) — that rule remains absolute
+- Be named, quoted, or paraphrased closely in the script
+
+TIER 2.6 — USEFUL SECONDARY SOURCES (tagged [USEFUL] or [UNSET]):
+Default tier. The user has either marked them as Useful or hasn't tagged them yet. Treat [UNSET] identically to [USEFUL].
+
+CAN do:
+- Inform interpretation, framing, and audience-signal awareness
+- Shape the angle, identify overused framings to avoid, identify objections worth handling
+- Be used as supporting context when reinforced by a [STRONG] source OR by Tier 1 canon
+- Contribute to the writer's general understanding of the topic
+
+CANNOT do:
+- Be cited as standalone factual evidence for claims not also backed by [STRONG] sources or canon
+- Be named, quoted, or paraphrased closely
+
+TIER 2.7 — LIMITED SECONDARY SOURCES (tagged [LIMITED]):
+The user has flagged these as low-quality but still wants them read for inspiration. Common examples: Reddit comments, YouTube comments, low-effort blog posts.
+
+CAN do:
+- Inform direction, mood, what the fandom is reacting to, recurring grievances
+- Identify common reactions and complaints that shape angle choices
+- Be promoted into supportable claims IF a [STRONG] source OR Tier 1 canon supports the same claim
+
+CANNOT do:
+- Be cited as standalone evidence
+- Be named, quoted, or paraphrased closely
+- Influence factual claims that are NOT also supported by [STRONG] sources or Tier 1 canon
+
+If you find a great point in a [LIMITED] source, you have three options:
+1. Find Tier 1 canon to back it up — then it becomes a canon-supported claim
+2. Find a [STRONG] source to back it up — then it becomes a [STRONG]-backed claim usable in the writer's voice
+3. Drop it
+
+Promotion path: a [LIMITED] observation backed by a [STRONG] source carries [STRONG]-tier confidence in the final output, and is written in the writer's voice without naming either source.
+
+TIER 3 — TIER ROUTING FOR ALL SECONDARY SOURCES:
+Every secondary source (Commentary Transcripts, Brief Topic Transcripts, Alternative Sources) appears in the prompt context with a quality tag in square brackets. The tag determines which subtier (2.5 / 2.6 / 2.7) applies.
+
+Reliability hierarchy for backing a claim:
+- Tier 1 canon (books + film transcripts) — strongest backing
+- [STRONG] secondary — can supplement canon, can stand in where canon is missing
+- [USEFUL] / [UNSET] — can support framing; needs [STRONG] or canon to back specific claims
+- [LIMITED] — inspiration only; needs [STRONG] or canon to back any specific claim
+
+Failure mode: a [STRONG] source treated identically to a [LIMITED] source means the tagging system is being ignored. Differentiate.
 
 TIER 4 — WRITING GUIDANCE ONLY (never evidence, never canon):
 - Script Instructions & Strategy = output behavior, writing constraints, hook quality, pacing, rehooks, argument structure, retention
@@ -2019,6 +2078,15 @@ const applyFloorAndCeilingQuota = (
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Render a quality tag for a secondary source. Null/undefined → [UNSET].
+  const qualityTag = (strength: string | null | undefined): string => {
+    const v = (strength || "").toLowerCase();
+    if (v === "strong") return "[STRONG]";
+    if (v === "useful") return "[USEFUL]";
+    if (v === "limited") return "[LIMITED]";
+    return "[UNSET]";
+  };
 
   try {
     const {
