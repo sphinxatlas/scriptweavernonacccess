@@ -10,10 +10,13 @@ import {
   getSourceFileContent,
   getSourceFileDownloadUrl,
   renameSourceFile,
+  updateSourceFileStrength,
+  type ScriptStrength,
   type SourceFile,
 } from "@/lib/api";
 import { toast } from "sonner";
 import { SourceDetailModal } from "@/components/SourceDetailModal";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface FileUploadCardProps {
   fileType: "book" | "transcript" | "instructions" | "lexicon" | "competitor_analysis" | "host_persona" | "anti_ai_guide" | "melty_voice_pass";
@@ -264,6 +267,30 @@ export function FileUploadCard({ fileType, title, description, accept = ".txt,.m
               >
                 <Sparkles className="w-3 h-3" />
               </Button>
+              {fileType === "competitor_analysis" && (
+                <Select
+                  value={(file as any).script_strength ?? "unset"}
+                  onValueChange={async (v) => {
+                    const next = v === "unset" ? null : (v as ScriptStrength);
+                    try {
+                      await updateSourceFileStrength(file.id, next);
+                      onRefresh();
+                    } catch (err: any) {
+                      toast.error(err.message || "Failed to update quality");
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-7 w-[110px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="strong">Strong</SelectItem>
+                    <SelectItem value="useful">Useful</SelectItem>
+                    <SelectItem value="limited">Limited</SelectItem>
+                    <SelectItem value="unset">Not set</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
               <Button
                 size="icon"
                 variant="ghost"
