@@ -22,6 +22,11 @@ export function BriefDetailsSheet({ brief, children }: BriefDetailsSheetProps) {
         </SheetHeader>
 
         <div className="space-y-5 mt-6">
+          {brief.id && (
+            <Section label="Brief ID">
+              <p className="text-xs font-mono text-foreground/85 break-all select-all">{brief.id}</p>
+            </Section>
+          )}
           {/* Title & Description */}
           <Section label="Title">
             <p className="text-sm text-foreground">{brief.title}</p>
