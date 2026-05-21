@@ -17,10 +17,49 @@ import {
   getAlternativeSources,
   saveAlternativeSource,
   deleteAlternativeSource,
+  updateBriefTopicTranscriptStrength,
+  updateAlternativeSourceStrength,
+  type ScriptStrength,
 } from "@/lib/api";
 import { Plus, Trash2, Eye, Download } from "lucide-react";
 import { toast } from "sonner";
 import { SourceDetailModal } from "@/components/SourceDetailModal";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const QUALITY_HELPER_TEXT =
+  "Quality tagging is set by you, not by the AI. Strong = trusted research, absorbed and used freely. Useful = framing only; specific claims need STRONG or canon backup. Limited = inspiration only; specific claims need STRONG or canon backup. Sources are never named in the script.";
+
+function QualitySelect({
+  value,
+  onChange,
+}: {
+  value: ScriptStrength | undefined;
+  onChange: (next: ScriptStrength) => Promise<void>;
+}) {
+  return (
+    <Select
+      value={value ?? "unset"}
+      onValueChange={async (v) => {
+        const next = v === "unset" ? null : (v as ScriptStrength);
+        try {
+          await onChange(next);
+        } catch (err: any) {
+          toast.error(err.message || "Failed to update quality");
+        }
+      }}
+    >
+      <SelectTrigger className="h-7 w-28 text-xs">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="strong">Strong</SelectItem>
+        <SelectItem value="useful">Useful</SelectItem>
+        <SelectItem value="limited">Limited</SelectItem>
+        <SelectItem value="unset">Not set</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
 
 type Section = "format" | "topic";
 
@@ -155,6 +194,11 @@ function TranscriptSection({ section }: { section: Section }) {
   return (
     <div>
       <p className="text-xs text-muted-foreground mb-4">{label}</p>
+      {section === "topic" && (
+        <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+          <strong>{QUALITY_HELPER_TEXT}</strong>
+        </p>
+      )}
 
       {!showForm && (
         <Button onClick={() => setShowForm(true)} size="sm" className="gap-1.5 mb-4">
@@ -178,6 +222,7 @@ function TranscriptSection({ section }: { section: Section }) {
               <TableRow>
                 <TableHead>Channel</TableHead>
                 <TableHead>Video Title</TableHead>
+                {section === "topic" && <TableHead className="w-32">Quality</TableHead>}
                 <TableHead>Date Added</TableHead>
                 <TableHead className="w-16"></TableHead>
               </TableRow>
@@ -189,6 +234,17 @@ function TranscriptSection({ section }: { section: Section }) {
                   <TableCell className="align-top">
                     <div>{item.video_title}</div>
                   </TableCell>
+                  {section === "topic" && (
+                    <TableCell>
+                      <QualitySelect
+                        value={item.script_strength}
+                        onChange={async (next) => {
+                          await updateBriefTopicTranscriptStrength(item.id, next);
+                          refetch();
+                        }}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell className="text-xs text-muted-foreground">
                     {new Date(item.created_at).toLocaleDateString()}
                   </TableCell>
@@ -327,6 +383,9 @@ function AlternativeSourcesSection() {
         forums, websites, meme research, or fan discussions. These sources help with audience
         insight, humor, fandom language, and angle inspiration. They are not treated as canon.
       </p>
+      <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+        <strong>{QUALITY_HELPER_TEXT}</strong>
+      </p>
 
       {!showForm && (
         <Button onClick={() => setShowForm(true)} size="sm" className="gap-1.5 mb-4">
@@ -443,6 +502,7 @@ function AlternativeSourcesSection() {
                 <TableHead>Title</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Source</TableHead>
+                <TableHead className="w-32">Quality</TableHead>
                 <TableHead>Date Added</TableHead>
                 <TableHead className="w-16"></TableHead>
               </TableRow>
@@ -458,6 +518,15 @@ function AlternativeSourcesSection() {
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {item.source_author || "—"}
+                  </TableCell>
+                  <TableCell>
+                    <QualitySelect
+                      value={item.script_strength as ScriptStrength | undefined}
+                      onChange={async (next) => {
+                        await updateAlternativeSourceStrength(item.id, next);
+                        refetch();
+                      }}
+                    />
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {new Date(item.created_at).toLocaleDateString()}

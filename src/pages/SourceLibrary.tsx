@@ -86,15 +86,20 @@ export default function SourceLibrary() {
             />
           </div>
 
-          <FileUploadCard
-            fileType="competitor_analysis"
-            title="🎙️ Commentary Transcripts (Secondary)"
-            description="Upload raw YouTube commentary transcripts for additional angles and context. Used for interpretation, framing, and idea discovery only. Never used as primary canon evidence or as a source for exact quotes from the books or films."
-            accept=".txt,.md"
-            files={competitorAnalysis}
-            onRefresh={refetch}
-            badge="Secondary Commentary — Not Canon"
-          />
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground leading-relaxed px-1">
+              <strong>Quality tagging is set by you, not by the AI.</strong> Strong = trusted research the writer can absorb and use freely as informed background. Useful = good for framing and audience awareness; specific claims need STRONG or canon backup. Limited = inspiration only; specific claims need STRONG or canon backup. Sources are never named in the script regardless of tier — the writer absorbs and rephrases.
+            </p>
+            <FileUploadCard
+              fileType="competitor_analysis"
+              title="🎙️ Commentary Transcripts (Secondary)"
+              description="Upload raw YouTube commentary transcripts for additional angles and context. Used for interpretation, framing, and idea discovery only. Never used as primary canon evidence or as a source for exact quotes from the books or films."
+              accept=".txt,.md"
+              files={competitorAnalysis}
+              onRefresh={refetch}
+              badge="Secondary Commentary — Not Canon"
+            />
+          </div>
 
           <FileUploadCard
             fileType="host_persona"
