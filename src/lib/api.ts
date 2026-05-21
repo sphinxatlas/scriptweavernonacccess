@@ -719,6 +719,33 @@ export async function deleteAlternativeSource(id: string): Promise<void> {
   if (error) throw error;
 }
 
+// ── Script Strength (quality tagging, user-controlled) ──
+export type ScriptStrength = 'strong' | 'useful' | 'limited' | null;
+
+export async function updateAlternativeSourceStrength(id: string, strength: ScriptStrength): Promise<void> {
+  const { error } = await supabase
+    .from('alternative_sources')
+    .update({ script_strength: strength })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function updateBriefTopicTranscriptStrength(id: string, strength: ScriptStrength): Promise<void> {
+  const { error } = await supabase
+    .from('brief_topic_transcripts')
+    .update({ script_strength: strength })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function updateSourceFileStrength(id: string, strength: ScriptStrength): Promise<void> {
+  const { error } = await supabase
+    .from('source_files')
+    .update({ script_strength: strength })
+    .eq('id', id);
+  if (error) throw error;
+}
+
 // ── Brief Links ──
 export async function linkFormatReferencesToBrief(briefId: string, transcriptIds: string[]) {
   await supabase.from('brief_format_reference_links').delete().eq('brief_id', briefId);
