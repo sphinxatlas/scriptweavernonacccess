@@ -53,70 +53,51 @@ import { toast } from "sonner";
 
 type ActiveStep = PipelineStepType;
 
-// Recognized log section headers the Melty Voice Pass prompt instructs the model to emit.
-// Order doesn't matter; we just need to detect that log content is present.
-const MELTY_LOG_HEADER_PATTERNS: RegExp[] = [
-  /^\s*#{0,4}\s*\*{0,2}HOOK AUDIT LOG/im,
-  /^\s*#{0,4}\s*\*{0,2}PERSONALITY BEAT LOG/im,
-  /^\s*#{0,4}\s*\*{0,2}BEAT LOG/im,
-  /^\s*#{0,4}\s*\*{0,2}MELTY VOICE PASS LOG/im,
-  /^\s*#{0,4}\s*\*{0,2}PARENTHETICAL ASIDE LOG/im,
-  /^\s*#{0,4}\s*\*{0,2}MOCK FORMAL REGISTER LOG/im,
-  /^\s*#{0,4}\s*\*{0,2}I VS WE AUDIT LOG/im,
-  /^\s*#{0,4}\s*\*{0,2}RESISTED SECTIONS/im,
-];
-
-// Fallback headers some model variants use instead of the "---" separator.
-const MELTY_REVISED_SCRIPT_HEADER_PATTERNS: RegExp[] = [
-  /^#{2,4}\s*REVISED SCRIPT/im,
-  /^#{2,4}\s*MELTY VOICE PASS APPLIED/im,
-];
+// Strip a chatty preamble ("Here is the revised script after...") and any
+// leading "## REVISED SCRIPT" / "### FINAL SCRIPT" header from the script side.
+function stripMeltyScriptHeaders(text: string): string {
+  let t = text.trim();
+  t = t.replace(/^(here is|below is|this is)[^\n]*\n+/i, "").trim();
+  t = t.replace(/^#{2,4}\s*(REVISED|FINAL)\s*SCRIPT[^\n]*\n+/i, "").trim();
+  t = t.replace(/^#{2,4}\s*MELTY VOICE PASS APPLIED[^\n]*\n+/i, "").trim();
+  return t;
+}
 
 function splitMeltyVoicePassOutput(text: string): { scriptBody: string; changeLog: string | null } {
   const lines = text.split(/\r?\n/);
 
-  // Detect whether any recognized log header appears in the first 60% of the
-  // output. Logs are always near the top; the script is usually much longer.
-  const scanLimit = Math.max(1, Math.floor(lines.length * 0.6));
-  let hasLogHeader = false;
-  for (let i = 0; i < scanLimit; i++) {
-    if (MELTY_LOG_HEADER_PATTERNS.some((re) => re.test(lines[i]))) {
-      hasLogHeader = true;
-      break;
-    }
-  }
-
-  if (!hasLogHeader) {
-    // No log structure detected — treat everything as the script.
-    return { scriptBody: text, changeLog: null };
-  }
-
-  // Primary: split on the first standalone "---" line that produces a
-  // substantial body afterwards (the prompt instructs "A line containing only: ---").
+  // Find every standalone "---" separator line.
+  const dashIndices: number[] = [];
   for (let i = 0; i < lines.length; i++) {
-    if (/^\s*-{3,}\s*$/.test(lines[i])) {
-      const before = lines.slice(0, i).join("\n").trim();
-      const after = lines.slice(i + 1).join("\n").trim();
-      if (after.length >= 200) {
-        return { scriptBody: after, changeLog: before || null };
-      }
-    }
+    if (/^\s*-{3,}\s*$/.test(lines[i])) dashIndices.push(i);
   }
 
-  // Fallback: split on a "## REVISED SCRIPT" / "### MELTY VOICE PASS APPLIED" heading.
-  for (let i = 0; i < lines.length; i++) {
-    if (MELTY_REVISED_SCRIPT_HEADER_PATTERNS.some((re) => re.test(lines[i]))) {
-      const before = lines.slice(0, i).join("\n").trim();
-      const after = lines.slice(i + 1).join("\n").trim();
-      if (after.length >= 200) {
-        return { scriptBody: after, changeLog: before || null };
-      }
-    }
+  // Try each "---" candidate. The Melty prompt instructs the model to emit
+  // the script and a log block separated by "---". The script side is always
+  // substantially longer than the log side (observed ratio: 3.4x to 14.5x).
+  // Accept the first split that produces two non-trivial chunks with the
+  // longer side at least 2x the shorter.
+  for (const idx of dashIndices) {
+    const top = lines.slice(0, idx).join("\n").trim();
+    const bot = lines.slice(idx + 1).join("\n").trim();
+
+    if (top.length < 200 || bot.length < 200) continue;
+
+    const topIsLonger = top.length > bot.length;
+    const longer = topIsLonger ? top : bot;
+    const shorter = topIsLonger ? bot : top;
+
+    if (longer.length < shorter.length * 2) continue;
+
+    return {
+      scriptBody: stripMeltyScriptHeaders(longer),
+      changeLog: shorter || null,
+    };
   }
 
-  // Logs detected but no separator found — preserve current behavior
-  // (save the whole blob) rather than guessing where the script starts.
-  return { scriptBody: text, changeLog: null };
+  // No reliable split found — treat the whole thing as the script,
+  // but still strip a leading preamble/header if present.
+  return { scriptBody: stripMeltyScriptHeaders(text), changeLog: null };
 }
 
 export default function PipelineView() {
