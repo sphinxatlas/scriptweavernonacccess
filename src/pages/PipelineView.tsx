@@ -63,40 +63,62 @@ function stripMeltyScriptHeaders(text: string): string {
   return t;
 }
 
+// Recognized log markers anywhere in a line (used to detect log content).
+const MELTY_LOG_LINE_RE = /\b(BEAT LOG|HOOK AUDIT LOG|PERSONALITY BEAT LOG|MELTY VOICE PASS LOG|BEAT COUNT|EARNED.?USE|PARENTHETICAL ASIDE LOG|MOCK FORMAL REGISTER LOG|I VS WE AUDIT LOG|RESISTED SECTIONS|REQUIRED LOGS)\b/i;
+
+// Script-start header line.
+const MELTY_SCRIPT_HEADER_LINE_RE = /^#{2,4}\s*(REVISED|FINAL)\s*SCRIPT|^#{2,4}\s*MELTY VOICE PASS APPLIED/i;
+
+// Standalone "---" separator line.
+const MELTY_DASH_LINE_RE = /^\s*-{3,}\s*$/;
+
 function splitMeltyVoicePassOutput(text: string): { scriptBody: string; changeLog: string | null } {
   const lines = text.split(/\r?\n/);
 
-  // Find every standalone "---" separator line.
-  const dashIndices: number[] = [];
+  // Locate the FIRST script-start header and the LAST line containing a log marker.
+  let firstHeaderIdx = -1;
+  let lastLogIdx = -1;
   for (let i = 0; i < lines.length; i++) {
-    if (/^\s*-{3,}\s*$/.test(lines[i])) dashIndices.push(i);
+    if (firstHeaderIdx === -1 && MELTY_SCRIPT_HEADER_LINE_RE.test(lines[i])) firstHeaderIdx = i;
+    if (MELTY_LOG_LINE_RE.test(lines[i])) lastLogIdx = i;
   }
 
-  // Try each "---" candidate. The Melty prompt instructs the model to emit
-  // the script and a log block separated by "---". The script side is always
-  // substantially longer than the log side (observed ratio: 3.4x to 14.5x).
-  // Accept the first split that produces two non-trivial chunks with the
-  // longer side at least 2x the shorter.
-  for (const idx of dashIndices) {
+  // CASE 1: a script header appears AFTER the last log marker. The output is
+  // logs-then-script (possibly with multiple "---" lines inside the log block).
+  // Split at the header. Everything before is the log block; strip any
+  // trailing "---" separator at the end of the log block.
+  if (firstHeaderIdx > -1 && lastLogIdx > -1 && firstHeaderIdx > lastLogIdx) {
+    const before = lines.slice(0, firstHeaderIdx).join("\n").trim()
+      .replace(/\n?\s*-{3,}\s*$/, "").trim();
+    const after = lines.slice(firstHeaderIdx + 1).join("\n").trim();
+    if (after.length >= 500) {
+      return { scriptBody: after, changeLog: before || null };
+    }
+  }
+
+  // CASE 2: fall back to "---" separator heuristic. Iterate in REVERSE so the
+  // LAST separator wins — this avoids splitting on a "---" that sits inside
+  // the log block when multiple separators exist.
+  const dashIndices: number[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (MELTY_DASH_LINE_RE.test(lines[i])) dashIndices.push(i);
+  }
+  for (let k = dashIndices.length - 1; k >= 0; k--) {
+    const idx = dashIndices[k];
     const top = lines.slice(0, idx).join("\n").trim();
     const bot = lines.slice(idx + 1).join("\n").trim();
-
     if (top.length < 200 || bot.length < 200) continue;
-
     const topIsLonger = top.length > bot.length;
     const longer = topIsLonger ? top : bot;
     const shorter = topIsLonger ? bot : top;
-
     if (longer.length < shorter.length * 2) continue;
-
     return {
       scriptBody: stripMeltyScriptHeaders(longer),
       changeLog: shorter || null,
     };
   }
 
-  // No reliable split found — treat the whole thing as the script,
-  // but still strip a leading preamble/header if present.
+  // No reliable split — treat as one piece, strip leading preamble/header.
   return { scriptBody: stripMeltyScriptHeaders(text), changeLog: null };
 }
 
