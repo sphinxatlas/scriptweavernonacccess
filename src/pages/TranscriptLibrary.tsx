@@ -383,6 +383,9 @@ function AlternativeSourcesSection() {
         forums, websites, meme research, or fan discussions. These sources help with audience
         insight, humor, fandom language, and angle inspiration. They are not treated as canon.
       </p>
+      <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+        <strong>{QUALITY_HELPER_TEXT}</strong>
+      </p>
 
       {!showForm && (
         <Button onClick={() => setShowForm(true)} size="sm" className="gap-1.5 mb-4">
@@ -499,6 +502,7 @@ function AlternativeSourcesSection() {
                 <TableHead>Title</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Source</TableHead>
+                <TableHead className="w-32">Quality</TableHead>
                 <TableHead>Date Added</TableHead>
                 <TableHead className="w-16"></TableHead>
               </TableRow>
@@ -514,6 +518,15 @@ function AlternativeSourcesSection() {
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {item.source_author || "—"}
+                  </TableCell>
+                  <TableCell>
+                    <QualitySelect
+                      value={item.script_strength as ScriptStrength | undefined}
+                      onChange={async (next) => {
+                        await updateAlternativeSourceStrength(item.id, next);
+                        refetch();
+                      }}
+                    />
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {new Date(item.created_at).toLocaleDateString()}
