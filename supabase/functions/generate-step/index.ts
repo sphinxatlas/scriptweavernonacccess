@@ -2416,7 +2416,7 @@ serve(async (req) => {
 
       const { data: topicTranscriptLinks } = await supabase
         .from("brief_topic_transcript_links")
-        .select("transcript_id, brief_topic_transcripts(channel_name, video_title, transcript)")
+        .select("transcript_id, brief_topic_transcripts(channel_name, video_title, transcript, script_strength)")
         .eq("brief_id", briefId);
       topicTranscripts = (topicTranscriptLinks || [])
         .map((r: any) => r.brief_topic_transcripts)
@@ -2424,7 +2424,7 @@ serve(async (req) => {
 
       const { data: altSourceLinks } = await supabase
         .from("brief_alternative_source_links")
-        .select("alternative_source_id, alternative_sources(title, source_type, source_author, url, content)")
+        .select("alternative_source_id, alternative_sources(title, source_type, source_author, url, content, script_strength)")
         .eq("brief_id", briefId);
       alternativeSources = (altSourceLinks || [])
         .map((r: any) => r.alternative_sources)
@@ -2436,7 +2436,7 @@ serve(async (req) => {
     if (isTestMode && Array.isArray(testInlineAlternativeSourceIds) && testInlineAlternativeSourceIds.length > 0) {
       const { data: altRows } = await supabase
         .from("alternative_sources")
-        .select("title, source_type, source_author, url, content")
+        .select("title, source_type, source_author, url, content, script_strength")
         .in("id", testInlineAlternativeSourceIds);
       alternativeSources = (altRows || []).filter(Boolean);
     }
@@ -2454,7 +2454,7 @@ serve(async (req) => {
     if (isTestMode && Array.isArray(testInlineTopicTranscriptIds) && testInlineTopicTranscriptIds.length > 0) {
       const { data: rows } = await supabase
         .from("brief_topic_transcripts")
-        .select("channel_name, video_title, transcript")
+        .select("channel_name, video_title, transcript, script_strength")
         .in("id", testInlineTopicTranscriptIds);
       topicTranscripts = (rows || []).filter(Boolean);
     }
@@ -2520,7 +2520,7 @@ serve(async (req) => {
           continue;
         }
         const meta = [s.source_type, s.source_author, s.url].filter(Boolean).join(" • ");
-        parts.push(`### "${s.title}"${meta ? ` (${meta})` : ""}\n${capped}`);
+        parts.push(`### "${s.title}" ${qualityTag(s.script_strength)}${meta ? ` (${meta})` : ""}\n${capped}`);
         total += capped.length;
       }
       if (parts.length === 0) return "";
@@ -2592,7 +2592,7 @@ serve(async (req) => {
 
       const topicTranscriptBlock = topicTranscripts.length > 0
         ? truncateTopicTranscripts(topicTranscripts, "creative_brief")
-            .map((r: any) => `### HP Topic Transcript: "${r.video_title}" by ${r.channel_name}\nUse for research leads and angle awareness. All claims must be confirmed in primary canon.\n\n${r.transcript}`)
+            .map((r: any) => `### HP Topic Transcript: "${r.video_title}" by ${r.channel_name} ${qualityTag(r.script_strength)}\nUse for research leads and angle awareness. Tier behavior governed by quality tag — see Source Hierarchy.\n\n${r.transcript}`)
             .join("\n\n---\n\n")
         : "No brief-specific HP topic transcripts provided for this brief.";
 
@@ -3070,8 +3070,22 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
       // Commentary Angles — secondary commentary context, NOT evidence
       if (commentaryChunks.length > 0) {
-        sections.push("### COMMENTARY ANGLES (Secondary — Needs Canon Confirmation)\nThese are from YouTube commentary transcripts. They may inspire angles and framing but are NOT canon evidence. All factual claims MUST be confirmed against books or movie transcripts before use.\n" +
-          commentaryChunks.map((c: any) => `[${c.file_name} — COMMENTARY — SECONDARY | Angle inspired by commentary transcript — requires canon confirmation]\n${c.content}`).join("\n\n---\n\n"));
+        const commentaryFileIds = Array.from(new Set(commentaryChunks.map((c: any) => c.file_id))).filter(Boolean);
+        const fileStrengthMap = new Map<string, string | null>();
+        if (commentaryFileIds.length > 0) {
+          const { data: strengthRows } = await supabase
+            .from("source_files")
+            .select("id, script_strength")
+            .in("id", commentaryFileIds as string[]);
+          for (const row of (strengthRows || []) as any[]) {
+            fileStrengthMap.set(row.id, row.script_strength);
+          }
+        }
+        sections.push("### COMMENTARY ANGLES (Secondary — Quality-tagged)\nThese are from YouTube commentary transcripts. Each excerpt carries a quality tag. The tag governs reliability per the Source Hierarchy (Tier 2.5–2.7). Source names never appear in the final script — the writer absorbs and rephrases regardless of tier.\n" +
+          commentaryChunks.map((c: any) => {
+            const tag = qualityTag(fileStrengthMap.get(c.file_id));
+            return `[${c.file_name} — COMMENTARY ${tag}]\n${c.content}`;
+          }).join("\n\n---\n\n"));
       }
 
       // Retrieval gaps
@@ -3371,7 +3385,7 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
       stepType === "selected_source_analysis" && topicTranscripts.length > 0
         ? `\n\n## Brief-Specific HP Topic Transcripts (THEORY, ANGLE, AND RESEARCH LEADS — not Tier 1 canon)\nTreat these as theory/angle/interpretation input. Factual canon claims still require Tier 1 book or movie transcript support. Theories may be used if plausible, coherent, and not obviously contradicted by canon. Frame theories honestly as theories.\n\n` +
           truncateTopicTranscripts(topicTranscripts, "ssa")
-            .map((r: any) => `### "${r.video_title}" by ${r.channel_name}\n${r.transcript}`)
+            .map((r: any) => `### "${r.video_title}" by ${r.channel_name} ${qualityTag(r.script_strength)}\n${r.transcript}`)
             .join("\n\n---\n\n")
         : "";
 
