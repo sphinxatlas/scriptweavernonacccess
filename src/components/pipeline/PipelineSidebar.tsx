@@ -55,8 +55,8 @@ export function PipelineSidebar({ brief, activeStep, setActiveStep, generating, 
         </div>
       )}
 
-
       <div className="space-y-1 flex-1">
+
         {PIPELINE_STEPS.filter((s) => s.visible).map((step) => {
           const hasOutput = !!getStepOutput(step.type);
           const isActive = activeStep === step.type;
