@@ -2706,7 +2706,11 @@ Generate the Creative Brief now.`;
 
     const targetCharacter = queryPack.targetCharacter;
 
-    if (!useVectorSearch) {
+    if (stepType === "full_script") {
+      // Retrieval skipped: the Full Script user message omits Source Material
+      // Excerpts and the Retrieval Query Pack, so nothing from retrieval is used.
+      console.log("[generate-step] full_script — skipping retrieval query pack search calls");
+    } else if (!useVectorSearch) {
       // ── Original FTS-only path (UNCHANGED for real pipeline) ──
       const retrievalResponses = await Promise.all(
         retrievalPlan.map((plan) =>
@@ -3110,7 +3114,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     const PREV_OUTPUT_CAP_LARGE = 20000; // SSA & Evidence Table can be longer
     const capPreviousOutput = (stepName: string, content: string): string => {
       const cap =
-        stepName === "selected_source_analysis" || stepName === "evidence_table"
+        stepName === "selected_source_analysis" || stepName === "evidence_table" || stepName === "script_evidence_pack"
           ? PREV_OUTPUT_CAP_LARGE
           : PREV_OUTPUT_CAP_DEFAULT;
       if (content.length <= cap) return content;
@@ -3486,12 +3490,12 @@ Mine all six categories now. Rank everything by surprise value, specificity, and
       userMessage = `## Topic Brief
 ${briefContext}
 
-## Retrieval Query Pack (Derived)
+${stepType === "full_script" ? "" : `## Retrieval Query Pack (Derived)
 ${queryPackContext}
 
-${guidanceBlock}${selectedHookBlock}${previousContext ? `## Previous Pipeline Steps\n${previousContext}\n\n` : ""}## Source Material Excerpts
+`}${guidanceBlock}${selectedHookBlock}${previousContext ? `## Previous Pipeline Steps\n${previousContext}\n\n` : ""}${stepType === "full_script" ? "" : `## Source Material Excerpts
 ${sourceContext}
-${topicTranscriptUserBlock}${altSourceUserBlock}${buildSecondarySkippedNotice()}
+`}${topicTranscriptUserBlock}${altSourceUserBlock}${buildSecondarySkippedNotice()}
 
 Please generate the ${stepType.replace(/_/g, " ")} based on the above information.`;
     }

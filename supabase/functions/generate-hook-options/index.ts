@@ -178,6 +178,8 @@ Each hook must feel like it could only have been written for this specific video
 
     const AUDIENCE_REACH_RULE = `AUDIENCE REACH RULE — mandatory for every hook:
 
+TITLE PROMISE OVERRIDE: The universal tension MUST be the same tension the title promises. The first two sentences of every hook must make the viewer feel the title claim is being confirmed and tested. A hook that opens on a tension unrelated to the title, or that delays the title promise past the second sentence, is invalid. If the universal-tension framing conflicts with immediate title confirmation, title confirmation wins.
+
 The hook must work for two audiences simultaneously:
 
 Harry Potter fans who know the books and canon
@@ -294,7 +296,7 @@ SOURCE PRIORITY (BINDING):
 
 REFINE MODE (BINDING):
 - You are returning EXACTLY ONE refined version of the provided hook via the structured tool call.
-- Preserve the hook's existing ROUTE (scene contradiction, character wound, fan debate, canon irony, or cold open mystery) unless the user feedback explicitly asks to change route.
+- Preserve the hook's existing ROUTE (scene contradiction, character wound, fan debate, or canon irony) unless the user feedback explicitly asks to change route.
 - Preserve the strongest specific images, names, and concrete moments from the original hook unless the feedback asks to swap them.
 - Apply the user's feedback precisely. Do not rewrite parts the feedback does not address.
 - This is a focused edit, not a fresh generation. The output should still feel recognizably like the same hook, only sharper.
@@ -353,7 +355,7 @@ Route taxonomy (metadata tags only):
 - character wound (the unhealed emotional pressure driving a character)
 - fan debate (a known disagreement among fans, framed honestly)
 - canon irony (a setup/payoff irony hidden in the text)
-- cold open mystery (open with an unresolved question that pulls the viewer in)
+
 
 Generate three hooks that are genuinely different from each other — different evidence entry points, different emotional registers, different open loops. Do not generate three versions of the same approach. Route labels MAY repeat across the three hooks if the underlying tensions are genuinely distinct, but the hooks themselves must not be variations of one idea.
 
@@ -378,7 +380,7 @@ If user feedback is provided, honor it (e.g. "darker", "more canon-led", "less j
 Each hook record must include:
 - hook_label: short human label (e.g. "Snape's last look")
 - hook_text: the spoken hook itself (~20–40 seconds of voiceover, paragraph form)
-- angle_route: one of [scene contradiction, character wound, fan debate, canon irony, cold open mystery]
+- angle_route: one of [scene contradiction, character wound, fan debate, canon irony]
 - why_it_works: one or two sentences on why this route opens the argument cleanly
 - open_loop: the explicit unresolved question or tension this hook leaves dangling
 - risk_or_weakness: one honest sentence on where this route could fail or feel weak
@@ -423,7 +425,6 @@ ${hookFeedback && hookFeedback.trim() ? `## User Hook Feedback (honor this)\n${h
             "character wound",
             "fan debate",
             "canon irony",
-            "cold open mystery",
           ],
         },
         why_it_works: { type: "string" },
