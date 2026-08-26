@@ -3535,10 +3535,10 @@ Mine all six categories now. Rank everything by surprise value, specificity, and
       userMessage = `## Topic Brief
 ${briefContext}
 
-${stepType === "full_script" ? "" : `## Retrieval Query Pack (Derived)
+${stepType === "full_script" || stepType === "angle_check" ? "" : `## Retrieval Query Pack (Derived)
 ${queryPackContext}
 
-`}${guidanceBlock}${selectedHookBlock}${previousContext ? `## Previous Pipeline Steps\n${previousContext}\n\n` : ""}${stepType === "full_script" ? "" : `## Source Material Excerpts
+`}${guidanceBlock}${selectedHookBlock}${previousContext ? `## Previous Pipeline Steps\n${previousContext}\n\n` : ""}${stepType === "full_script" || stepType === "angle_check" ? "" : `## Source Material Excerpts
 ${sourceContext}
 `}${topicTranscriptUserBlock}${altSourceUserBlock}${buildSecondarySkippedNotice()}
 
