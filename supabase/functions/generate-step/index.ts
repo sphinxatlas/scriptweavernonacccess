@@ -41,6 +41,7 @@ function getModelForStep(stepType: string) {
       "creative_brief",
       "six_category_extraction",
       "selected_source_analysis",
+      "angle_check",
       "evidence_table",
       "outline",
       "script_evidence_pack",
@@ -387,6 +388,8 @@ The inline rules and format instructions below are summaries of those documents.
 
 Note: Host Persona does not govern this step. The Beat Plan is neutral functional prose. Voice is added at the Full Script step.
 
+ANGLE CHECK PRECEDENCE (BINDING): If an Angle Check output appears in the previous pipeline context, its Binding Contention REPLACES the Creative Brief's Working Thesis and Hypothesized Surprising Answer as the contention this video argues. The Contention line at the top of the Beat Plan must state the Binding Contention. The Angle Check's "Consequences For The Beat Plan" are structural requirements. The Creative Brief remains directional for tone, title promise, and emotional arc only.
+
 BEAT PLAN
 
 Produce an internal beat plan for this video. The beat plan is a planning document, not a script. The Full Script step reads it and writes spoken prose from it. The beat plan is shown to the user for argument review before any script is written.
@@ -647,6 +650,9 @@ The Script Writing Instructions govern evidence discipline: only include evidenc
 The Anti-AI Writing Instructions govern phrasing. The Script Evidence Pack is a writer-facing brief. If it contains AI residue, that residue passes directly into the Full Script.
 
 The inline rules and format instructions below are summaries of those documents. If anything conflicts, the documents win.
+
+ANGLE CHECK PRECEDENCE (BINDING): If an Angle Check output appears in the previous pipeline context, its Binding Contention REPLACES the Creative Brief's Working Thesis and Hypothesized Surprising Answer as the contention this video argues. The Contention line at the top of the Beat Plan must state the Binding Contention. The Angle Check's "Consequences For The Beat Plan" are structural requirements. The Creative Brief remains directional for tone, title promise, and emotional arc only.
+
 
 Note: Host Persona governs this step at medium intensity only. The Pack is writer-facing functional prose. Full voice is added at the Full Script step.
 
@@ -1470,6 +1476,7 @@ const STEP_ORDER = [
   "creative_brief",
   "six_category_extraction",
   "selected_source_analysis",
+  "angle_check",
   "evidence_table",
   "outline",
   "script_evidence_pack",
@@ -2224,6 +2231,7 @@ serve(async (req) => {
       creative_brief:              { script: "strong",  antiAi: "light",   persona: "light"   },
       six_category_extraction:     { script: "medium",  antiAi: "light",   persona: "light"   },
       selected_source_analysis:    { script: "medium",  antiAi: "light",   persona: "light"   },
+      angle_check:                 { script: "medium",  antiAi: "light",   persona: "none"   },
       evidence_table:              { script: "medium",  antiAi: "light",   persona: "light"   },
       outline:                     { script: "highest", antiAi: "strong",  persona: "none"  },
       script_evidence_pack:        { script: "strong",  antiAi: "strong",  persona: "medium"  },
