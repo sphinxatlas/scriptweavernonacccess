@@ -11,9 +11,11 @@ interface PipelineSidebarProps {
   setActiveStep: (step: PipelineStepType) => void;
   generating: boolean;
   getStepOutput: (step: PipelineStepType) => any;
+  onDownloadPipeline?: () => void;
 }
 
-export function PipelineSidebar({ brief, activeStep, setActiveStep, generating, getStepOutput }: PipelineSidebarProps) {
+export function PipelineSidebar({ brief, activeStep, setActiveStep, generating, getStepOutput, onDownloadPipeline }: PipelineSidebarProps) {
+
   const navigate = useNavigate();
 
   return (
