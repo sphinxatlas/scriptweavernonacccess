@@ -1,19 +1,22 @@
 import { useNavigate } from "react-router-dom";
 import { PIPELINE_STEPS, type PipelineStepType } from "@/lib/api";
-import { ArrowLeft, CheckCircle2, Circle, GitCompare, Info, Clock } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, GitCompare, Info, Clock, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BriefDetailsSheet } from "./BriefDetailsSheet";
 
 interface PipelineSidebarProps {
+
   brief: any;
   activeStep: PipelineStepType;
   setActiveStep: (step: PipelineStepType) => void;
   generating: boolean;
   getStepOutput: (step: PipelineStepType) => any;
+  onDownloadPipeline?: () => void;
 }
 
-export function PipelineSidebar({ brief, activeStep, setActiveStep, generating, getStepOutput }: PipelineSidebarProps) {
+export function PipelineSidebar({ brief, activeStep, setActiveStep, generating, getStepOutput, onDownloadPipeline }: PipelineSidebarProps) {
   const navigate = useNavigate();
+
 
   return (
     <div className="w-56 border-r border-border p-4 flex flex-col">
@@ -32,16 +35,28 @@ export function PipelineSidebar({ brief, activeStep, setActiveStep, generating, 
             {brief.comparison_mode && <GitCompare className="w-3 h-3 text-primary shrink-0" />}
           </div>
           <p className="text-xs text-muted-foreground mt-1 line-clamp-3">{brief.description}</p>
-          <BriefDetailsSheet brief={brief}>
-            <button className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 mt-2 transition-colors">
-              <Info className="w-3 h-3" />
-              View all inputs
-            </button>
-          </BriefDetailsSheet>
+          <div className="flex items-center gap-3 mt-2">
+            <BriefDetailsSheet brief={brief}>
+              <button className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 transition-colors">
+                <Info className="w-3 h-3" />
+                View all inputs
+              </button>
+            </BriefDetailsSheet>
+            {onDownloadPipeline && (
+              <button
+                onClick={onDownloadPipeline}
+                className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 transition-colors"
+              >
+                <Download className="w-3 h-3" />
+                Download Pipeline
+              </button>
+            )}
+          </div>
         </div>
       )}
 
       <div className="space-y-1 flex-1">
+
         {PIPELINE_STEPS.filter((s) => s.visible).map((step) => {
           const hasOutput = !!getStepOutput(step.type);
           const isActive = activeStep === step.type;

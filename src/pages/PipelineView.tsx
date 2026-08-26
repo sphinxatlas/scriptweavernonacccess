@@ -357,7 +357,76 @@ export default function PipelineView() {
     URL.revokeObjectURL(url);
   };
 
+  const handleDownloadPipeline = () => {
+    if (!brief) return;
+
+    const slug = (brief.title as string)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    const exportOrder: PipelineStepType[] = [
+      "creative_brief",
+      "six_category_extraction",
+      "selected_source_analysis",
+      "angle_check",
+      "evidence_table",
+      "outline",
+      "script_evidence_pack",
+      "full_script",
+      "melty_voice_pass",
+      "melty_voice_pass_log",
+      "anti_ai_output",
+    ];
+
+    const present = exportOrder.filter((step) => {
+      const output = outputs.find((o) => o.step_type === step);
+      return output && typeof output.content === "string" && output.content.trim().length > 0;
+    });
+
+    const lines: string[] = [];
+    lines.push(`PIPELINE EXPORT | ${brief.title} | exported ${new Date().toISOString()}`);
+
+    const targetMin = brief.target_min_words ?? "";
+    const targetMax = brief.target_max_words ?? "";
+    const comparison = brief.comparison_mode ? "on" : "off";
+    const characters = (brief.characters || []).join(", ") || "none";
+    const focus = (brief.focus_areas || []).join(", ") || "none";
+    const prioritySources = (brief.priority_sources || []).join(", ") || "none";
+    lines.push(
+      `brief: target=${targetMin}-${targetMax}w | comparison=${comparison} | characters=${characters} | focus=${focus} | priority_sources=${prioritySources}`,
+    );
+
+    const angleNote = ((brief.angle_note as string) || "").replace(/\r?\n/g, " / ");
+    lines.push(`angle_note: ${angleNote}`);
+
+    lines.push(`steps included: ${present.join(", ")}`);
+
+    for (const step of present) {
+      const output = outputs.find((o) => o.step_type === step)!;
+      const content = (output.content as string).trim();
+      const charCount = content.length;
+      const wordCount = content.split(/\s+/).filter(Boolean).length;
+      lines.push("");
+      lines.push(
+        `## ${step} | ${new Date((output as any).created_at).toISOString()} | ${charCount} chars | ${wordCount} words`,
+      );
+      lines.push("");
+      lines.push(content);
+    }
+
+    const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${slug || "pipeline"}-pipeline.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Pipeline downloaded (${present.length} steps)`);
+  };
+
   useEffect(() => {
+
     if (generating && contentRef.current) {
       contentRef.current.scrollTop = contentRef.current.scrollHeight;
     }
@@ -573,7 +642,9 @@ export default function PipelineView() {
           setActiveStep={setActiveStep}
           generating={generating}
           getStepOutput={getStepOutput}
+          onDownloadPipeline={handleDownloadPipeline}
         />
+
 
         <div className="flex-1 flex flex-col">
           <>
