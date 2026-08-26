@@ -1,0 +1,1 @@
+ALTER TYPE public.pipeline_step_type ADD VALUE IF NOT EXISTS 'angle_check';
