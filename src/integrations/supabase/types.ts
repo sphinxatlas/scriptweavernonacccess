@@ -733,6 +733,7 @@ export type Database = {
         | "melty_voice_pass"
         | "melty_voice_pass_log"
         | "anti_ai_output"
+        | "angle_check"
       source_file_type:
         | "book"
         | "transcript"
@@ -885,6 +886,7 @@ export const Constants = {
         "melty_voice_pass",
         "melty_voice_pass_log",
         "anti_ai_output",
+        "angle_check",
       ],
       source_file_type: [
         "book",

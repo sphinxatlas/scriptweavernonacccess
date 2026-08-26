@@ -41,6 +41,7 @@ function getModelForStep(stepType: string) {
       "creative_brief",
       "six_category_extraction",
       "selected_source_analysis",
+      "angle_check",
       "evidence_table",
       "outline",
       "script_evidence_pack",
@@ -387,6 +388,8 @@ The inline rules and format instructions below are summaries of those documents.
 
 Note: Host Persona does not govern this step. The Beat Plan is neutral functional prose. Voice is added at the Full Script step.
 
+ANGLE CHECK PRECEDENCE (BINDING): If an Angle Check output appears in the previous pipeline context, its Binding Contention REPLACES the Creative Brief's Working Thesis and Hypothesized Surprising Answer as the contention this video argues. The Contention line at the top of the Beat Plan must state the Binding Contention. The Angle Check's "Consequences For The Beat Plan" are structural requirements. The Creative Brief remains directional for tone, title promise, and emotional arc only.
+
 BEAT PLAN
 
 Produce an internal beat plan for this video. The beat plan is a planning document, not a script. The Full Script step reads it and writes spoken prose from it. The beat plan is shown to the user for argument review before any script is written.
@@ -647,6 +650,9 @@ The Script Writing Instructions govern evidence discipline: only include evidenc
 The Anti-AI Writing Instructions govern phrasing. The Script Evidence Pack is a writer-facing brief. If it contains AI residue, that residue passes directly into the Full Script.
 
 The inline rules and format instructions below are summaries of those documents. If anything conflicts, the documents win.
+
+ANGLE CHECK PRECEDENCE (BINDING): If an Angle Check output appears in the previous pipeline context, its Binding Contention REPLACES the Creative Brief's Working Thesis and Hypothesized Surprising Answer as the contention this video argues. The Contention line at the top of the Beat Plan must state the Binding Contention. The Angle Check's "Consequences For The Beat Plan" are structural requirements. The Creative Brief remains directional for tone, title promise, and emotional arc only.
+
 
 Note: Host Persona governs this step at medium intensity only. The Pack is writer-facing functional prose. Full voice is added at the Full Script step.
 
@@ -1466,10 +1472,47 @@ SOURCE HIERARCHY REMINDER:
 Books and movie transcripts are Tier 1 canon. Lexicon is secondary reference. Permanent commentary transcripts and the selected secondary sources are interpretive only. Your output flows into the Evidence Table, Outline, and Full Script — those steps will treat your candidate claims as leads to validate, NOT as final proof.
 `;
 
+STEP_PROMPTS["angle_check"] = `You are a story editor stress-testing the argument for a YouTube video before any evidence is curated or structured.
+
+You receive the Creative Brief (with its Working Thesis), the Insights & Research extraction (especially THE ANGLE, THE CONTRADICTION, and THE SUBTEXT sections), and the Selected Source Analysis (especially Underdeveloped Opportunities, Original Synthesis Opportunities, and Audience Objections).
+
+Your single question: is the Working Thesis the strongest contention this material supports, or is there a sharper one hiding in the extraction that the brief could not have known about?
+
+A sharper contention is one that: reframes the expected argument rather than just confirming it, explains MORE of the evidence with ONE idea, survives the strongest audience objection instead of ignoring it, or reveals a structural cause where the current thesis only describes symptoms. A contention about WHY something happened or WHY it was inevitable beats a contention that only catalogs THAT it happened.
+
+Test honestly. Most theses should SURVIVE. Replacing a good thesis with a clever-sounding one is a failure. Only replace when the sharper contention is clearly supported by the extraction already in front of you — never invent facts about the source material, never rely on claims flagged as needing validation, never require evidence the extraction does not contain.
+
+OUTPUT FORMAT (exactly this structure):
+
+## Angle Check
+
+### Verdict
+
+One of: THESIS STANDS / THESIS SHARPENED / THESIS REPLACED
+
+### Binding Contention
+
+The contention every downstream step must now build toward. If the verdict is THESIS STANDS, restate the Working Thesis verbatim. If SHARPENED or REPLACED, state the new contention in one sentence.
+
+### Reasoning
+
+3-6 sentences. If the thesis stands, name the strongest challenger you considered and why it lost. If sharpened or replaced, name exactly which extraction findings support the new contention and what the old thesis failed to explain.
+
+### Strongest Objection And Answer
+
+The single strongest audience objection to the binding contention, and the one-sentence answer the script must be able to deliver.
+
+### Consequences For The Beat Plan
+
+2-4 bullet points: what the binding contention demands structurally — what must now be proven, what the payoff must land on, what the old framing would have wasted beats on.
+
+Hard rules: never introduce factual claims about the source material that are not present in the upstream extraction. Never use secondary-source claims as proof. If the extraction is too thin to judge, output THESIS STANDS and say so in the reasoning.`;
+
 const STEP_ORDER = [
   "creative_brief",
   "six_category_extraction",
   "selected_source_analysis",
+  "angle_check",
   "evidence_table",
   "outline",
   "script_evidence_pack",
@@ -2224,6 +2267,7 @@ serve(async (req) => {
       creative_brief:              { script: "strong",  antiAi: "light",   persona: "light"   },
       six_category_extraction:     { script: "medium",  antiAi: "light",   persona: "light"   },
       selected_source_analysis:    { script: "medium",  antiAi: "light",   persona: "light"   },
+      angle_check:                 { script: "medium",  antiAi: "light",   persona: "none"   },
       evidence_table:              { script: "medium",  antiAi: "light",   persona: "light"   },
       outline:                     { script: "highest", antiAi: "strong",  persona: "none"  },
       script_evidence_pack:        { script: "strong",  antiAi: "strong",  persona: "medium"  },
@@ -2706,10 +2750,11 @@ Generate the Creative Brief now.`;
 
     const targetCharacter = queryPack.targetCharacter;
 
-    if (stepType === "full_script") {
+    if (stepType === "full_script" || stepType === "angle_check") {
       // Retrieval skipped: the Full Script user message omits Source Material
       // Excerpts and the Retrieval Query Pack, so nothing from retrieval is used.
-      console.log("[generate-step] full_script — skipping retrieval query pack search calls");
+      // Angle Check reads previous outputs only and runs no retrieval of its own.
+      console.log(`[generate-step] ${stepType} — skipping retrieval query pack search calls`);
     } else if (!useVectorSearch) {
       // ── Original FTS-only path (UNCHANGED for real pipeline) ──
       const retrievalResponses = await Promise.all(
@@ -3302,7 +3347,7 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
 
     // Full Script source precedence: SEP controls; Creative Brief is directional only.
     if (stepType === "full_script") {
-      systemPrompt += `\n\nSOURCE PRECEDENCE (BINDING): The Script Evidence Pack is the CONTROLLING source for argument route, beat sequence, evidence, source-grounded claims, fan objections, repetition control, and hook/payoff execution. The Creative Brief is DIRECTIONAL ONLY: title promise, thesis direction, tone, emotional arc, intended payoff. If they conflict, follow the Script Evidence Pack. Do not import Creative Brief sentences verbatim. Do not restate the thesis using Creative Brief phrasing more than once. Treat the Creative Brief as a compass, not as script copy.`;
+      systemPrompt += `\n\nSOURCE PRECEDENCE (BINDING): The Script Evidence Pack is the CONTROLLING source for argument route, beat sequence, evidence, source-grounded claims, fan objections, repetition control, and hook/payoff execution. The Creative Brief is DIRECTIONAL ONLY: title promise, thesis direction, tone, emotional arc, intended payoff. If they conflict, follow the Script Evidence Pack. Do not import Creative Brief sentences verbatim. Do not restate the thesis using Creative Brief phrasing more than once. Treat the Creative Brief as a compass, not as script copy. If an Angle Check appears in context via the Script Evidence Pack's framing, the SEP already encodes its contention — do not revert to Creative Brief thesis phrasing.`;
       systemPrompt += `\n\nANTI-INVENTION RULE (BINDING):\nThe Script Evidence Pack contains every canon claim, scene, quote, and evidence point that the Full Script is permitted to use. You may not introduce any of the following if they are not present in the Script Evidence Pack:\n- Specific scenes from books or films\n- Direct or paraphrased quotes\n- Canon facts about characters, events, or settings\n- Specific moments framed as evidence\n- References to deleted scenes, behind-the-scenes material, or interviews\n\nIf a beat in the Script Evidence Pack is thin or has weak evidence, write the beat with the evidence available. Do not fill the gap by adding scenes, quotes, or details that are not in the Pack. If a beat genuinely cannot be written from the Pack alone, generate the beat as written and add a single bracketed flag at that point in the script: [FLAG: insufficient evidence in Pack].\n\nThe Source Material Excerpts section provided in the user message exists only as context. You may not introduce any claim from those excerpts that is not also present in the Script Evidence Pack. The Script Evidence Pack is the only source of permitted content.\n\nThis rule applies regardless of how natural, plausible, or argumentatively useful an additional claim might seem.`;
       systemPrompt += `\n\nNO META-COMMENTARY RULE (BINDING — HARD):\nThe script is viewer-facing copy. The viewer must NEVER see any reference to the script's own research process, evidence pipeline, or source availability. Specifically, you must NOT:\n- Mention the evidence pack, Script Evidence Pack, source library, retrieval, transcripts, books-vs-films coverage gaps, or what sources were or were not available.\n- Say anything like "I can't prove this part", "the transcript doesn't show", "evidence is limited here", "the books don't confirm", "we don't have a scene for this", or any equivalent acknowledgement of a gap in the source material.\n- Reference the pipeline, the model, the system, instructions, or limitations of any kind.\n\nIf a beat lacks the evidence to make the comparison or claim it was meant to make, you have exactly three permitted moves: (1) work around the gap silently using whatever evidence IS available, (2) narrow the claim to what can actually be supported, or (3) omit the beat entirely and continue.\n\n[FLAG: ...] markers and any other bracketed flags are INTERNAL ONLY and must NEVER appear in the script output. This OVERRIDES the earlier instruction to insert [FLAG: insufficient evidence in Pack] — do not insert that marker or any equivalent. Handle gaps silently using the three moves above.`;
     }
@@ -3490,10 +3535,10 @@ Mine all six categories now. Rank everything by surprise value, specificity, and
       userMessage = `## Topic Brief
 ${briefContext}
 
-${stepType === "full_script" ? "" : `## Retrieval Query Pack (Derived)
+${stepType === "full_script" || stepType === "angle_check" ? "" : `## Retrieval Query Pack (Derived)
 ${queryPackContext}
 
-`}${guidanceBlock}${selectedHookBlock}${previousContext ? `## Previous Pipeline Steps\n${previousContext}\n\n` : ""}${stepType === "full_script" ? "" : `## Source Material Excerpts
+`}${guidanceBlock}${selectedHookBlock}${previousContext ? `## Previous Pipeline Steps\n${previousContext}\n\n` : ""}${stepType === "full_script" || stepType === "angle_check" ? "" : `## Source Material Excerpts
 ${sourceContext}
 `}${topicTranscriptUserBlock}${altSourceUserBlock}${buildSecondarySkippedNotice()}
 
