@@ -68,7 +68,7 @@ HIDDEN INTERNAL WORKFLOW (do all of this silently before output)
    f) Polished-but-empty lines, fake profundity, empty superlatives.
    g) Over-explained sentences where the point already landed in the previous sentence.
 3. Rewrite each marked spot AND the immediately surrounding sentences as needed so the rewrite reads naturally.
-4. PRESERVE strong human lines (vivid, specific, funny, sharply Melty) untouched unless they violate a hard rule.
+4. PRESERVE strong human lines (vivid, specific, funny, sharply in the host persona's voice) untouched unless they violate a hard rule.
 5. Run a SILENT FINAL CHECK: re-scan the revised script for any remaining banned structure or softened cousin or repeated "That's..." cluster. If any remain, rewrite them again. Repeat until clean.
 6. Output ONLY the complete revised script.
 
@@ -98,14 +98,14 @@ Rule: Preserve the MEANING of any banned construction, but change the SENTENCE S
 
 Example rewrites (style only — do not copy verbatim):
 
-BAD: "The tragedy of Movie Ginny goes beyond being quiet. The films freeze her..."
-GOOD: "The films leave Movie Ginny frozen at the Gryffindor table, still trying to open her mouth while the story moves on without her."
+BAD: "The problem with the sequel goes beyond being slow. The film freezes its lead..."
+GOOD: "The film leaves its lead frozen in the doorway, still trying to get a word out while the story moves on without him."
 
-BAD: "That's Ginny's social confidence in three seconds."
-GOOD: "In three seconds, Ginny does something the films almost never let her do: she leads the room without orbiting Harry."
+BAD: "That's the company's entire strategy in three seconds."
+GOOD: "In three seconds, the CEO does something the company almost never lets anyone do: he admits the old plan failed, on camera, without a press release."
 
 BAD: "That's it. That's the seed."
-GOOD: "The seed is already there: Ginny is good at Harry's favorite thing, and she's already moving before he notices."
+GOOD: "The seed is already there: the underdog is good at the champion's favorite thing, and she's already moving before he notices."
 
 Formula: "The frustration isn't about X. It's about Y." — this pattern survives when the Y clause contains a specific concrete detail rather than an abstraction. Test: does Y name something specific? "It's about what fills the minutes she gets" — specific, keep the rewrite direction but ensure Y lands on a concrete image not a category.
 
@@ -127,9 +127,9 @@ HARD PRESERVATION RULES
 - Preserve facts, thesis, evidence, source meaning, claim strength (only weaken unsupported claims), section order, argument structure, canon interpretation, and intended payoff.
 - Do NOT add new evidence, invent quotes/details, add new canon claims, or add unsupported jokes.
 - Preserve EDITOR REFERENCES / editor tags exactly (e.g. [BOOK: ...], [FILM: ...], [LEXICON: ...]).
-- PRESERVE STRONG HUMAN LINES. If a line is vivid, funny, specific, personally voiced, or sharply Melty, leave it alone. Do NOT corporate-flatten it. Example of what NOT to do:
-    Original: "And I'm not mad at Hermione for saying it. I'm mad at the adaptation for needing her to say it."
-    Bad revision: "My frustration here is with the adaptation..."
+- PRESERVE STRONG HUMAN LINES. If a line is vivid, funny, specific, or personally voiced in the host persona's register, leave it alone. Do NOT corporate-flatten it. Example of what NOT to do:
+    Original: "And I'm not mad at the player for missing the shot. I'm mad at the coach for drawing up a play that needed him to miss it."
+    Bad revision: "My frustration here is with the coaching decision..."
   The original is stronger. Keep it.
 - Do NOT make the script more polished, more neutral, or more essay-like. The goal is LESS AI, not MORE smooth.
 
@@ -145,7 +145,7 @@ The voiceover must never reference source material as a document or research art
 - 'according to the transcript / script'
 - Any phrasing that reveals the writer is reading from a file or document
 
-Natural references are fine and encouraged: 'in the book,' 'in this scene,' 'in Goblet of Fire,' 'in the film,' 'in the chapter.' The distinction is: describe what happens in the story or on screen, not what a document says about it. The viewer should never feel like they are watching someone present research notes.
+Natural references are fine and encouraged: 'in the book,' 'in this scene,' 'in the source material,' 'in the film,' 'in the chapter.' The distinction is: describe what happens in the story or on screen, not what a document says about it. The viewer should never feel like they are watching someone present research notes.
 
 ================================================================
 OUTPUT
@@ -167,7 +167,7 @@ ORDER OF AUTHORITY (do not collapse these into one blended pass):
    - hook / payoff function of the passage
    - whether the passage actually moves the script forward
 
-3. HOST PERSONA / MELTY — the SECONDARY voice lens, applied on top of the Script Writing rewrite. The voice should be: sharp, book-aware, specific, opinionated, human, funny when it genuinely lands, and natural as spoken YouTube commentary. Do NOT over-Meltyify. Do NOT inflate.
+3. HOST PERSONA — the SECONDARY voice lens, applied on top of the Script Writing rewrite. The voice should be: sharp, book-aware, specific, opinionated, human, funny when it genuinely lands, and natural as spoken YouTube commentary. Do NOT over-personify. Do NOT inflate.
 
 4. ANTI AI WRITING INSTRUCTIONS — applied LAST as a harsh, silent FINAL CLEANUP pass over the wording produced by steps 2 and 3. Anti AI is NOT the creative driver. It does NOT get to flatten the passage into bland neutral writing. Its only job is to scrub residue from the already-rewritten passage.
 
@@ -204,11 +204,53 @@ DO NOT
 - Add commentary, notes, diagnosis, markdown headings, preamble, or change log.
 - Return multiple options unless the user asks.
 - Swap one banned contrast formula for another — rewrite the structure entirely.
-- Let the Anti AI pass strip out genuine Melty voice or specificity. It removes residue, not character.
+- Let the Anti AI pass strip out genuine host persona voice or specificity. It removes residue, not character.
 
 OUTPUT RULES (STRICT):
 - Return ONLY the revised passage text.
 - No commentary, no notes, no labels, no markdown headings, no explanation, no preamble, no change log, no quotation wrappers.`;
+
+const HOST_VOICE_PASS_PROCEDURE = `You are running a HOST VOICE PASS on a finished YouTube script. The host persona document loaded below is the ONLY source of voice, tone, humor style, signature lines, and register. You supply no voice of your own. The procedure below defines HOW the pass runs; the persona document defines WHAT the voice is.
+
+================================================================
+HARD PRESERVATION RULES (BINDING)
+================================================================
+- Do not change the script's arguments, evidence, claim strength, structure, factual claims, section order, or canon meaning.
+- Preserve all editor tags (e.g. [BOOK: ...], [FILM: ...], [LEXICON: ...]) exactly.
+- Do not invent new evidence.
+
+================================================================
+MANDATORY PROCEDURE — run every step, in this order
+================================================================
+
+1. HOOK AUDIT (mandatory, runs first): the opening must land with pressure, a specific tension, or a sharp claim in the persona's voice. If the hook is weak, rewrite it in the persona's voice. Log the original and the revised hook under "HOOK AUDIT LOG".
+
+2. PERSONALITY BEAT QUOTA: take the total word count of the script, divide by 300, round down — that is the MINIMUM number of personality beats in the output. A beat is one of: a reactive interjection, a signature line from the persona document, a persona-coded aside specific to this script's argument, or a burst rhythm fragment used for impact. A beat only counts if it meets ALL of the following:
+   (a) it is specific to this script's argument,
+   (b) it adds information, sharpens a point, exposes a contradiction, or releases tension — emphasis filler does not count,
+   (c) it sounds like the persona, not a host performing energy,
+   (d) it does not instruct the viewer,
+   (e) it does not undercut a serious emotional beat.
+   Log every beat under "PERSONALITY BEAT LOG" with its location, type, and exact text. Do not output the script until the beat count meets the minimum.
+
+3. PARENTHETICAL ASIDES (mandatory): embed reactive one-liners between dashes inside analytical or evidence sentences. Each aside must be shorter than the sentence containing it, and must add a reaction, not information. MINIMUM 3 per script. After the pass, count the asides logged under "PARENTHETICAL ASIDE LOG". If fewer than 3, add more before outputting.
+
+4. ANALYTICAL RUN CHECK (mandatory): scan the full script for any run of four or more consecutive analytical sentences with no reaction, aside, or rhythm break. Every such run gets one beat inserted. Log each fix under "ANALYTICAL RUN LOG" with the first few words of the run.
+
+5. BURST RHYTHM AUDIT (mandatory): in any 200-word stretch containing fewer than three sentences under eight words, add at least one short sentence for impact. Log each fix under "BURST RHYTHM LOG".
+
+6. SIGNATURE TECHNIQUES (mandatory): the persona document may define named techniques (specific humor moves, register shifts, recurring devices). Apply EVERY technique the persona document defines at least once where the script's content gives a natural opening, following that document's own rules for when each technique is and is not allowed. Log each use under "SIGNATURE TECHNIQUE LOG", naming the technique and quoting the line. If a technique has no natural opening in this script, log it as skipped with a one-line reason.
+
+7. NARRATOR VOICE AUDIT (mandatory): enforce the narrator voice rules defined in the persona document (e.g. first person rules, banned narrator constructions). Log every correction under "NARRATOR VOICE AUDIT LOG".
+
+8. EDITING PHILOSOPHY: this is targeted insertion, not rewriting. Do not rewrite sections that already carry the persona's voice. Do not solve structural problems with personality. Do not make the script louder — make it sharper. If a beat cannot be added honestly, log the section under "RESISTED SECTIONS" with a one-line reason.
+
+9. HANDOFF FLAGGING: if any wording was added that a later anti-AI cleanup might strip as generic (earned superlatives, deliberate caps emphasis, reactive fragments), list them under "EARNED USE LOG" so the cleanup pass preserves them.
+
+================================================================
+OUTPUT ORDER (STRICT)
+================================================================
+Output ALL logs first, in the order given above (HOOK AUDIT LOG, PERSONALITY BEAT LOG, PARENTHETICAL ASIDE LOG, ANALYTICAL RUN LOG, BURST RHYTHM LOG, SIGNATURE TECHNIQUE LOG, NARRATOR VOICE AUDIT LOG, RESISTED SECTIONS, EARNED USE LOG), then a line containing only ---, then the COMPLETE revised script.`;
 
 
 
@@ -307,7 +349,7 @@ serve(async (req) => {
       const missing: string[] = [];
       if (!scriptWriting.text || scriptWriting.text.trim().length < 20) missing.push("Script Writing Instructions");
       if (!antiAi.text || antiAi.text.trim().length < 20) missing.push("Anti AI Writing Instructions");
-      if (!hostPersona.text || hostPersona.text.trim().length < 20) missing.push("Host Persona / Melty");
+      if (!hostPersona.text || hostPersona.text.trim().length < 20) missing.push("Host Persona");
       if (missing.length > 0) {
         return new Response(
           JSON.stringify({
@@ -339,42 +381,30 @@ serve(async (req) => {
       systemPrompt =
         PASSAGE_REWRITE_SYSTEM +
         `\n\n## SCRIPT WRITING INSTRUCTIONS (PRIMARY — drives the rewrite)\n\n${scriptWriting.text}` +
-        `\n\n## HOST PERSONA / MELTY (SECONDARY — voice on top of the rewrite)\n\n${hostPersona.text}` +
+        `\n\n## HOST PERSONA (SECONDARY — voice on top of the rewrite)\n\n${hostPersona.text}` +
         `\n\n## ANTI AI WRITING INSTRUCTIONS (FINAL CLEANUP — applied last to scrub residue, NOT the creative driver)\n\n${antiAi.text}`;
 
-      userPrompt = `Rewrite the following passage using the strict hierarchy above: user feedback first, then Script Writing Instructions, then Melty voice, then a final silent Anti AI cleanup pass over the result. Return ONLY the revised passage text — no commentary, labels, headings, or explanations.
+      userPrompt = `Rewrite the following passage using the strict hierarchy above: user feedback first, then Script Writing Instructions, then host persona voice, then a final silent Anti AI cleanup pass over the result. Return ONLY the revised passage text — no commentary, labels, headings, or explanations.
 
 ${userFeedback ? `## USER FEEDBACK\n${userFeedback}\n\n` : ""}## PASSAGE
 ${scriptText}`;
     } else if (passType === "melty_voice") {
-      // Melty Voice Pass — load both governing documents as separate layers
-      // via the loadLayer pattern, each injected at HIGHEST BINDING intensity.
-      // The uploaded documents are the primary instruction source for this
-      // pass (NOT the inline constant).
-      const [hostPersona, voicePass] = await Promise.all([
-        loadGuidanceText(supabase, ["host_persona"]),
-        loadGuidanceText(supabase, ["melty_voice_pass"]),
-      ]);
+      // Host Voice Pass (API passType "melty_voice" for compatibility).
+      // The persona document is the ONLY voice authority; the procedure
+      // above (HOST_VOICE_PASS_PROCEDURE) defines the mechanics in code.
+      const hostPersona = await loadGuidanceText(supabase, ["host_persona"]);
 
-      const missing: string[] = [];
-      if (!hostPersona.text || hostPersona.text.trim().length < 20) missing.push("Host Persona (HOST_PERSONA_MELTY_V3)");
-      if (!voicePass.text || voicePass.text.trim().length < 20) missing.push("Melty Voice Pass (MELTY_VOICE_PASS_V2)");
-      if (missing.length > 0) {
+      if (!hostPersona.text || hostPersona.text.trim().length < 20) {
         return new Response(
           JSON.stringify({
-            error: `Melty Voice Pass requires these documents in your Source Library: ${missing.join(", ")}.`,
+            error: "Host Voice Pass requires a Host Persona document in your Source Library.",
           }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
 
-      for (const [label, g] of [
-        ["Host Persona", hostPersona],
-        ["Melty Voice Pass", voicePass],
-      ] as const) {
-        if (g.truncated) {
-          console.warn(`WARNING: Guidance document '${label}' truncated at ${GUIDANCE_CHUNK_LIMIT} chunks.`);
-        }
+      if (hostPersona.truncated) {
+        console.warn(`WARNING: Guidance document 'Host Persona' truncated at ${GUIDANCE_CHUNK_LIMIT} chunks.`);
       }
 
       console.log("[polish-pass]", JSON.stringify({
@@ -382,28 +412,16 @@ ${scriptText}`;
         scope: "full_script",
         hostPersonaChunks: hostPersona.chunks,
         hostPersonaTruncated: hostPersona.truncated,
-        voicePassChunks: voicePass.chunks,
-        voicePassTruncated: voicePass.truncated,
         scriptChars: scriptText.length,
       }));
 
-      const meltyPreamble = `You are running the MELTY VOICE PASS on a finished YouTube script.
-
-The two documents loaded below are the ONLY governing instructions for this pass. Read both in full before making any changes. Follow them literally — including the beat count formula, burst rhythm audit, HUMOR TRIGGER MAP cross-reference, density checklist, required logs, and earned-use flagging rules for the Anti-AI handoff.
-
-Hard preservation rules: do not change the script's arguments, evidence, claim strength, structure, factual claims, section order, or canon meaning. Preserve all editor tags. Do not invent new evidence.`;
-
       systemPrompt =
-        meltyPreamble +
-        `\n\n## HOST PERSONA — HOST_PERSONA_MELTY_V3 (HIGHEST BINDING — voice identity)\n` +
-        `This is the voice identity document. Every sentence of the revised script must sound like this person.\n\n${hostPersona.text}` +
+        HOST_VOICE_PASS_PROCEDURE +
+        `\n\n## HOST PERSONA DOCUMENT (voice authority for this pass)\n\n${hostPersona.text}` +
         (hostPersona.truncated ? `\n\n[Note: Host Persona document was truncated to the first ${GUIDANCE_CHUNK_LIMIT} chunks.]` : "") +
-        `\n\n## MELTY VOICE PASS — MELTY_VOICE_PASS_V2 (HIGHEST BINDING — operational checklist)\n` +
-        `This document governs HOW the pass runs: beat count formula, burst rhythm audit, HUMOR TRIGGER MAP cross-reference, density checklist, required logs, and earned-use flagging for the Anti-AI handoff. Execute it literally.\n\n${voicePass.text}` +
-        (voicePass.truncated ? `\n\n[Note: Melty Voice Pass document was truncated to the first ${GUIDANCE_CHUNK_LIMIT} chunks.]` : "") +
         NO_META_COMMENTARY_RULE;
 
-      userPrompt = `Run the Melty Voice Pass on the following script, following both governing documents above literally (including all required logs and the operational checklist).
+      userPrompt = `Run the HOST VOICE PASS on the following script, following the procedure above literally (including every mandatory audit, quota, and required log, in the output order specified).
 
 ## CURRENT SCRIPT
 ${scriptText}`;
