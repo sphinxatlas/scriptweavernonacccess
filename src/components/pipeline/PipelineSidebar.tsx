@@ -4,8 +4,8 @@ import { ArrowLeft, CheckCircle2, Circle, GitCompare, Info, Clock, Download } fr
 import { cn } from "@/lib/utils";
 import { BriefDetailsSheet } from "./BriefDetailsSheet";
 
-
 interface PipelineSidebarProps {
+
   brief: any;
   activeStep: PipelineStepType;
   setActiveStep: (step: PipelineStepType) => void;
