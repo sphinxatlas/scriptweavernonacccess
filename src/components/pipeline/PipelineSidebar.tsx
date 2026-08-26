@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { PIPELINE_STEPS, type PipelineStepType } from "@/lib/api";
-import { ArrowLeft, CheckCircle2, Circle, GitCompare, Info, Clock } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, GitCompare, Info, Clock, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BriefDetailsSheet } from "./BriefDetailsSheet";
+
 
 interface PipelineSidebarProps {
   brief: any;
