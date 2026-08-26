@@ -425,8 +425,8 @@ export default function PipelineView() {
     toast.success(`Pipeline downloaded (${present.length} steps)`);
   };
 
-
   useEffect(() => {
+
     if (generating && contentRef.current) {
       contentRef.current.scrollTop = contentRef.current.scrollHeight;
     }
