@@ -642,7 +642,9 @@ export default function PipelineView() {
           setActiveStep={setActiveStep}
           generating={generating}
           getStepOutput={getStepOutput}
+          onDownloadPipeline={handleDownloadPipeline}
         />
+
 
         <div className="flex-1 flex flex-col">
           <>
