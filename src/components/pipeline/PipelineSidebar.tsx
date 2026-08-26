@@ -15,8 +15,8 @@ interface PipelineSidebarProps {
 }
 
 export function PipelineSidebar({ brief, activeStep, setActiveStep, generating, getStepOutput, onDownloadPipeline }: PipelineSidebarProps) {
-
   const navigate = useNavigate();
+
 
   return (
     <div className="w-56 border-r border-border p-4 flex flex-col">
