@@ -9,6 +9,7 @@ export type PipelineStepType =
   | "creative_brief"
   | "six_category_extraction"
   | "selected_source_analysis"
+  | "angle_check"
   | "evidence_table"
   | "outline"
   | "script_evidence_pack"
@@ -39,6 +40,12 @@ export const PIPELINE_STEPS: {
     type: "selected_source_analysis",
     label: "Selected Source Analysis",
     description: "Pressure-tests the angle against the secondary sources selected for this brief — surfaces fan signals, overused angles, objections, and original synthesis routes. Never canon proof.",
+    visible: true,
+  },
+  {
+    type: "angle_check",
+    label: "Angle Check",
+    description: "Stress-tests the working thesis against the research. Confirms it or replaces it with a sharper contention — binding for all later steps.",
     visible: true,
   },
   {
