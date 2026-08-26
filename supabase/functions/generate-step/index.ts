@@ -2750,10 +2750,11 @@ Generate the Creative Brief now.`;
 
     const targetCharacter = queryPack.targetCharacter;
 
-    if (stepType === "full_script") {
+    if (stepType === "full_script" || stepType === "angle_check") {
       // Retrieval skipped: the Full Script user message omits Source Material
       // Excerpts and the Retrieval Query Pack, so nothing from retrieval is used.
-      console.log("[generate-step] full_script — skipping retrieval query pack search calls");
+      // Angle Check reads previous outputs only and runs no retrieval of its own.
+      console.log(`[generate-step] ${stepType} — skipping retrieval query pack search calls`);
     } else if (!useVectorSearch) {
       // ── Original FTS-only path (UNCHANGED for real pipeline) ──
       const retrievalResponses = await Promise.all(
