@@ -505,13 +505,6 @@ export async function streamGenerateStep(
         revisionFeedback: options?.revisionFeedback,
         previousFullScript: options?.previousFullScript,
         hookDirection: options?.hookDirection,
-        testMode: options?.testMode,
-        testInlineBrief: options?.testInlineBrief,
-        testInlineOutputs: options?.testInlineOutputs,
-        testInlineAlternativeSourceIds: options?.testInlineAlternativeSourceIds,
-        testInlineFormatReferenceIds: options?.testInlineFormatReferenceIds,
-        testInlineTopicTranscriptIds: options?.testInlineTopicTranscriptIds,
-        testInlineUseVectorSearch: options?.testInlineUseVectorSearch,
       }),
     }
   );
