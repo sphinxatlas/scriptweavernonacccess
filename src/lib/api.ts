@@ -489,14 +489,6 @@ export async function streamGenerateStep(
     revisionFeedback?: string;
     previousFullScript?: string;
     hookDirection?: string;
-    testMode?: boolean;
-    testInlineBrief?: Record<string, any>;
-    testInlineOutputs?: Record<string, string>;
-    testInlineAlternativeSourceIds?: string[];
-    testInlineFormatReferenceIds?: string[];
-    testInlineTopicTranscriptIds?: string[];
-    testInlineUseVectorSearch?: boolean;
-    onDiagnostics?: (d: any) => void;
   },
 ) {
   const resp = await fetch(
