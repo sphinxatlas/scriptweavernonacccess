@@ -2445,11 +2445,11 @@ serve(async (req) => {
       hostPersonaContext = (personaChunks || []).map((c: any) => c.content).join("\n\n");
     }
 
-    // Fetch format/topic/alt links — skipped entirely in test mode.
+    // Fetch format/topic/alt links for this brief.
     let formatRefs: any[] = [];
     let topicTranscripts: any[] = [];
     let alternativeSources: any[] = [];
-    if (!isTestMode) {
+    {
       const { data: formatRefLinks } = await supabase
         .from("brief_format_reference_links")
         .select("transcript_id, format_reference_transcripts(channel_name, video_title, transcript)")
@@ -2475,33 +2475,6 @@ serve(async (req) => {
         .filter(Boolean);
     }
 
-    // In test mode, allow the orchestrator to pass alternative source IDs
-    // directly so SSA receives the same inputs as a real run.
-    if (isTestMode && Array.isArray(testInlineAlternativeSourceIds) && testInlineAlternativeSourceIds.length > 0) {
-      const { data: altRows } = await supabase
-        .from("alternative_sources")
-        .select("title, source_type, source_author, url, content, script_strength")
-        .in("id", testInlineAlternativeSourceIds);
-      alternativeSources = (altRows || []).filter(Boolean);
-    }
-
-    // Test-mode passthrough for format reference + HP topic transcript IDs.
-    // The real pipeline reads these from brief_*_links; in test mode the
-    // orchestrator supplies the IDs directly so the same data flows through.
-    if (isTestMode && Array.isArray(testInlineFormatReferenceIds) && testInlineFormatReferenceIds.length > 0) {
-      const { data: rows } = await supabase
-        .from("format_reference_transcripts")
-        .select("channel_name, video_title, transcript")
-        .in("id", testInlineFormatReferenceIds);
-      formatRefs = (rows || []).filter(Boolean);
-    }
-    if (isTestMode && Array.isArray(testInlineTopicTranscriptIds) && testInlineTopicTranscriptIds.length > 0) {
-      const { data: rows } = await supabase
-        .from("brief_topic_transcripts")
-        .select("channel_name, video_title, transcript, script_strength")
-        .in("id", testInlineTopicTranscriptIds);
-      topicTranscripts = (rows || []).filter(Boolean);
-    }
 
     // ─────────────────────────────────────────────────────────────────────
     // SECONDARY SOURCE TOKEN BUDGETS
