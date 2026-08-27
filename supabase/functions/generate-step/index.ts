@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// ─── HYBRID VECTOR SEARCH (test-mode only) ───────────────────────────────
+// ─── HYBRID VECTOR SEARCH (standard retrieval path) ──────────────────────
 // Embeds query strings via OpenAI text-embedding-3-small (1536d) for use with
 // the match_chunks(vector, source_type, k) RPC. Returns null entries when the
 // API key is missing or the call fails — callers must fall back gracefully.
@@ -2138,41 +2138,10 @@ serve(async (req) => {
       revisionFeedback,
       previousFullScript,
       hookDirection,
-      // ── TEST MODE (Pipeline Test tab) ──
-      // When testMode === true, the function:
-      //   - never touches topic_briefs / pipeline_outputs / evidence_points
-      //   - uses the supplied inline brief + inline previous outputs
-      //   - applies per-step input caps (see TEST_MODE_INSTRUCTIONS below)
-      //   - halves SSA secondary budgets
-      //   - emits a `: diagnostics {json}` SSE header with retrieval +
-      //     guidance counts for the orchestrator to assemble its report
-      // No schema changes, no DB writes, no impact on normal runs.
-      testMode,
-      testInlineBrief,
-      testInlineOutputs,
-      // Optional inline alternative source IDs (test mode only). When
-      // supplied, the function fetches these from alternative_sources by id
-      // and injects them into SSA exactly as the real pipeline does.
-      testInlineAlternativeSourceIds,
-      // Optional inline format reference + HP topic transcript IDs (test
-      // mode only). Wired through identically to the real pipeline so SSA /
-      // Creative Brief receive the same inputs as a real run.
-      testInlineFormatReferenceIds,
-      testInlineTopicTranscriptIds,
-      // Test-mode-only flag. When true (and we are in test mode), the retrieval
-      // block runs hybrid Reciprocal Rank Fusion over FTS + pgvector match_chunks
-      // instead of FTS only. The real pipeline never reads this flag.
-      testInlineUseVectorSearch,
     } = await req.json();
     if (!stepType) throw new Error("stepType is required");
-    if (!testMode && !briefId) throw new Error("briefId is required");
-    const isTestMode = testMode === true;
-    // Inline upstream outputs supplied by the Pipeline Test orchestrator,
-    // keyed by step_type. Used in place of pipeline_outputs reads.
-    const inlineOutputsMap: Record<string, string> =
-      isTestMode && testInlineOutputs && typeof testInlineOutputs === "object"
-        ? (testInlineOutputs as Record<string, string>)
-        : {};
+    if (!briefId) throw new Error("briefId is required");
+
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -2349,21 +2318,9 @@ serve(async (req) => {
       }));
     }
 
-    // Get the topic brief — inline in test mode (no DB read).
+    // Get the topic brief.
     let brief: any;
-    if (isTestMode) {
-      if (!testInlineBrief || typeof testInlineBrief !== "object") {
-        throw new Error("testMode requires testInlineBrief");
-      }
-      brief = {
-        id: "test-mode",
-        comparison_mode: false,
-        priority_sources: [],
-        target_min_words: 700,
-        target_max_words: 800,
-        ...testInlineBrief,
-      };
-    } else {
+    {
       const { data: b, error: briefError } = await supabase
         .from("topic_briefs")
         .select("*")
@@ -2407,10 +2364,8 @@ serve(async (req) => {
     const guidanceSseHeader = guidanceWarnings.length > 0
       ? `: guidance_warnings ${JSON.stringify(guidanceWarnings)}\n\n`
       : "";
-    // Captured by closure; assigned later in test mode just before the AI call.
-    let __diagnosticsHeader = "";
     const wrapStreamWithWarnings = (upstream: ReadableStream<Uint8Array>) => {
-      const header = guidanceSseHeader + __diagnosticsHeader;
+      const header = guidanceSseHeader;
       if (!header) return upstream;
       const encoder = new TextEncoder();
       return new ReadableStream<Uint8Array>({
@@ -2445,11 +2400,11 @@ serve(async (req) => {
       hostPersonaContext = (personaChunks || []).map((c: any) => c.content).join("\n\n");
     }
 
-    // Fetch format/topic/alt links — skipped entirely in test mode.
+    // Fetch format/topic/alt links for this brief.
     let formatRefs: any[] = [];
     let topicTranscripts: any[] = [];
     let alternativeSources: any[] = [];
-    if (!isTestMode) {
+    {
       const { data: formatRefLinks } = await supabase
         .from("brief_format_reference_links")
         .select("transcript_id, format_reference_transcripts(channel_name, video_title, transcript)")
@@ -2475,33 +2430,6 @@ serve(async (req) => {
         .filter(Boolean);
     }
 
-    // In test mode, allow the orchestrator to pass alternative source IDs
-    // directly so SSA receives the same inputs as a real run.
-    if (isTestMode && Array.isArray(testInlineAlternativeSourceIds) && testInlineAlternativeSourceIds.length > 0) {
-      const { data: altRows } = await supabase
-        .from("alternative_sources")
-        .select("title, source_type, source_author, url, content, script_strength")
-        .in("id", testInlineAlternativeSourceIds);
-      alternativeSources = (altRows || []).filter(Boolean);
-    }
-
-    // Test-mode passthrough for format reference + HP topic transcript IDs.
-    // The real pipeline reads these from brief_*_links; in test mode the
-    // orchestrator supplies the IDs directly so the same data flows through.
-    if (isTestMode && Array.isArray(testInlineFormatReferenceIds) && testInlineFormatReferenceIds.length > 0) {
-      const { data: rows } = await supabase
-        .from("format_reference_transcripts")
-        .select("channel_name, video_title, transcript")
-        .in("id", testInlineFormatReferenceIds);
-      formatRefs = (rows || []).filter(Boolean);
-    }
-    if (isTestMode && Array.isArray(testInlineTopicTranscriptIds) && testInlineTopicTranscriptIds.length > 0) {
-      const { data: rows } = await supabase
-        .from("brief_topic_transcripts")
-        .select("channel_name, video_title, transcript, script_strength")
-        .in("id", testInlineTopicTranscriptIds);
-      topicTranscripts = (rows || []).filter(Boolean);
-    }
 
     // ─────────────────────────────────────────────────────────────────────
     // SECONDARY SOURCE TOKEN BUDGETS
@@ -2523,21 +2451,11 @@ serve(async (req) => {
     // OUTPUT instead, via previousContext.
     // ─────────────────────────────────────────────────────────────────────
     type BudgetProfile = "ssa" | "creative_brief";
-    // Test-mode halves the SSA + Creative Brief secondary budgets so the test
-    // run is materially cheaper while still exercising the same logic.
-    const TRANSCRIPT_BUDGETS: Record<BudgetProfile, { perItem: number; total: number }> = isTestMode
-      ? { ssa: { perItem: 30000, total: 140000 }, creative_brief: { perItem: 6000, total: 40000 } }
-      : { ssa: { perItem: 60000, total: 280000 }, creative_brief: { perItem: 12000, total: 80000 } };
-    const ALT_BUDGETS: Record<BudgetProfile, { perItem: number; total: number }> = isTestMode
-      ? { ssa: { perItem: 20000, total: 80000 }, creative_brief: { perItem: 4000, total: 20000 } }
-      : { ssa: { perItem: 40000, total: 160000 }, creative_brief: { perItem: 8000, total: 40000 } };
+    const TRANSCRIPT_BUDGETS: Record<BudgetProfile, { perItem: number; total: number }> =
+      { ssa: { perItem: 60000, total: 280000 }, creative_brief: { perItem: 12000, total: 80000 } };
+    const ALT_BUDGETS: Record<BudgetProfile, { perItem: number; total: number }> =
+      { ssa: { perItem: 40000, total: 160000 }, creative_brief: { perItem: 8000, total: 40000 } };
 
-    // In test mode, restrict Selected Source Analysis to at most 2 sources
-    // per type so the diagnostic run is bounded.
-    if (isTestMode && stepType === "selected_source_analysis") {
-      topicTranscripts = topicTranscripts.slice(0, 2);
-      alternativeSources = alternativeSources.slice(0, 2);
-    }
 
     // Visible warnings collected per request for log/observability.
     const truncationWarnings: string[] = [];
@@ -2623,11 +2541,7 @@ serve(async (req) => {
     // ── CREATIVE BRIEF STEP ──
     if (stepType === "creative_brief") {
       if (formatRefs.length === 0) {
-        if (isTestMode) {
-          // Test mode does not require format references — synthesize none.
-        } else {
-          throw new Error("No format reference transcripts linked to this brief. Please add at least one format reference in the Transcript Library before generating the Creative Brief.");
-        }
+        throw new Error("No format reference transcripts linked to this brief. Please add at least one format reference in the Transcript Library before generating the Creative Brief.");
       }
 
       const formatRefBlock = formatRefs
@@ -2646,22 +2560,6 @@ serve(async (req) => {
       // a single source of guidance.
       let systemPrompt = STEP_PROMPTS["creative_brief"];
       systemPrompt += layeredGuidanceBlock;
-      if (isTestMode) {
-        systemPrompt +=
-          `\n\n## PIPELINE TEST MODE — INPUT CAPS (BINDING)\n` +
-          `This is a diagnostic run. Halve the secondary-source budget you would normally use. Produce a real, complete Creative Brief — do not truncate. Keep the output tight (target ~400 words).`;
-        const diagnostics = {
-          step: "creative_brief",
-          model: getModelForStep(stepType),
-          retrieval: { book: 0, transcript: 0, lexicon: 0, commentary: 0, zero_result_queries: 0, total_queries: 0 },
-          guidance: {
-            script_instructions: { loaded: guidanceLayers.scriptInstructions.chunksRead > 0, truncated: guidanceLayers.scriptInstructions.truncated },
-            anti_ai: { loaded: guidanceLayers.antiAiInstructions.chunksRead > 0, truncated: guidanceLayers.antiAiInstructions.truncated },
-            host_persona: { loaded: guidanceLayers.hostPersona.chunksRead > 0, truncated: guidanceLayers.hostPersona.truncated },
-          },
-        };
-        __diagnosticsHeader = `: diagnostics ${JSON.stringify(diagnostics)}\n\n`;
-      }
 
       const userMessage = `## Video Title
 ${brief.title}
@@ -2735,8 +2633,6 @@ Generate the Creative Brief now.`;
     // Runs FTS + pgvector match_chunks per (query, source) and fuses with
     // Reciprocal Rank Fusion. All downstream scoring (priority boost,
     // primary-query boost, character boost, floor quota) is unchanged.
-    // The legacy testInlineUseVectorSearch flag is retained for back-compat
-    // but no longer gates execution.
     const useVectorSearch = true;
     const hybridArmDiagnostics: any[] = [];
 
@@ -2798,8 +2694,8 @@ Generate the Creative Brief now.`;
         });
       });
     } else {
-      // ── Hybrid FTS + Vector with Reciprocal Rank Fusion (TEST MODE ONLY) ──
-      console.log("[generate-step] HYBRID VECTOR SEARCH ENABLED (test mode)");
+      // ── Hybrid FTS + Vector with Reciprocal Rank Fusion (standard path) ──
+      console.log("[generate-step] HYBRID VECTOR SEARCH ENABLED (standard retrieval path)");
 
       // 1. Embed every unique query string ONCE.
       const uniqueQueries = Array.from(new Set(retrievalPlan.map((p) => p.query)));
@@ -2898,7 +2794,7 @@ Generate the Creative Brief now.`;
           }
         });
 
-        // Per-arm top-5 for diagnostics SSE comment.
+        // Per-arm top-5 for retrieval logging.
         hybridArmDiagnostics.push({
           query: plan.query,
           source_type: plan.sourceType,
@@ -2921,9 +2817,9 @@ Generate the Creative Brief now.`;
 
     // In comparison mode, enforce balanced limits; otherwise use standard limits.
     // Test mode caps every source type at 10 chunks (per spec).
-    const bookLimit = isTestMode ? 10 : (isComparison ? 20 : 20);
-    const transcriptLimit = isTestMode ? 10 : (isComparison ? 20 : 20);
-    const lexiconLimit = isTestMode ? 10 : (isComparison ? 5 : 10);
+    const bookLimit = isComparison ? 20 : 20;
+    const transcriptLimit = isComparison ? 20 : 20;
+    const lexiconLimit = isComparison ? 5 : 10;
 
     const bookChunksSorted = Array.from(mergedByType.book.values())
       .sort((a, b) => b._score - a._score);
@@ -3014,15 +2910,11 @@ Generate the Creative Brief now.`;
     };
     console.log("RETRIEVAL DEBUG:", JSON.stringify(debugInfo, null, 2));
 
-    // Get previous pipeline outputs for this brief — inline in test mode.
+    // Get previous pipeline outputs for this brief.
     const stepIndex = STEP_ORDER.indexOf(stepType);
     const previousSteps = STEP_ORDER.slice(0, stepIndex);
     let previousOutputs: { step_type: string; content: string }[] | null = null;
-    if (isTestMode) {
-      previousOutputs = previousSteps
-        .filter((s) => inlineOutputsMap[s])
-        .map((s) => ({ step_type: s, content: inlineOutputsMap[s] }));
-    } else {
+    {
       const { data } = await supabase
         .from("pipeline_outputs")
         .select("step_type, content")
@@ -3180,9 +3072,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     // Full Script, so we surface approved high-risk evidence + their author
     // notes here as well, so the model can honour the user's per-point
     // guidance ("use carefully", "frame as interpretation only", etc.) while
-    // structuring the script. Runs in BOTH real and test mode so the approval
-    // flow can be validated end-to-end before a real run; the test
-    // orchestrator persists evidence_points under a synthetic test brief id.
+    // structuring the script.
     if (stepType === "outline" || stepType === "script_evidence_pack") {
       try {
         const { data: evRows } = await supabase
@@ -3250,8 +3140,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
       // ── APPROVED EVIDENCE POINTS (structured, post-review) ──
       // Pull rows from public.evidence_points for this brief, excluding any
-      // user-rejected rows. Runs in both real and test mode (test mode uses a
-      // synthetic brief id persisted by the Pipeline Test orchestrator).
+      // user-rejected rows.
       try {
         const { data: evRows } = await supabase
           .from("evidence_points")
@@ -3305,10 +3194,8 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     let systemPrompt = STEP_PROMPTS[stepType] || "You are a helpful writing assistant.";
 
     // Inject dynamic target length instructions for outline and full_script.
-    // Test mode forces a ~700-word target so the Full Script is a complete
-    // (not truncated) short script driven by a 4-beat plan.
-    const targetMin = isTestMode ? 650 : (brief.target_min_words ?? 1400);
-    const targetMax = isTestMode ? 800 : (brief.target_max_words ?? 1600);
+    const targetMin = brief.target_min_words ?? 1400;
+    const targetMax = brief.target_max_words ?? 1600;
 
     if (stepType === "full_script") {
       systemPrompt = systemPrompt.replace(
@@ -3444,13 +3331,10 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
         : "";
 
     if (stepType === "selected_source_analysis") {
-      // Pull Creative Brief and Insights & Research — inline in test mode.
+      // Pull Creative Brief and Insights & Research.
       let creativeBriefContent = "";
       let insightsContent = "";
-      if (isTestMode) {
-        creativeBriefContent = inlineOutputsMap["creative_brief"] || "";
-        insightsContent = inlineOutputsMap["six_category_extraction"] || "";
-      } else {
+      {
         const { data: cbOut } = await supabase
           .from("pipeline_outputs")
           .select("content")
@@ -3493,11 +3377,9 @@ ${topicTranscriptUserBlock}${altSourceUserBlock}${buildSecondarySkippedNotice()}
 
 Now produce the Selected Source Analysis in the exact format specified. Be honest about source weight — never promote a secondary-source claim to canon. Surface what's overused, what's underdeveloped, what objections exist, and where original synthesis is possible against the canon extraction above.`;
     } else if (stepType === "six_category_extraction") {
-      // Get creative brief output — inline in test mode.
+      // Get creative brief output.
       let creativeBriefContent = "";
-      if (isTestMode) {
-        creativeBriefContent = inlineOutputsMap["creative_brief"] || "";
-      } else {
+      {
         const { data: creativeBriefOutput } = await supabase
           .from("pipeline_outputs")
           .select("content")
@@ -3549,7 +3431,7 @@ Please generate the ${stepType.replace(/_/g, " ")} based on the above informatio
       // Use the previous Full Script the client supplied, falling back to the latest
       // saved full_script output for this brief if the client didn't pass one.
       let prevScript = (previousFullScript || "").toString();
-      if (!prevScript && !isTestMode) {
+      if (!prevScript) {
         const { data: prevOut } = await supabase
           .from("pipeline_outputs")
           .select("content")
@@ -3586,72 +3468,6 @@ Please generate the ${stepType.replace(/_/g, " ")} based on the above informatio
     const effectiveStepKey = isFullScriptRevision ? "full_script_revision" : stepType;
     systemPromptFinal += buildGuidanceBlock(effectiveStepKey, guidanceLayers);
 
-    // ── PIPELINE TEST MODE — input caps as binding instructions ──
-    // The model still runs each step to real completion; we cap WHAT GOES IN,
-    // not what comes out. These caps match the Pipeline Test spec.
-    if (isTestMode) {
-      const caps: string[] = [];
-      if (stepType === "six_category_extraction") {
-        caps.push("HARD CAP: Output a maximum of 2 items per category. Pick the strongest 2 in each category and stop.");
-      }
-      if (stepType === "evidence_table") {
-        caps.push("HARD CAP: Output a maximum of 6 evidence rows total. Pick the 6 strongest, most argument-useful rows.");
-      }
-      if (stepType === "outline") {
-        caps.push("HARD CAP: Output exactly 4 beats. Beat 1 must be the hook beat. Beat 4 must contain the final payoff. Every beat must still include its full re-hook, function, and hook/payoff relation lines — do not skip the rehook logic.");
-      }
-      if (stepType === "script_evidence_pack") {
-        caps.push("HARD CAP: The Beat Plan you receive is capped at 4 beats. Build the Pack from those 4 beats only. Do not invent additional beats.");
-      }
-      if (stepType === "full_script") {
-        caps.push("HARD CAP: This is a 4-beat script. Write a COMPLETE script that delivers all 4 beats from the Pack and lands a real payoff. Target 650–800 words. Do not truncate. Do not stop mid-beat. Run the hook → 3 body beats → payoff to full completion.");
-      }
-      if (caps.length > 0) {
-        systemPromptFinal +=
-          `\n\n## PIPELINE TEST MODE — INPUT CAPS (BINDING)\n` +
-          `This is a diagnostic test run. Inputs are capped to keep cost low; every step still runs to real completion.\n` +
-          caps.map((c) => `- ${c}`).join("\n");
-      }
-    }
-
-    // Diagnostics SSE comment for the Pipeline Test orchestrator.
-    let diagnosticsSseHeader = "";
-    if (isTestMode) {
-      const diagnostics = {
-        step: stepType,
-        model: getModelForStep(stepType),
-        retrieval: {
-          book: bookChunks.length,
-          transcript: transcriptChunks.length,
-          lexicon: lexiconChunks.length,
-          commentary: commentaryChunks.length,
-          zero_result_queries: matchesPerQuery.filter(
-            (m: any) => (m.book + m.transcript + m.lexicon) === 0,
-          ).length,
-          total_queries: matchesPerQuery.length,
-        },
-        hybrid_vector: useVectorSearch ? {
-          enabled: true,
-          arms: hybridArmDiagnostics,
-        } : { enabled: false },
-        guidance: {
-          script_instructions: {
-            loaded: guidanceLayers.scriptInstructions.chunksRead > 0,
-            truncated: guidanceLayers.scriptInstructions.truncated,
-          },
-          anti_ai: {
-            loaded: guidanceLayers.antiAiInstructions.chunksRead > 0,
-            truncated: guidanceLayers.antiAiInstructions.truncated,
-          },
-          host_persona: {
-            loaded: guidanceLayers.hostPersona.chunksRead > 0,
-            truncated: guidanceLayers.hostPersona.truncated,
-          },
-        },
-      };
-      diagnosticsSseHeader = `: diagnostics ${JSON.stringify(diagnostics)}\n\n`;
-      __diagnosticsHeader = diagnosticsSseHeader;
-    }
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {

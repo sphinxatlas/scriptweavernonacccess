@@ -489,14 +489,6 @@ export async function streamGenerateStep(
     revisionFeedback?: string;
     previousFullScript?: string;
     hookDirection?: string;
-    testMode?: boolean;
-    testInlineBrief?: Record<string, any>;
-    testInlineOutputs?: Record<string, string>;
-    testInlineAlternativeSourceIds?: string[];
-    testInlineFormatReferenceIds?: string[];
-    testInlineTopicTranscriptIds?: string[];
-    testInlineUseVectorSearch?: boolean;
-    onDiagnostics?: (d: any) => void;
   },
 ) {
   const resp = await fetch(
@@ -513,13 +505,6 @@ export async function streamGenerateStep(
         revisionFeedback: options?.revisionFeedback,
         previousFullScript: options?.previousFullScript,
         hookDirection: options?.hookDirection,
-        testMode: options?.testMode,
-        testInlineBrief: options?.testInlineBrief,
-        testInlineOutputs: options?.testInlineOutputs,
-        testInlineAlternativeSourceIds: options?.testInlineAlternativeSourceIds,
-        testInlineFormatReferenceIds: options?.testInlineFormatReferenceIds,
-        testInlineTopicTranscriptIds: options?.testInlineTopicTranscriptIds,
-        testInlineUseVectorSearch: options?.testInlineUseVectorSearch,
       }),
     }
   );
@@ -547,14 +532,7 @@ export async function streamGenerateStep(
       textBuffer = textBuffer.slice(newlineIndex + 1);
 
       if (line.endsWith("\r")) line = line.slice(0, -1);
-      if (line.startsWith(":")) {
-        // SSE comment line — may carry diagnostics from test mode.
-        const m = line.match(/^:\s*diagnostics\s+(.+)$/);
-        if (m && options?.onDiagnostics) {
-          try { options.onDiagnostics(JSON.parse(m[1])); } catch { /* ignore */ }
-        }
-        continue;
-      }
+      if (line.startsWith(":")) continue;
       if (line.trim() === "") continue;
       if (!line.startsWith("data: ")) continue;
 
