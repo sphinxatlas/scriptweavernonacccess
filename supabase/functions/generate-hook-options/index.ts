@@ -20,12 +20,6 @@ const BodySchema = z.object({
       angle_route: z.string().max(100).optional(),
     })
     .optional(),
-  // ── Pipeline Test mode ──
-  // When testMode === true, do not read pipeline_outputs by briefId; use the
-  // inline Creative Brief + Script Evidence Pack supplied by the orchestrator.
-  testMode: z.boolean().optional(),
-  testInlineCreativeBrief: z.string().max(200000).optional(),
-  testInlineScriptEvidencePack: z.string().max(200000).optional(),
 });
 
 // TODO: extract shared guidance loader (currently duplicated from generate-step/index.ts)
@@ -88,9 +82,8 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-    const { briefId, hookFeedback, refineFromHook, testMode, testInlineCreativeBrief, testInlineScriptEvidencePack } = parsed.data;
+    const { briefId, hookFeedback, refineFromHook } = parsed.data;
     const isRefine = !!refineFromHook;
-    const isTestMode = testMode === true;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -103,13 +96,10 @@ serve(async (req) => {
     }
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch Creative Brief and Script Evidence Pack — inline in test mode.
+    // Fetch Creative Brief and Script Evidence Pack from pipeline_outputs.
     let cb: { content: string } | undefined;
     let sep: { content: string } | undefined;
-    if (isTestMode) {
-      cb = testInlineCreativeBrief ? { content: testInlineCreativeBrief } : undefined;
-      sep = testInlineScriptEvidencePack ? { content: testInlineScriptEvidencePack } : undefined;
-    } else {
+    {
       const { data: outputs, error: outErr } = await supabase
         .from("pipeline_outputs")
         .select("step_type, content")
