@@ -2349,21 +2349,9 @@ serve(async (req) => {
       }));
     }
 
-    // Get the topic brief — inline in test mode (no DB read).
+    // Get the topic brief.
     let brief: any;
-    if (isTestMode) {
-      if (!testInlineBrief || typeof testInlineBrief !== "object") {
-        throw new Error("testMode requires testInlineBrief");
-      }
-      brief = {
-        id: "test-mode",
-        comparison_mode: false,
-        priority_sources: [],
-        target_min_words: 700,
-        target_max_words: 800,
-        ...testInlineBrief,
-      };
-    } else {
+    {
       const { data: b, error: briefError } = await supabase
         .from("topic_briefs")
         .select("*")
