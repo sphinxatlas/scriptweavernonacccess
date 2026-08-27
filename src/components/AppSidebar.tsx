@@ -1,3 +1,4 @@
+import { Library, ScrollText, Sparkles, Feather, BookOpen } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
