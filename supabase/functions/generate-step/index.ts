@@ -2407,10 +2407,8 @@ serve(async (req) => {
     const guidanceSseHeader = guidanceWarnings.length > 0
       ? `: guidance_warnings ${JSON.stringify(guidanceWarnings)}\n\n`
       : "";
-    // Captured by closure; assigned later in test mode just before the AI call.
-    let __diagnosticsHeader = "";
     const wrapStreamWithWarnings = (upstream: ReadableStream<Uint8Array>) => {
-      const header = guidanceSseHeader + __diagnosticsHeader;
+      const header = guidanceSseHeader;
       if (!header) return upstream;
       const encoder = new TextEncoder();
       return new ReadableStream<Uint8Array>({
