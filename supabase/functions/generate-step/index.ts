@@ -2138,41 +2138,10 @@ serve(async (req) => {
       revisionFeedback,
       previousFullScript,
       hookDirection,
-      // ── TEST MODE (Pipeline Test tab) ──
-      // When testMode === true, the function:
-      //   - never touches topic_briefs / pipeline_outputs / evidence_points
-      //   - uses the supplied inline brief + inline previous outputs
-      //   - applies per-step input caps (see TEST_MODE_INSTRUCTIONS below)
-      //   - halves SSA secondary budgets
-      //   - emits a `: diagnostics {json}` SSE header with retrieval +
-      //     guidance counts for the orchestrator to assemble its report
-      // No schema changes, no DB writes, no impact on normal runs.
-      testMode,
-      testInlineBrief,
-      testInlineOutputs,
-      // Optional inline alternative source IDs (test mode only). When
-      // supplied, the function fetches these from alternative_sources by id
-      // and injects them into SSA exactly as the real pipeline does.
-      testInlineAlternativeSourceIds,
-      // Optional inline format reference + HP topic transcript IDs (test
-      // mode only). Wired through identically to the real pipeline so SSA /
-      // Creative Brief receive the same inputs as a real run.
-      testInlineFormatReferenceIds,
-      testInlineTopicTranscriptIds,
-      // Test-mode-only flag. When true (and we are in test mode), the retrieval
-      // block runs hybrid Reciprocal Rank Fusion over FTS + pgvector match_chunks
-      // instead of FTS only. The real pipeline never reads this flag.
-      testInlineUseVectorSearch,
     } = await req.json();
     if (!stepType) throw new Error("stepType is required");
-    if (!testMode && !briefId) throw new Error("briefId is required");
-    const isTestMode = testMode === true;
-    // Inline upstream outputs supplied by the Pipeline Test orchestrator,
-    // keyed by step_type. Used in place of pipeline_outputs reads.
-    const inlineOutputsMap: Record<string, string> =
-      isTestMode && testInlineOutputs && typeof testInlineOutputs === "object"
-        ? (testInlineOutputs as Record<string, string>)
-        : {};
+    if (!briefId) throw new Error("briefId is required");
+
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
