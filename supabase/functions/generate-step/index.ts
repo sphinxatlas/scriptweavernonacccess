@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// ─── HYBRID VECTOR SEARCH (test-mode only) ───────────────────────────────
+// ─── HYBRID VECTOR SEARCH (standard retrieval path) ──────────────────────
 // Embeds query strings via OpenAI text-embedding-3-small (1536d) for use with
 // the match_chunks(vector, source_type, k) RPC. Returns null entries when the
 // API key is missing or the call fails — callers must fall back gracefully.
@@ -2541,11 +2541,7 @@ serve(async (req) => {
     // ── CREATIVE BRIEF STEP ──
     if (stepType === "creative_brief") {
       if (formatRefs.length === 0) {
-        if (isTestMode) {
-          // Test mode does not require format references — synthesize none.
-        } else {
-          throw new Error("No format reference transcripts linked to this brief. Please add at least one format reference in the Transcript Library before generating the Creative Brief.");
-        }
+        throw new Error("No format reference transcripts linked to this brief. Please add at least one format reference in the Transcript Library before generating the Creative Brief.");
       }
 
       const formatRefBlock = formatRefs
@@ -2564,22 +2560,6 @@ serve(async (req) => {
       // a single source of guidance.
       let systemPrompt = STEP_PROMPTS["creative_brief"];
       systemPrompt += layeredGuidanceBlock;
-      if (isTestMode) {
-        systemPrompt +=
-          `\n\n## PIPELINE TEST MODE — INPUT CAPS (BINDING)\n` +
-          `This is a diagnostic run. Halve the secondary-source budget you would normally use. Produce a real, complete Creative Brief — do not truncate. Keep the output tight (target ~400 words).`;
-        const diagnostics = {
-          step: "creative_brief",
-          model: getModelForStep(stepType),
-          retrieval: { book: 0, transcript: 0, lexicon: 0, commentary: 0, zero_result_queries: 0, total_queries: 0 },
-          guidance: {
-            script_instructions: { loaded: guidanceLayers.scriptInstructions.chunksRead > 0, truncated: guidanceLayers.scriptInstructions.truncated },
-            anti_ai: { loaded: guidanceLayers.antiAiInstructions.chunksRead > 0, truncated: guidanceLayers.antiAiInstructions.truncated },
-            host_persona: { loaded: guidanceLayers.hostPersona.chunksRead > 0, truncated: guidanceLayers.hostPersona.truncated },
-          },
-        };
-        __diagnosticsHeader = `: diagnostics ${JSON.stringify(diagnostics)}\n\n`;
-      }
 
       const userMessage = `## Video Title
 ${brief.title}
@@ -2653,8 +2633,6 @@ Generate the Creative Brief now.`;
     // Runs FTS + pgvector match_chunks per (query, source) and fuses with
     // Reciprocal Rank Fusion. All downstream scoring (priority boost,
     // primary-query boost, character boost, floor quota) is unchanged.
-    // The legacy testInlineUseVectorSearch flag is retained for back-compat
-    // but no longer gates execution.
     const useVectorSearch = true;
     const hybridArmDiagnostics: any[] = [];
 
@@ -2716,8 +2694,8 @@ Generate the Creative Brief now.`;
         });
       });
     } else {
-      // ── Hybrid FTS + Vector with Reciprocal Rank Fusion (TEST MODE ONLY) ──
-      console.log("[generate-step] HYBRID VECTOR SEARCH ENABLED (test mode)");
+      // ── Hybrid FTS + Vector with Reciprocal Rank Fusion (standard path) ──
+      console.log("[generate-step] HYBRID VECTOR SEARCH ENABLED (standard retrieval path)");
 
       // 1. Embed every unique query string ONCE.
       const uniqueQueries = Array.from(new Set(retrievalPlan.map((p) => p.query)));
@@ -2816,7 +2794,7 @@ Generate the Creative Brief now.`;
           }
         });
 
-        // Per-arm top-5 for diagnostics SSE comment.
+        // Per-arm top-5 for retrieval logging.
         hybridArmDiagnostics.push({
           query: plan.query,
           source_type: plan.sourceType,
@@ -2839,9 +2817,9 @@ Generate the Creative Brief now.`;
 
     // In comparison mode, enforce balanced limits; otherwise use standard limits.
     // Test mode caps every source type at 10 chunks (per spec).
-    const bookLimit = isTestMode ? 10 : (isComparison ? 20 : 20);
-    const transcriptLimit = isTestMode ? 10 : (isComparison ? 20 : 20);
-    const lexiconLimit = isTestMode ? 10 : (isComparison ? 5 : 10);
+    const bookLimit = isComparison ? 20 : 20;
+    const transcriptLimit = isComparison ? 20 : 20;
+    const lexiconLimit = isComparison ? 5 : 10;
 
     const bookChunksSorted = Array.from(mergedByType.book.values())
       .sort((a, b) => b._score - a._score);
@@ -2932,15 +2910,11 @@ Generate the Creative Brief now.`;
     };
     console.log("RETRIEVAL DEBUG:", JSON.stringify(debugInfo, null, 2));
 
-    // Get previous pipeline outputs for this brief — inline in test mode.
+    // Get previous pipeline outputs for this brief.
     const stepIndex = STEP_ORDER.indexOf(stepType);
     const previousSteps = STEP_ORDER.slice(0, stepIndex);
     let previousOutputs: { step_type: string; content: string }[] | null = null;
-    if (isTestMode) {
-      previousOutputs = previousSteps
-        .filter((s) => inlineOutputsMap[s])
-        .map((s) => ({ step_type: s, content: inlineOutputsMap[s] }));
-    } else {
+    {
       const { data } = await supabase
         .from("pipeline_outputs")
         .select("step_type, content")
@@ -3098,9 +3072,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     // Full Script, so we surface approved high-risk evidence + their author
     // notes here as well, so the model can honour the user's per-point
     // guidance ("use carefully", "frame as interpretation only", etc.) while
-    // structuring the script. Runs in BOTH real and test mode so the approval
-    // flow can be validated end-to-end before a real run; the test
-    // orchestrator persists evidence_points under a synthetic test brief id.
+    // structuring the script.
     if (stepType === "outline" || stepType === "script_evidence_pack") {
       try {
         const { data: evRows } = await supabase
@@ -3168,8 +3140,7 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
 
       // ── APPROVED EVIDENCE POINTS (structured, post-review) ──
       // Pull rows from public.evidence_points for this brief, excluding any
-      // user-rejected rows. Runs in both real and test mode (test mode uses a
-      // synthetic brief id persisted by the Pipeline Test orchestrator).
+      // user-rejected rows.
       try {
         const { data: evRows } = await supabase
           .from("evidence_points")
@@ -3223,10 +3194,8 @@ DO NOT use general Harry Potter knowledge. DO NOT generate placeholder evidence.
     let systemPrompt = STEP_PROMPTS[stepType] || "You are a helpful writing assistant.";
 
     // Inject dynamic target length instructions for outline and full_script.
-    // Test mode forces a ~700-word target so the Full Script is a complete
-    // (not truncated) short script driven by a 4-beat plan.
-    const targetMin = isTestMode ? 650 : (brief.target_min_words ?? 1400);
-    const targetMax = isTestMode ? 800 : (brief.target_max_words ?? 1600);
+    const targetMin = brief.target_min_words ?? 1400;
+    const targetMax = brief.target_max_words ?? 1600;
 
     if (stepType === "full_script") {
       systemPrompt = systemPrompt.replace(
