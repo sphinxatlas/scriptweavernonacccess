@@ -532,14 +532,7 @@ export async function streamGenerateStep(
       textBuffer = textBuffer.slice(newlineIndex + 1);
 
       if (line.endsWith("\r")) line = line.slice(0, -1);
-      if (line.startsWith(":")) {
-        // SSE comment line — may carry diagnostics from test mode.
-        const m = line.match(/^:\s*diagnostics\s+(.+)$/);
-        if (m && options?.onDiagnostics) {
-          try { options.onDiagnostics(JSON.parse(m[1])); } catch { /* ignore */ }
-        }
-        continue;
-      }
+      if (line.startsWith(":")) continue;
       if (line.trim() === "") continue;
       if (!line.startsWith("data: ")) continue;
 
