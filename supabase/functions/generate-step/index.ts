@@ -3411,11 +3411,9 @@ ${topicTranscriptUserBlock}${altSourceUserBlock}${buildSecondarySkippedNotice()}
 
 Now produce the Selected Source Analysis in the exact format specified. Be honest about source weight — never promote a secondary-source claim to canon. Surface what's overused, what's underdeveloped, what objections exist, and where original synthesis is possible against the canon extraction above.`;
     } else if (stepType === "six_category_extraction") {
-      // Get creative brief output — inline in test mode.
+      // Get creative brief output.
       let creativeBriefContent = "";
-      if (isTestMode) {
-        creativeBriefContent = inlineOutputsMap["creative_brief"] || "";
-      } else {
+      {
         const { data: creativeBriefOutput } = await supabase
           .from("pipeline_outputs")
           .select("content")
