@@ -3362,13 +3362,10 @@ If any answer reveals overreliance, revise toward a more original, canon-grounde
         : "";
 
     if (stepType === "selected_source_analysis") {
-      // Pull Creative Brief and Insights & Research — inline in test mode.
+      // Pull Creative Brief and Insights & Research.
       let creativeBriefContent = "";
       let insightsContent = "";
-      if (isTestMode) {
-        creativeBriefContent = inlineOutputsMap["creative_brief"] || "";
-        insightsContent = inlineOutputsMap["six_category_extraction"] || "";
-      } else {
+      {
         const { data: cbOut } = await supabase
           .from("pipeline_outputs")
           .select("content")
